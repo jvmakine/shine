@@ -5,7 +5,12 @@ import (
 )
 
 type Program struct {
-	String *string `"print" @Ident`
+	Exp *Expression `@@`
+}
+
+type Expression struct {
+	Value *int        `@Int`
+	Add   *Expression `("+" @@)?`
 }
 
 func Parse(str string) (*Program, error) {

@@ -1,15 +1,24 @@
 package compiler
 
 import (
+	"strconv"
+
 	"github.com/jvmakine/shine/grammar"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/types"
 )
 
+func add(exp *grammar.Expression) int {
+	if exp.Add != nil {
+		return *exp.Value + add(exp.Add)
+	}
+	return *exp.Value
+}
+
 func Compile(prg *grammar.Program) *ir.Module {
 	module := ir.NewModule()
-	str := *prg.String
+	str := strconv.Itoa(add(prg.Exp))
 	msg := module.NewGlobalDef("msg", constant.NewCharArrayFromString(str))
 	puts := module.NewFunc("puts", types.I32, ir.NewParam("msg", types.I8Ptr))
 
