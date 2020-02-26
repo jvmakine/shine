@@ -9,20 +9,15 @@ import (
 )
 
 func main() {
-	message := constant.NewCharArrayFromString("Hello world!")
+	module := ir.NewModule()
+	msg := module.NewGlobalDef("msg", constant.NewCharArrayFromString("Hello world!"))
+	puts := module.NewFunc("puts", types.I32, ir.NewParam("msg", types.I8Ptr))
 
-	m := ir.NewModule()
-	msg := m.NewGlobalDef("msg", message)
-
-	puts := m.NewFunc("puts", types.I32, ir.NewParam("msg", types.I8Ptr))
-
-	mainfun := m.NewFunc("main", types.I32)
+	mainfun := module.NewFunc("main", types.I32)
 	entry := mainfun.NewBlock("")
-
 	ptr := entry.NewGetElementPtr(types.NewArray(12, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
-	ptr.Typ = types.I8Ptr
 	entry.NewCall(puts, ptr)
 	entry.NewRet(constant.NewInt(types.I32, 0))
 
-	fmt.Println(m)
+	fmt.Println(module)
 }
