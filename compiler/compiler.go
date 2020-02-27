@@ -13,9 +13,14 @@ func expression(module *ir.Module, block *ir.Block, exp *grammar.Expression) val
 	var v value.Value
 	v = constant.NewInt(types.I32, int64(*exp.Value))
 
-	for e.Add != nil {
-		v = block.NewAdd(v, constant.NewInt(types.I32, int64(*e.Add.Value)))
-		e = e.Add
+	for e.Op != nil {
+		if e.Op.Add != nil {
+			v = block.NewAdd(v, constant.NewInt(types.I32, int64(*e.Op.Add.Value)))
+			e = e.Op.Add
+		} else if e.Op.Sub != nil {
+			v = block.NewSub(v, constant.NewInt(types.I32, int64(*e.Op.Sub.Value)))
+			e = e.Op.Sub
+		}
 	}
 
 	return v

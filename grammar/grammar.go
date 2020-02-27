@@ -9,8 +9,13 @@ type Program struct {
 }
 
 type Expression struct {
-	Value *int        `@Int`
-	Add   *Expression `("+" @@)?`
+	Value *int       `@Int`
+	Op    *Operation `@@?`
+}
+
+type Operation struct {
+	Add *Expression `"+" @@`
+	Sub *Expression `| "-" @@`
 }
 
 func Parse(str string) (*Program, error) {
