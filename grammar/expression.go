@@ -6,8 +6,15 @@ type Expression struct {
 }
 
 type Value struct {
-	Int *int        `@Int`
-	Sub *Expression `| "(" @@ ")"`
+	Int  *int        `@Int`
+	Call *FunCall    `| @@`
+	Id   *string     `| @Ident`
+	Sub  *Expression `| "(" @@ ")"`
+}
+
+type FunCall struct {
+	Name   *string       `@Ident`
+	Params []*Expression `"(" (@@ ("," @@)*)? ")"`
 }
 
 type OpFactor struct {

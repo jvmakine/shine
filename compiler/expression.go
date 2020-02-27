@@ -13,6 +13,8 @@ func evalValue(block *ir.Block, val *grammar.Value) value.Value {
 		return constant.NewInt(types.I32, int64(*val.Int))
 	} else if val.Sub != nil {
 		return evalExpression(block, val.Sub)
+	} else if val.Call != nil {
+		return constant.NewInt(types.I32, 1)
 	}
 	panic("invalid value")
 }
