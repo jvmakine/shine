@@ -8,20 +8,29 @@ type Program struct {
 	Exp *Expression `@@`
 }
 
+type Expression struct {
+	Left  *Term     `@@`
+	Right []*OpTerm `@@*`
+}
+
 type Value struct {
 	Int *int        `@Int`
 	Sub *Expression `| "(" @@ ")"`
 }
 
-type Expression struct {
-	Value *Value     `@@`
-	Op    *Operation `@@?`
+type OpFactor struct {
+	Operation *string `@("*" | "/")`
+	Right     *Value  `@@`
 }
 
-type Operation struct {
-	Add *Expression `"+" @@`
-	Sub *Expression `| "-" @@`
-	Mul *Expression `| "*" @@`
+type Term struct {
+	Left  *Value      `@@`
+	Right []*OpFactor `@@*`
+}
+
+type OpTerm struct {
+	Operation *string `@("+" | "-")`
+	Right     *Term   `@@*`
 }
 
 func Parse(str string) (*Program, error) {

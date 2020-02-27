@@ -17,27 +17,43 @@ func evalValue(block *ir.Block, val *grammar.Value) value.Value {
 	panic("invalid value")
 }
 
-func evalExpression(block *ir.Block, exp *grammar.Expression) value.Value {
-	e := exp
-	var v value.Value
-	v = evalValue(block, exp.Value)
-
-	for e.Op != nil {
-		if e.Op.Add != nil {
-			subVal := evalValue(block, e.Op.Add.Value)
-			v = block.NewAdd(v, subVal)
-			e = e.Op.Add
-		} else if e.Op.Sub != nil {
-			subVal := evalValue(block, e.Op.Sub.Value)
-			v = block.NewSub(v, subVal)
-			e = e.Op.Sub
-		} else if e.Op.Mul != nil {
-			subVal := evalValue(block, e.Op.Mul.Value)
-			v = block.NewMul(v, subVal)
-			e = e.Op.Mul
-		}
+func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value) value.Value {
+	right := evalValue(block, opf.Right)
+	switch *opf.Operation {
+	case "*":
+		return block.NewMul(left, right)
+	case "/":
+		return block.NewUDiv(left, right)
+	default:
+		panic("invalid opfactor: " + *opf.Operation)
 	}
+}
 
+func evalTerm(block *ir.Block, term *grammar.Term) value.Value {
+	v := evalValue(block, term.Left)
+	for _, r := range term.Right {
+		v = evalOpFactor(block, r, v)
+	}
+	return v
+}
+
+func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value) value.Value {
+	right := evalTerm(block, opt.Right)
+	switch *opt.Operation {
+	case "+":
+		return block.NewAdd(left, right)
+	case "-":
+		return block.NewSub(left, right)
+	default:
+		panic("invalid opterm: " + *opt.Operation)
+	}
+}
+
+func evalExpression(block *ir.Block, prg *grammar.Expression) value.Value {
+	v := evalTerm(block, prg.Left)
+	for _, r := range prg.Right {
+		v = evalOpTerm(block, r, v)
+	}
 	return v
 }
 
