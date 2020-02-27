@@ -31,6 +31,10 @@ func evalExpression(block *ir.Block, exp *grammar.Expression) value.Value {
 			subVal := evalValue(block, e.Op.Sub.Value)
 			v = block.NewSub(v, subVal)
 			e = e.Op.Sub
+		} else if e.Op.Mul != nil {
+			subVal := evalValue(block, e.Op.Mul.Value)
+			v = block.NewMul(v, subVal)
+			e = e.Op.Mul
 		}
 	}
 

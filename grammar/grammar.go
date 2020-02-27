@@ -21,6 +21,7 @@ type Expression struct {
 type Operation struct {
 	Add *Expression `"+" @@`
 	Sub *Expression `| "-" @@`
+	Mul *Expression `| "*" @@`
 }
 
 func Parse(str string) (*Program, error) {
