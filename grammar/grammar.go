@@ -5,7 +5,14 @@ import (
 )
 
 type Program struct {
-	Exp *Expression `@@`
+	Functions []*Function `@@*`
+	Exp       *Expression `@@`
+}
+
+type Function struct {
+	Name   *string     `"fun" @Ident`
+	Params []*string   `"(" (@Ident ("," @Ident)*)? ")"`
+	Body   *Expression `"{" @@ "}"`
 }
 
 func Parse(str string) (*Program, error) {
