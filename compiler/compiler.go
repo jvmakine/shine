@@ -8,17 +8,28 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-func expression(module *ir.Module, block *ir.Block, exp *grammar.Expression) value.Value {
+func evalValue(block *ir.Block, val *grammar.Value) value.Value {
+	if val.Int != nil {
+		return constant.NewInt(types.I32, int64(*val.Int))
+	} else if val.Sub != nil {
+		return evalExpression(block, val.Sub)
+	}
+	panic("invalid value")
+}
+
+func evalExpression(block *ir.Block, exp *grammar.Expression) value.Value {
 	e := exp
 	var v value.Value
-	v = constant.NewInt(types.I32, int64(*exp.Value))
+	v = evalValue(block, exp.Value)
 
 	for e.Op != nil {
 		if e.Op.Add != nil {
-			v = block.NewAdd(v, constant.NewInt(types.I32, int64(*e.Op.Add.Value)))
+			subVal := evalValue(block, e.Op.Add.Value)
+			v = block.NewAdd(v, subVal)
 			e = e.Op.Add
 		} else if e.Op.Sub != nil {
-			v = block.NewSub(v, constant.NewInt(types.I32, int64(*e.Op.Sub.Value)))
+			subVal := evalValue(block, e.Op.Sub.Value)
+			v = block.NewSub(v, subVal)
 			e = e.Op.Sub
 		}
 	}
@@ -35,7 +46,7 @@ func Compile(prg *grammar.Program) *ir.Module {
 
 	mainfun := module.NewFunc("main", types.I32)
 	entry := mainfun.NewBlock("")
-	v := expression(module, entry, prg.Exp)
+	v := evalExpression(entry, prg.Exp)
 	ptr := entry.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
 	entry.NewCall(printf, ptr, v)
 	entry.NewRet(constant.NewInt(types.I32, 0))

@@ -8,8 +8,13 @@ type Program struct {
 	Exp *Expression `@@`
 }
 
+type Value struct {
+	Int *int        `@Int`
+	Sub *Expression `| "(" @@ ")"`
+}
+
 type Expression struct {
-	Value *int       `@Int`
+	Value *Value     `@@`
 	Op    *Operation `@@?`
 }
 
