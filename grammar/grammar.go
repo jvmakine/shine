@@ -5,13 +5,17 @@ import (
 )
 
 type Program struct {
-	Functions []*Function `@@*`
+	Functions []*FunDef   `@@*`
 	Exp       *Expression `@@`
 }
 
-type Function struct {
+type FunParam struct {
+	Name *string `@Ident`
+}
+
+type FunDef struct {
 	Name   *string     `"fun" @Ident`
-	Params []*string   `"(" (@Ident ("," @Ident)*)? ")"`
+	Params []*FunParam `"(" (@@ ("," @@)*)? ")"`
 	Body   *Expression `"{" @@ "}"`
 }
 
