@@ -44,7 +44,7 @@ func (c *context) resolveFun(name string) (*compiledFun, error) {
 	if c.functions[name] != nil {
 		return c.functions[name], nil
 	} else if c.parent != nil {
-		c.parent.resolveFun(name)
+		return c.parent.resolveFun(name)
 	}
 	return nil, errors.New("undefined fun " + name)
 }
