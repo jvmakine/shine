@@ -1,9 +1,11 @@
 # Shine frontend for LLVM
 
+Implements a LLVM frontend for a simple language
+
 ## Usage
 
 Compile into executable
-> echo "1 + 2 + 3 - 4 + 10" | go run main.go | opt-9 -S | llvm-as-9 > test
+> cat examples/functions.sh | go run main.go | opt-9 -S | llvm-as-9 > test
 
 Interpret
-> echo "1 + 2 + 3 - 4 + 10" | go run main.go | lli-9
+> cat examples/functions.sh | go run main.go | lli-9
