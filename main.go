@@ -18,6 +18,9 @@ func main() {
 		panic(err)
 	}
 
-	module := compiler.Compile(ast)
+	module, err := compiler.Compile(ast)
+	if err != nil {
+		panic(err.Error())
+	}
 	fmt.Println(module)
 }

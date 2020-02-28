@@ -1,0 +1,4 @@
+fun square(x) { x * x }
+fun add(x, y) { x + y }
+
+add(square(3, 5), square(4))

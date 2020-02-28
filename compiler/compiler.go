@@ -7,25 +7,29 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-func evalFunDef(module *ir.Module, fun *grammar.FunDef, ctx *context) {
+func evalFunDef(module *ir.Module, fun *grammar.FunDef, ctx *context) error {
 	var params []*ir.Param
 	subCtx := ctx.subContext()
 	for _, p := range fun.Params {
 		param := ir.NewParam(*p.Name, types.I32)
-		subCtx.withConstant(*p.Name, param)
+		subCtx.addId(*p.Name, param)
 		params = append(params, param)
 	}
 
 	compiled := module.NewFunc(*fun.Name, types.I32, params...)
 
 	body := compiled.NewBlock("")
-	result := evalExpression(body, fun.Body, subCtx)
+	result, err := evalExpression(body, fun.Body, subCtx)
+	if err != nil {
+		return err
+	}
 	body.NewRet(result)
 
-	ctx.Functions[*fun.Name] = &compiledFun{fun, compiled}
+	ctx.addFun(*fun.Name, &compiledFun{fun, compiled})
+	return nil
 }
 
-func Compile(prg *grammar.Program) *ir.Module {
+func Compile(prg *grammar.Program) (*ir.Module, error) {
 	module := ir.NewModule()
 
 	msg := module.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%d\n"))
@@ -35,14 +39,17 @@ func Compile(prg *grammar.Program) *ir.Module {
 	mainfun := module.NewFunc("main", types.I32)
 	entry := mainfun.NewBlock("")
 
-	ctx := context{Functions: map[string]*compiledFun{}}
+	ctx := context{}
 	for _, f := range prg.Functions {
 		evalFunDef(module, f, &ctx)
 	}
-	v := evalExpression(entry, prg.Exp, &ctx)
+	v, err := evalExpression(entry, prg.Exp, &ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	ptr := entry.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
 	entry.NewCall(printf, ptr, v)
 	entry.NewRet(constant.NewInt(types.I32, 0))
-	return module
+	return module, nil
 }

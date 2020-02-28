@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	"errors"
 	"strconv"
 
 	"github.com/jvmakine/shine/grammar"
@@ -10,70 +11,89 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-func evalValue(block *ir.Block, val *grammar.Value, ctx *context) value.Value {
+func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, error) {
 	if val.Int != nil {
-		return constant.NewInt(types.I32, int64(*val.Int))
+		return constant.NewInt(types.I32, int64(*val.Int)), nil
 	} else if val.Sub != nil {
 		return evalExpression(block, val.Sub, ctx)
 	} else if val.Call != nil {
 		name := *val.Call.Name
-		if ctx.Functions[name] == nil {
-			panic("unknown function: " + name)
-		}
+		comp := ctx.resolveFun(name)
 		gotParms := len(val.Call.Params)
-		expParms := len(ctx.Functions[name].From.Params)
+		expParms := len(comp.From.Params)
 		if gotParms != expParms {
-			panic("invalid number of args for " + name + ". Got " + strconv.Itoa(gotParms) + ", expected " + strconv.Itoa(expParms))
+			return nil, errors.New("invalid number of args for " + name + ". Got " + strconv.Itoa(gotParms) + ", expected " + strconv.Itoa(expParms))
 		}
 
 		var params []value.Value
 		for _, p := range val.Call.Params {
-			v := evalExpression(block, p, ctx)
+			v, err := evalExpression(block, p, ctx)
+			if err != nil {
+				return nil, err
+			}
 			params = append(params, v)
 		}
-		return block.NewCall(ctx.Functions[name].Fun, params...)
+		return block.NewCall(comp.Fun, params...), nil
 	} else if val.Id != nil {
-		return ctx.resolveId(*val.Id)
+		return ctx.resolveId(*val.Id), nil
 	}
 	panic("invalid value")
 }
 
-func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value, ctx *context) value.Value {
-	right := evalValue(block, opf.Right, ctx)
+func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value, ctx *context) (value.Value, error) {
+	right, err := evalValue(block, opf.Right, ctx)
+	if err != nil {
+		return nil, err
+	}
 	switch *opf.Operation {
 	case "*":
-		return block.NewMul(left, right)
+		return block.NewMul(left, right), nil
 	case "/":
-		return block.NewUDiv(left, right)
+		return block.NewUDiv(left, right), nil
 	default:
 		panic("invalid opfactor: " + *opf.Operation)
 	}
 }
 
-func evalTerm(block *ir.Block, term *grammar.Term, ctx *context) value.Value {
-	v := evalValue(block, term.Left, ctx)
-	for _, r := range term.Right {
-		v = evalOpFactor(block, r, v, ctx)
+func evalTerm(block *ir.Block, term *grammar.Term, ctx *context) (value.Value, error) {
+	v, err := evalValue(block, term.Left, ctx)
+	if err != nil {
+		return nil, err
 	}
-	return v
+	for _, r := range term.Right {
+		v, err = evalOpFactor(block, r, v, ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return v, nil
 }
 
-func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *context) value.Value {
-	right := evalTerm(block, opt.Right, ctx)
+func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *context) (value.Value, error) {
+	right, err := evalTerm(block, opt.Right, ctx)
+	if err != nil {
+		return nil, err
+	}
 	switch *opt.Operation {
 	case "+":
-		return block.NewAdd(left, right)
+		return block.NewAdd(left, right), nil
 	case "-":
-		return block.NewSub(left, right)
+		return block.NewSub(left, right), nil
 	default:
 		panic("invalid opterm: " + *opt.Operation)
 	}
 }
 
-func evalExpression(block *ir.Block, prg *grammar.Expression, ctx *context) value.Value {
-	v := evalTerm(block, prg.Left, ctx)
-	for _, r := range prg.Right {
-		v = evalOpTerm(block, r, v, ctx)
+func evalExpression(block *ir.Block, prg *grammar.Expression, ctx *context) (value.Value, error) {
+	v, err := evalTerm(block, prg.Left, ctx)
+	if err != nil {
+		return nil, err
 	}
-	return v
+	for _, r := range prg.Right {
+		v, err = evalOpTerm(block, r, v, ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return v, nil
 }
