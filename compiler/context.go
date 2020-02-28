@@ -1,6 +1,8 @@
 package compiler
 
 import (
+	"errors"
+
 	"github.com/jvmakine/shine/grammar"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/value"
@@ -21,13 +23,13 @@ func (c *context) subContext() *context {
 	return &context{parent: c}
 }
 
-func (c *context) resolveId(name string) value.Value {
+func (c *context) resolveId(name string) (value.Value, error) {
 	if c.constants[name] != nil {
-		return c.constants[name]
+		return c.constants[name], nil
 	} else if c.parent != nil {
 		c.parent.resolveId(name)
 	}
-	panic("unknown id: " + name)
+	return nil, errors.New("undefined id " + name)
 }
 
 func (c *context) addId(name string, val value.Value) *context {
@@ -38,13 +40,13 @@ func (c *context) addId(name string, val value.Value) *context {
 	return c
 }
 
-func (c *context) resolveFun(name string) *compiledFun {
+func (c *context) resolveFun(name string) (*compiledFun, error) {
 	if c.functions[name] != nil {
-		return c.functions[name]
+		return c.functions[name], nil
 	} else if c.parent != nil {
 		c.parent.resolveFun(name)
 	}
-	panic("unknown fun: " + name)
+	return nil, errors.New("undefined fun " + name)
 }
 
 func (c *context) addFun(name string, fun *compiledFun) *context {

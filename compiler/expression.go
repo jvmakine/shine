@@ -18,7 +18,11 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, 
 		return evalExpression(block, val.Sub, ctx)
 	} else if val.Call != nil {
 		name := *val.Call.Name
-		comp := ctx.resolveFun(name)
+		comp, err := ctx.resolveFun(name)
+		if err != nil {
+			return nil, err
+		}
+
 		gotParms := len(val.Call.Params)
 		expParms := len(comp.From.Params)
 		if gotParms != expParms {
@@ -35,7 +39,12 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, 
 		}
 		return block.NewCall(comp.Fun, params...), nil
 	} else if val.Id != nil {
-		return ctx.resolveId(*val.Id), nil
+		id, err := ctx.resolveId(*val.Id)
+		if err != nil {
+			return nil, err
+		}
+
+		return id, nil
 	}
 	panic("invalid value")
 }

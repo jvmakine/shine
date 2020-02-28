@@ -41,7 +41,10 @@ func Compile(prg *grammar.Program) (*ir.Module, error) {
 
 	ctx := context{}
 	for _, f := range prg.Functions {
-		evalFunDef(module, f, &ctx)
+		err := evalFunDef(module, f, &ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 	v, err := evalExpression(entry, prg.Exp, &ctx)
 	if err != nil {
