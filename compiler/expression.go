@@ -10,7 +10,7 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-func evalValue(block *ir.Block, val *grammar.Value, ctx *globalContext) value.Value {
+func evalValue(block *ir.Block, val *grammar.Value, ctx *context) value.Value {
 	if val.Int != nil {
 		return constant.NewInt(types.I32, int64(*val.Int))
 	} else if val.Sub != nil {
@@ -33,12 +33,12 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *globalContext) value.Va
 		}
 		return block.NewCall(ctx.Functions[name].Fun, params...)
 	} else if val.Id != nil {
-		return constant.NewInt(types.I32, 1)
+		return ctx.resolveId(*val.Id)
 	}
 	panic("invalid value")
 }
 
-func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value, ctx *globalContext) value.Value {
+func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value, ctx *context) value.Value {
 	right := evalValue(block, opf.Right, ctx)
 	switch *opf.Operation {
 	case "*":
@@ -50,7 +50,7 @@ func evalOpFactor(block *ir.Block, opf *grammar.OpFactor, left value.Value, ctx 
 	}
 }
 
-func evalTerm(block *ir.Block, term *grammar.Term, ctx *globalContext) value.Value {
+func evalTerm(block *ir.Block, term *grammar.Term, ctx *context) value.Value {
 	v := evalValue(block, term.Left, ctx)
 	for _, r := range term.Right {
 		v = evalOpFactor(block, r, v, ctx)
@@ -58,7 +58,7 @@ func evalTerm(block *ir.Block, term *grammar.Term, ctx *globalContext) value.Val
 	return v
 }
 
-func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *globalContext) value.Value {
+func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *context) value.Value {
 	right := evalTerm(block, opt.Right, ctx)
 	switch *opt.Operation {
 	case "+":
@@ -70,7 +70,7 @@ func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *glo
 	}
 }
 
-func evalExpression(block *ir.Block, prg *grammar.Expression, ctx *globalContext) value.Value {
+func evalExpression(block *ir.Block, prg *grammar.Expression, ctx *context) value.Value {
 	v := evalTerm(block, prg.Left, ctx)
 	for _, r := range prg.Right {
 		v = evalOpTerm(block, r, v, ctx)

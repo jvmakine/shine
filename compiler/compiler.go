@@ -7,25 +7,19 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-type compiledFun struct {
-	From *grammar.FunDef
-	Fun  *ir.Func
-}
-
-type globalContext struct {
-	Functions map[string]*compiledFun
-}
-
-func evalFunDef(module *ir.Module, fun *grammar.FunDef, ctx *globalContext) {
+func evalFunDef(module *ir.Module, fun *grammar.FunDef, ctx *context) {
 	var params []*ir.Param
+	subCtx := ctx.subContext()
 	for _, p := range fun.Params {
-		params = append(params, ir.NewParam(*p.Name, types.I32))
+		param := ir.NewParam(*p.Name, types.I32)
+		subCtx.withConstant(*p.Name, param)
+		params = append(params, param)
 	}
 
 	compiled := module.NewFunc(*fun.Name, types.I32, params...)
 
 	body := compiled.NewBlock("")
-	result := evalExpression(body, fun.Body, ctx)
+	result := evalExpression(body, fun.Body, subCtx)
 	body.NewRet(result)
 
 	ctx.Functions[*fun.Name] = &compiledFun{fun, compiled}
@@ -41,7 +35,7 @@ func Compile(prg *grammar.Program) *ir.Module {
 	mainfun := module.NewFunc("main", types.I32)
 	entry := mainfun.NewBlock("")
 
-	ctx := globalContext{map[string]*compiledFun{}}
+	ctx := context{Functions: map[string]*compiledFun{}}
 	for _, f := range prg.Functions {
 		evalFunDef(module, f, &ctx)
 	}
