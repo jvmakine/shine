@@ -4,6 +4,7 @@ import (
 	"github.com/jvmakine/shine/grammar"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
+	"github.com/llir/llvm/ir/enum"
 	"github.com/llir/llvm/ir/types"
 )
 
@@ -17,6 +18,7 @@ func evalFunDef(module *ir.Module, fun *grammar.FunDef, ctx *context) error {
 	}
 
 	compiled := module.NewFunc(*fun.Name, types.I32, params...)
+	compiled.Linkage = enum.LinkageInternal
 
 	body := compiled.NewBlock("")
 	result, err := evalExpression(body, fun.Body, subCtx)
