@@ -1,6 +1,5 @@
 fun square(x) { x * x }
-fun add(x, y) { x + y }
-fun sub(x, y) { x - y }
 fun dist(x, y) { add(square(x), square(y)) }
+fun add(x, y) { x + y }
 
 dist(3, 4)
