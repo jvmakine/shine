@@ -6,23 +6,7 @@ import (
 )
 
 type Program struct {
-	Functions []*FunDef `@@*`
-	Body      *Block    `@@`
-}
-
-type Assignment struct {
-	Name  *string     `@Ident "="`
-	Value *Expression `@@`
-}
-
-type FunParam struct {
-	Name *string `@Ident`
-}
-
-type FunDef struct {
-	Name   *string     `@Ident "="`
-	Params []*FunParam `"(" (@@ ("," @@)*)? ")"`
-	Body   *Expression `"=>" @@`
+	Body *Block `@@`
 }
 
 func Parse(str string) (*Program, error) {

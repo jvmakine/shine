@@ -8,28 +8,28 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-func makeFunDefinition(module *ir.Module, fun *grammar.FunDef, ctx *context) error {
+func makeFunDefinition(module *ir.Module, name string, fun *grammar.FunDef, ctx *context) error {
 	var params []*ir.Param
 	for _, p := range fun.Params {
 		param := ir.NewParam(*p.Name, types.I32)
 		params = append(params, param)
 	}
 
-	compiled := module.NewFunc(*fun.Name, types.I32, params...)
+	compiled := module.NewFunc(name, types.I32, params...)
 	compiled.Linkage = enum.LinkageInternal
 
-	ctx.addFun(*fun.Name, &compiledFun{fun, compiled})
-	return nil
+	_, err := ctx.addId(name, compiledFun{fun, compiled})
+	return err
 }
 
 func compileFunBodies(ctx *context) error {
-	for _, f := range ctx.functions {
+	for _, f := range ctx.functions() {
 		body := f.Fun.NewBlock("")
 		subCtx := ctx.subContext()
 		var params []*ir.Param
 		for _, p := range f.From.Params {
 			param := ir.NewParam(*p.Name, types.I32)
-			_, err := subCtx.addId(*p.Name, param)
+			_, err := subCtx.addId(*p.Name, compiledValue{param})
 			if err != nil {
 				return err
 			}
@@ -55,10 +55,12 @@ func Compile(prg *grammar.Program) (*ir.Module, error) {
 	entry := mainfun.NewBlock("")
 
 	ctx := context{}
-	for _, f := range prg.Functions {
-		err := makeFunDefinition(module, f, &ctx)
-		if err != nil {
-			return nil, err
+	for _, f := range prg.Body.Assignments {
+		if f.Value.Fun != nil {
+			err := makeFunDefinition(module, *f.Name, f.Value.Fun, &ctx)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	err := compileFunBodies(&ctx)

@@ -1,10 +1,12 @@
+from = 3
+to = 4
+
 square = (x) => { x * x }
 add = (x, y) => { x + y }
-
 dist = (from, to) => { 
     x = from
     y = to
     add(square(x), square(y))
 }
 
-dist(3, 4)
+dist(from, to)

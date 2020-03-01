@@ -14,13 +14,15 @@ import (
 func compileBlock(block *ir.Block, from *grammar.Block, ctx *context) (value.Value, error) {
 	sub := ctx.subContext()
 	for _, c := range from.Assignments {
-		v, err := evalExpression(block, c.Value, sub)
-		if err != nil {
-			return nil, err
-		}
-		_, err = sub.addId(*c.Name, v)
-		if err != nil {
-			return nil, err
+		if c.Value.Term != nil {
+			v, err := evalExpression(block, c.Value, sub)
+			if err != nil {
+				return nil, err
+			}
+			_, err = sub.addId(*c.Name, compiledValue{v})
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	result, err := evalExpression(block, from.Value, sub)
@@ -55,7 +57,7 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, 
 		}
 		return block.NewCall(comp.Fun, params...), nil
 	} else if val.Id != nil {
-		id, err := ctx.resolveId(*val.Id)
+		id, err := ctx.resolveVal(*val.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -111,15 +113,19 @@ func evalOpTerm(block *ir.Block, opt *grammar.OpTerm, left value.Value, ctx *con
 }
 
 func evalExpression(block *ir.Block, prg *grammar.Expression, ctx *context) (value.Value, error) {
-	v, err := evalTerm(block, prg.Left, ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range prg.Right {
-		v, err = evalOpTerm(block, r, v, ctx)
+	if prg.Term != nil {
+		t := prg.Term
+		v, err := evalTerm(block, t.Left, ctx)
 		if err != nil {
 			return nil, err
 		}
+		for _, r := range t.Right {
+			v, err = evalOpTerm(block, r, v, ctx)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return v, nil
 	}
-	return v, nil
+	return nil, errors.New("function can not be used as return value")
 }
