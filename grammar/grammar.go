@@ -5,8 +5,18 @@ import (
 )
 
 type Program struct {
-	Functions []*FunDef   `@@*`
-	Exp       *Expression `@@`
+	Functions []*FunDef `@@*`
+	Body      *Block    `@@`
+}
+
+type Assignment struct {
+	Name  *string     `@Ident "="`
+	Value *Expression `@@`
+}
+
+type Block struct {
+	Assignments []*Assignment `@@*`
+	Value       *Expression   `@@`
 }
 
 type FunParam struct {
@@ -16,7 +26,7 @@ type FunParam struct {
 type FunDef struct {
 	Name   *string     `"fun" @Ident`
 	Params []*FunParam `"(" (@@ ("," @@)*)? ")"`
-	Body   *Expression `"{" @@ "}"`
+	Body   *Block      `"{" @@ "}"`
 }
 
 func Parse(str string) (*Program, error) {

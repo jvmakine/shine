@@ -1,5 +1,12 @@
 fun square(x) { x * x }
-fun dist(x, y) { add(square(x), square(y)) }
 fun add(x, y) { x + y }
 
-dist(3, 4)
+fun dist(x, y) { 
+    p1 = x
+    p2 = y
+    add(square(p1), square(p2))
+}
+
+from = 3
+to = 4
+dist(from, to)
