@@ -27,7 +27,7 @@ func (c *context) resolveId(name string) (value.Value, error) {
 	if c.constants[name] != nil {
 		return c.constants[name], nil
 	} else if c.parent != nil {
-		c.parent.resolveId(name)
+		return c.parent.resolveId(name)
 	}
 	return nil, errors.New("undefined id " + name)
 }

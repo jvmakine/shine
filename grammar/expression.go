@@ -5,11 +5,17 @@ type Expression struct {
 	Right []*OpTerm `@@*`
 }
 
+type Block struct {
+	Assignments []*Assignment `@@*`
+	Value       *Expression   `@@`
+}
+
 type Value struct {
-	Int  *int        `@Int`
-	Call *FunCall    `| @@`
-	Id   *string     `| @Ident`
-	Sub  *Expression `| "(" @@ ")"`
+	Int   *int        `@Int`
+	Call  *FunCall    `| @@`
+	Id    *string     `| @Ident`
+	Block *Block      `| "{" @@ "}"`
+	Sub   *Expression `| "(" @@ ")"`
 }
 
 type FunCall struct {

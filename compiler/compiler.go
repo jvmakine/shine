@@ -6,7 +6,6 @@ import (
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
 	"github.com/llir/llvm/ir/types"
-	"github.com/llir/llvm/ir/value"
 )
 
 func makeFunDefinition(module *ir.Module, fun *grammar.FunDef, ctx *context) error {
@@ -23,21 +22,6 @@ func makeFunDefinition(module *ir.Module, fun *grammar.FunDef, ctx *context) err
 	return nil
 }
 
-func compileBlock(block *ir.Block, from *grammar.Block, ctx *context) (value.Value, error) {
-	for _, c := range from.Assignments {
-		v, err := evalExpression(block, c.Value, ctx)
-		if err != nil {
-			return nil, err
-		}
-		_, err = ctx.addId(*c.Name, v)
-		if err != nil {
-			return nil, err
-		}
-	}
-	result, err := evalExpression(block, from.Value, ctx)
-	return result, err
-}
-
 func compileFunBodies(ctx *context) error {
 	for _, f := range ctx.functions {
 		body := f.Fun.NewBlock("")
@@ -51,7 +35,7 @@ func compileFunBodies(ctx *context) error {
 			}
 			params = append(params, param)
 		}
-		result, err := compileBlock(body, f.From.Body, subCtx)
+		result, err := evalExpression(body, f.From.Body, subCtx)
 		if err != nil {
 			return err
 		}

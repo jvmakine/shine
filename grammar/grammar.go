@@ -2,6 +2,7 @@ package grammar
 
 import (
 	"github.com/alecthomas/participle"
+	"github.com/alecthomas/participle/lexer/ebnf"
 )
 
 type Program struct {
@@ -14,23 +15,30 @@ type Assignment struct {
 	Value *Expression `@@`
 }
 
-type Block struct {
-	Assignments []*Assignment `@@*`
-	Value       *Expression   `@@`
-}
-
 type FunParam struct {
 	Name *string `@Ident`
 }
 
 type FunDef struct {
-	Name   *string     `"fun" @Ident`
+	Name   *string     `@Ident "="`
 	Params []*FunParam `"(" (@@ ("," @@)*)? ")"`
-	Body   *Block      `"{" @@ "}"`
+	Body   *Expression `"=>" @@`
 }
 
 func Parse(str string) (*Program, error) {
-	parser, err := participle.Build(&Program{})
+	lexer, err := ebnf.New(`
+		Fun = "=>" .
+		Whitespace = " " | "\n" | "\r" | "\t" .
+		Comma = "," .
+		Eq = "=" .
+		Brackets = "(" | ")" | "{" | "}" .
+		Op = "+" | "-" | "*" | "/" .
+		Ident = alpha { alpha | digit } .
+		Int = "1"…"9" { digit } .
+		alpha = "a"…"z" | "A"…"Z" | "_" .
+		digit = "0"…"9" .
+	`)
+	parser, err := participle.Build(&Program{}, participle.Lexer(lexer), participle.Elide("Whitespace"))
 	if err != nil {
 		panic(err)
 	}

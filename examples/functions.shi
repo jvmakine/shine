@@ -1,12 +1,10 @@
-fun square(x) { x * x }
-fun add(x, y) { x + y }
+square = (x) => { x * x }
+add = (x, y) => { x + y }
 
-fun dist(from, to) { 
+dist = (from, to) => { 
     x = from
     y = to
     add(square(x), square(y))
 }
 
-from = 3
-to = 4
-dist(from, to)
+dist(3, 4)

@@ -15,13 +15,14 @@ func main() {
 
 	ast, err := grammar.Parse(text)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
+		os.Exit(1)
 	}
 
 	module, err := compiler.Compile(ast)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
-	} else {
-		fmt.Println(module)
+		os.Exit(2)
 	}
+	fmt.Println(module)
 }

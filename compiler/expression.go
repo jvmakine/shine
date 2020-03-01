@@ -11,6 +11,22 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
+func compileBlock(block *ir.Block, from *grammar.Block, ctx *context) (value.Value, error) {
+	sub := ctx.subContext()
+	for _, c := range from.Assignments {
+		v, err := evalExpression(block, c.Value, sub)
+		if err != nil {
+			return nil, err
+		}
+		_, err = sub.addId(*c.Name, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+	result, err := evalExpression(block, from.Value, sub)
+	return result, err
+}
+
 func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, error) {
 	if val.Int != nil {
 		return constant.NewInt(types.I32, int64(*val.Int)), nil
@@ -44,6 +60,8 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, 
 			return nil, err
 		}
 		return id, nil
+	} else if val.Block != nil {
+		return compileBlock(block, val.Block, ctx)
 	}
 	panic("invalid value")
 }

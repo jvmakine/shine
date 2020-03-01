@@ -24,9 +24,9 @@ Every script needs to end in an expression. The value of this expression is prin
 
 Example script:
 ```
-fun square(x) { x * x }
-fun add(x, y) { x + y }
-fun dist(x, y) { add(square(x), square(y)) }
+square = (x) => { x * x }
+add = (x, y) => { x + y }
+dist = (x, y) => { add(square(x), square(y)) }
 
 dist(3, 4)
 ```
