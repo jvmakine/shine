@@ -32,12 +32,15 @@ func (c *context) resolveId(name string) (value.Value, error) {
 	return nil, errors.New("undefined id " + name)
 }
 
-func (c *context) addId(name string, val value.Value) *context {
+func (c *context) addId(name string, val value.Value) (*context, error) {
 	if c.constants == nil {
 		c.constants = map[string]value.Value{}
 	}
+	if c.constants[name] != nil {
+		return nil, errors.New("redefinition of " + name)
+	}
 	c.constants[name] = val
-	return c
+	return c, nil
 }
 
 func (c *context) resolveFun(name string) (*compiledFun, error) {

@@ -1,10 +1,10 @@
 fun square(x) { x * x }
 fun add(x, y) { x + y }
 
-fun dist(x, y) { 
-    p1 = x
-    p2 = y
-    add(square(p1), square(p2))
+fun dist(from, to) { 
+    x = from
+    y = to
+    add(square(x), square(y))
 }
 
 from = 3

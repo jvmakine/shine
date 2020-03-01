@@ -20,7 +20,8 @@ func main() {
 
 	module, err := compiler.Compile(ast)
 	if err != nil {
-		panic(err.Error())
+		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
+	} else {
+		fmt.Println(module)
 	}
-	fmt.Println(module)
 }

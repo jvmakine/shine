@@ -43,7 +43,6 @@ func evalValue(block *ir.Block, val *grammar.Value, ctx *context) (value.Value, 
 		if err != nil {
 			return nil, err
 		}
-
 		return id, nil
 	}
 	panic("invalid value")

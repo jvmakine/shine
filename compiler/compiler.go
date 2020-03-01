@@ -29,7 +29,10 @@ func compileBlock(block *ir.Block, from *grammar.Block, ctx *context) (value.Val
 		if err != nil {
 			return nil, err
 		}
-		ctx.addId(*c.Name, v)
+		_, err = ctx.addId(*c.Name, v)
+		if err != nil {
+			return nil, err
+		}
 	}
 	result, err := evalExpression(block, from.Value, ctx)
 	return result, err
@@ -42,7 +45,10 @@ func compileFunBodies(ctx *context) error {
 		var params []*ir.Param
 		for _, p := range f.From.Params {
 			param := ir.NewParam(*p.Name, types.I32)
-			subCtx.addId(*p.Name, param)
+			_, err := subCtx.addId(*p.Name, param)
+			if err != nil {
+				return err
+			}
 			params = append(params, param)
 		}
 		result, err := compileBlock(body, f.From.Body, subCtx)
@@ -71,7 +77,10 @@ func Compile(prg *grammar.Program) (*ir.Module, error) {
 			return nil, err
 		}
 	}
-	compileFunBodies(&ctx)
+	err := compileFunBodies(&ctx)
+	if err != nil {
+		return nil, err
+	}
 	v, err := compileBlock(entry, prg.Body, &ctx)
 	if err != nil {
 		return nil, err
