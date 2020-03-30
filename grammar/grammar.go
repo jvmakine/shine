@@ -3,6 +3,7 @@ package grammar
 import (
 	"github.com/alecthomas/participle"
 	"github.com/alecthomas/participle/lexer/ebnf"
+	"github.com/jvmakine/shine/ast"
 )
 
 type Program struct {
@@ -33,4 +34,8 @@ func Parse(str string) (*Program, error) {
 		return nil, err
 	}
 	return ast, nil
+}
+
+func (prg *Program) ToAst() *ast.Block {
+	return nil
 }
