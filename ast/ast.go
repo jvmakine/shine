@@ -3,11 +3,14 @@ package ast
 // Expressions
 
 type Exp struct {
-	Value *Val
+	Const *Const
+	Block *Block
+	Id    *string
 	Call  *FCall
+	Def   *FDef
 }
 
-type Val struct {
+type Const struct {
 	Int *int
 }
 
@@ -36,6 +39,5 @@ type Assign struct {
 
 type Block struct {
 	Assignments []*Assign
-	Functions   []*FDef
 	Value       *Exp
 }
