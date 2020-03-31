@@ -44,6 +44,15 @@ func TestExpressionParsing(t *testing.T) {
 		name:  "parse a function call",
 		input: "f(1, x, y)",
 		want:  block(fcall("f", iconst(1), id("x"), id("y"))),
+	}, {
+		name: "parse a function definition",
+		input: `
+			a = (x, y) => { x + y }
+			a(1, 2)
+		`,
+		want: block(
+			fcall("a", iconst(1), iconst(2)),
+			assign("a", fdef(block(fcall("+", id("x"), id("y"))), "x", "y"))),
 	},
 	}
 	for _, tt := range tests {
@@ -73,9 +82,20 @@ func id(name string) *ast.Exp {
 	}
 }
 
-func block(e *ast.Exp) *ast.Exp {
+func assign(name string, value *ast.Exp) *ast.Assign {
+	return &ast.Assign{
+		Name:  name,
+		Value: value,
+	}
+}
+
+func block(e *ast.Exp, assigns ...*ast.Assign) *ast.Exp {
+	as := assigns
+	if as == nil {
+		as = []*ast.Assign{}
+	}
 	return &ast.Exp{
-		Block: &ast.Block{Value: e, Assignments: []*ast.Assign{}},
+		Block: &ast.Block{Value: e, Assignments: as},
 	}
 }
 
@@ -86,5 +106,19 @@ func fcall(name string, args ...*ast.Exp) *ast.Exp {
 	}
 	return &ast.Exp{
 		Call: call,
+	}
+}
+
+func fdef(body *ast.Exp, args ...string) *ast.Exp {
+	params := make([]*ast.FParam, len(args))
+	for i, p := range args {
+		params[i] = &ast.FParam{Name: p}
+	}
+	fdef := &ast.FDef{
+		Body:   body,
+		Params: params,
+	}
+	return &ast.Exp{
+		Def: fdef,
 	}
 }

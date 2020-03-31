@@ -1,9 +1,9 @@
 from = 3
 to = 4
 
-square = (x) => { x * x }
-add = (x, y) => { x + y }
-dist = (from, to) => { 
+dist = (from, to) => {
+    square = (x) => { x * x }
+    add = (x, y) => { x + y }
     x = from
     y = to
     add(square(x), square(y))
