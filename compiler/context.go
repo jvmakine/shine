@@ -3,14 +3,14 @@ package compiler
 import (
 	"errors"
 
+	"github.com/jvmakine/shine/ast"
 	"github.com/llir/llvm/ir/value"
 
-	"github.com/jvmakine/shine/grammar"
 	"github.com/llir/llvm/ir"
 )
 
 type compiledFun struct {
-	From *grammar.FunDef
+	From *ast.FDef
 	Fun  *ir.Func
 }
 
@@ -19,12 +19,18 @@ type compiledValue struct {
 }
 
 type context struct {
+	Module *ir.Module
+	Block  *ir.Block
 	parent *context
 	ids    map[string]interface{}
 }
 
 func (c *context) subContext() *context {
-	return &context{parent: c}
+	return &context{parent: c, Module: c.Module, Block: c.Block}
+}
+
+func (c *context) blockContext(block *ir.Block) *context {
+	return &context{parent: c, Module: c.Module, Block: block}
 }
 
 func (c *context) resolveId(name string) (interface{}, error) {

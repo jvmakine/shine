@@ -13,13 +13,13 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 	text, _ := reader.ReadString(0)
 
-	ast, err := grammar.Parse(text)
+	parsed, err := grammar.Parse(text)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(1)
 	}
 
-	module, err := compiler.Compile(ast)
+	module, err := compiler.Compile(parsed.ToAst())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(2)

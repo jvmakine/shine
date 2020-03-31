@@ -7,7 +7,7 @@ import (
 	"github.com/jvmakine/shine/ast"
 )
 
-func TestParse(t *testing.T) {
+func TestExpressionParsing(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
