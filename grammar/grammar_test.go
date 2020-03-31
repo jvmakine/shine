@@ -17,6 +17,10 @@ func TestParse(t *testing.T) {
 		input: "42",
 		want:  block(iconst(42)),
 	}, {
+		name:  "parse an identifier",
+		input: "abc",
+		want:  block(id("abc")),
+	}, {
 		name:  "parse + term expression",
 		input: "1 + 2",
 		want:  block(fcall("+", iconst(1), iconst(2))),
@@ -36,6 +40,10 @@ func TestParse(t *testing.T) {
 		name:  "maintain right precedence with + and *",
 		input: "2 + 3 * 4",
 		want:  block(fcall("+", iconst(2), fcall("*", iconst(3), iconst(4)))),
+	}, {
+		name:  "parse a function call",
+		input: "f(1, x, y)",
+		want:  block(fcall("f", iconst(1), id("x"), id("y"))),
 	},
 	}
 	for _, tt := range tests {
@@ -56,6 +64,12 @@ func TestParse(t *testing.T) {
 func iconst(v int) *ast.Exp {
 	return &ast.Exp{
 		Const: &ast.Const{Int: &v},
+	}
+}
+
+func id(name string) *ast.Exp {
+	return &ast.Exp{
+		Id: &name,
 	}
 }
 
