@@ -33,8 +33,8 @@ type FunParam struct {
 }
 
 type FunDef struct {
-	Params []*FunParam `"(" (@@ ("," @@)*)? ")"`
-	Body   *Expression `"=>" @@`
+	Params []*FunParam `"(" (@@ ("," @@)*)? ")" "=>"`
+	Body   *Block      `"{" @@ "}"`
 }
 
 type FunCall struct {

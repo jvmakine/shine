@@ -53,16 +53,32 @@ func TestExpressionParsing(t *testing.T) {
 		want: block(
 			fcall("a", iconst(1), iconst(2)),
 			assign("a", fdef(block(fcall("+", id("x"), id("y"))), "x", "y"))),
+	}, {
+		name: "parse a nested function definition",
+		input: `
+			a = (x, y) => {
+				b = (x) => { x + 1 }
+				x + b(y)
+			}
+			a(1, 2)
+		`,
+		want: block(
+			fcall("a", iconst(1), iconst(2)),
+			assign("a", fdef(
+				block(
+					fcall("+", id("x"), fcall("b", id("y"))),
+					assign("b", fdef(block(fcall("+", id("x"), iconst(1))), "x"))),
+				"x", "y"))),
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			prog, err := Parse(tt.input)
-			got := prog.ToAst()
 			if err != nil {
 				t.Errorf("Parse() error = %v", err)
 				return
 			}
+			got := prog.ToAst()
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Parse() = %v, want %v", *got, *tt.want)
 			}
