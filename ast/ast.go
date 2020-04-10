@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/chewxy/hm"
+
 // Expressions
 
 type Exp struct {
@@ -8,6 +10,7 @@ type Exp struct {
 	Id    *string
 	Call  *FCall
 	Def   *FDef
+	Type  *hm.Type
 }
 
 type Const struct {
