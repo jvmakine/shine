@@ -25,8 +25,10 @@ func TestInfer(tes *testing.T) {
 		typ:     Int,
 		wantErr: false,
 	}, {
-		name:    "infer function calls",
-		exp:     t.Block(t.Fcall("a", t.Iconst(1)), t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.Iconst(1), t.Id("x"))), "x"))),
+		name: "infer function calls",
+		exp: t.Block(
+			t.Fcall("a", t.Iconst(1)),
+			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.Iconst(1), t.Id("x"))), "x"))),
 		typ:     Int,
 		wantErr: false,
 	},

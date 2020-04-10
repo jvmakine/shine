@@ -88,7 +88,7 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 	}
 	ec := ctx.getId(call.Name)
 	if ec == nil {
-		return nil, errors.New("undefined function '" + call.Name + "'")
+		return nil, errors.New("undefined function: '" + call.Name + "'")
 	}
 	if ec.v.Type == nil {
 		err := inferExp(ec.v, ec.c)

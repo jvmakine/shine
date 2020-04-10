@@ -2,9 +2,9 @@ start = 3
 end = 4
 
 dist = (from, to) => {
-    square = (x) => { x * x }
     add = (x, y) => { x + y }
     add(square(from), square(to))
 }
+square = (x) => { x * x }
 
 dist(start, end)
