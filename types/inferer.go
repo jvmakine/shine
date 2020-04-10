@@ -17,6 +17,25 @@ type inferContext struct {
 	ids    map[string]*excon
 }
 
+var globalConsts map[string]*excon = map[string]*excon{
+	"+": &excon{
+		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
+		&inferContext{},
+	},
+	"-": &excon{
+		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
+		&inferContext{},
+	},
+	"*": &excon{
+		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
+		&inferContext{},
+	},
+	"/": &excon{
+		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
+		&inferContext{},
+	},
+}
+
 func (ctx *inferContext) getId(id string) *excon {
 	if ctx.ids[id] != nil {
 		return ctx.ids[id]
@@ -27,7 +46,8 @@ func (ctx *inferContext) getId(id string) *excon {
 }
 
 func Infer(exp *ast.Exp) error {
-	return inferExp(exp, &inferContext{ids: map[string]*excon{}})
+	parent := &inferContext{ids: globalConsts}
+	return inferExp(exp, &inferContext{ids: map[string]*excon{}, parent: parent})
 }
 
 func inferExp(exp *ast.Exp, ctx *inferContext) error {
@@ -40,7 +60,9 @@ func inferExp(exp *ast.Exp, ctx *inferContext) error {
 			exp.Type = typ
 			return err
 		} else if exp.Call != nil {
-			return nil
+			typ, err := inferCall(exp.Call, ctx)
+			exp.Type = typ
+			return err
 		} else if exp.Def != nil {
 			typ, err := inferDef(exp.Def, &inferContext{parent: ctx, ids: map[string]*excon{}})
 			exp.Type = typ
@@ -53,6 +75,32 @@ func inferExp(exp *ast.Exp, ctx *inferContext) error {
 		panic("unexpected expression")
 	}
 	return nil
+}
+
+func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
+	var params []hm.Type = make([]hm.Type, len(call.Params))
+	for i, p := range call.Params {
+		err := inferExp(p, ctx)
+		if err != nil {
+			return nil, err
+		}
+		params[i] = p.Type
+	}
+	ec := ctx.getId(call.Name)
+	if ec == nil {
+		return nil, errors.New("undefined function '" + call.Name + "'")
+	}
+	if ec.v.Type == nil {
+		err := inferExp(ec.v, ec.c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ft, ok := ec.v.Type.(*hm.FunctionType)
+	if !ok {
+		return nil, errors.New("not a function: '" + call.Name + "'")
+	}
+	return ft.Ret(false), nil
 }
 
 func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
