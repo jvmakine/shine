@@ -31,23 +31,51 @@ func Infer(exp *ast.Exp) error {
 }
 
 func inferExp(exp *ast.Exp, ctx *inferContext) error {
-	if exp.Const != nil {
-		exp.Type = Int
-		return nil
-	} else if exp.Id != nil {
-		typ, err := inferId(*exp.Id, ctx)
-		exp.Type = typ
-		return err
-	} else if exp.Call != nil {
-		return nil
-	} else if exp.Def != nil {
-		return nil
-	} else if exp.Block != nil {
-		typ, err := inferBlock(exp.Block, &inferContext{parent: ctx, ids: map[string]*excon{}})
-		exp.Type = typ
-		return err
+	if exp.Type == nil {
+		if exp.Const != nil {
+			exp.Type = Int
+			return nil
+		} else if exp.Id != nil {
+			typ, err := inferId(*exp.Id, ctx)
+			exp.Type = typ
+			return err
+		} else if exp.Call != nil {
+			return nil
+		} else if exp.Def != nil {
+			typ, err := inferDef(exp.Def, &inferContext{parent: ctx, ids: map[string]*excon{}})
+			exp.Type = typ
+			return err
+		} else if exp.Block != nil {
+			typ, err := inferBlock(exp.Block, &inferContext{parent: ctx, ids: map[string]*excon{}})
+			exp.Type = typ
+			return err
+		}
+		panic("unexpected expression")
 	}
-	panic("unexpected expression")
+	return nil
+}
+
+func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
+	var paramTypes []hm.Type = make([]hm.Type, len(def.Params)+1)
+	for i, p := range def.Params {
+		if ctx.getId(p.Name) != nil {
+			return nil, errors.New("redefinition of '" + p.Name + "'")
+		}
+		ctx.ids[p.Name] = &excon{
+			v: &ast.Exp{
+				Id:   &p.Name,
+				Type: Int,
+			},
+			c: ctx,
+		}
+		paramTypes[i+1] = Int
+	}
+	paramTypes[0] = Int
+	err := inferExp(def.Body, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return hm.NewFnType(paramTypes...), nil
 }
 
 func inferId(id string, ctx *inferContext) (hm.Type, error) {
