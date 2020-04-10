@@ -10,7 +10,7 @@ type Exp struct {
 	Id    *string
 	Call  *FCall
 	Def   *FDef
-	Type  *hm.Type
+	Type  hm.Type
 }
 
 type Const struct {

@@ -1,4 +1,4 @@
-package ast
+package types
 
 import "github.com/chewxy/hm"
 

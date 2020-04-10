@@ -7,6 +7,7 @@ import (
 
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
+	"github.com/jvmakine/shine/types"
 )
 
 func main() {
@@ -18,11 +19,16 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(1)
 	}
-
-	module, err := compiler.Compile(parsed.ToAst())
+	ast := parsed.ToAst()
+	err = types.Infer(ast)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(2)
+	}
+	module, err := compiler.Compile(ast)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
+		os.Exit(3)
 	}
 	fmt.Println(module)
 }
