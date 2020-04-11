@@ -24,10 +24,11 @@ Every script needs to end in an expression. The value of this expression is prin
 
 Example script:
 ```
-square = (x) => { x * x }
-add = (x, y) => { x + y }
-dist = (x, y) => { add(square(x), square(y)) }
+divisions_by_2 = (x) => {
+    agg = (n, res) => { if (n % 2 == 0) agg(n / 2, res + 1) else res }
+    agg(x, 0)
+}
 
-dist(3, 4)
+divisions_by_2(72)
 ```
-This prints out `25`
+This prints out `3`
