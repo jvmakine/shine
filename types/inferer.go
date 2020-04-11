@@ -22,7 +22,7 @@ var globalConsts map[string]*excon = map[string]*excon{
 	"<":  globalFun(Int, Int, Bool),
 	">":  globalFun(Int, Int, Bool),
 	"==": globalFun(Int, Int, Bool),
-	"if": globalFun(Bool, Int, Int, Int),
+	"if": globalFun(Bool, hm.TypeVariable('a'), hm.TypeVariable('a'), hm.TypeVariable('a')),
 }
 
 func (ctx *inferContext) getId(id string) *excon {
@@ -73,7 +73,7 @@ func inferExp(exp *ast.Exp, ctx *inferContext) error {
 }
 
 func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
-	var params []hm.Type = make([]hm.Type, len(call.Params))
+	var params []hm.Type = make([]hm.Type, len(call.Params)+1)
 	for i, p := range call.Params {
 		err := inferExp(p, ctx)
 		if err != nil {
@@ -99,6 +99,14 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 	if !ok {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
+	params[len(call.Params)] = ft.Ret(true)
+
+	ft2 := hm.NewFnType(params...)
+	_, err := hm.Unify(ft, ft2)
+	if err != nil {
+		return nil, err
+	}
+
 	return ft.Ret(true), nil
 }
 
