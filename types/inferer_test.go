@@ -36,8 +36,18 @@ func TestInfer(tes *testing.T) {
 		wantErr: false,
 	}, {
 		name:    "infer if expressions",
-		exp:     t.Block(t.Fcall("if", t.Fcall(">", t.IConst(1), t.IConst(2)), t.IConst(1), t.IConst(2))),
+		exp:     t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
 		typ:     Int,
+		wantErr: false,
+	}, {
+		name: "infer recursive functions",
+		exp: t.Block(
+			t.Fcall("a", t.IConst(1)),
+			t.Assign("a", t.Fdef(t.Block(
+				t.Fcall("if", t.BConst(false), t.BConst(true), t.Fcall("a", t.IConst(2)))),
+				"x",
+			))),
+		typ:     Bool,
 		wantErr: false,
 	}, {
 		name: "infer function calls",

@@ -1,5 +1,5 @@
-rec = (left, agg) => {
-    if (left < 2) { agg } else { rec(left-1, agg + left) }
+spow = (val, exp) => {
+    if (exp < 2) { val } else { spow(val*val, exp - 1) }
 }
 
-rec(1, 1)
+spow(2, 4)

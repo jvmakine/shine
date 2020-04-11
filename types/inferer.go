@@ -101,11 +101,11 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 			return nil, err
 		}
 	}
-	ft, ok := ec.v.Type.(*hm.FunctionType)
+	/*ft, ok := ec.v.Type.(*hm.FunctionType)
 	if !ok {
 		return nil, errors.New("not a function: '" + call.Name + "'")
-	}
-	return ft.Ret(true), nil
+	}*/
+	return Any, nil
 }
 
 func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
@@ -149,6 +149,10 @@ func inferBlock(block *ast.Block, ctx *inferContext) (hm.Type, error) {
 	for _, a := range block.Assignments {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")
+		}
+		if a.Value.Type == nil {
+			// Assume any type in case of recursion
+			a.Value.Type = Any
 		}
 		ctx.ids[a.Name] = &excon{v: a.Value, c: ctx}
 	}
