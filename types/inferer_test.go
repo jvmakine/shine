@@ -15,30 +15,35 @@ func TestInfer(tes *testing.T) {
 		typ     hm.Type
 		wantErr bool
 	}{{
-		name:    "infer constant types correctly",
-		exp:     t.Iconst(5),
+		name:    "infer constant int correctly",
+		exp:     t.IConst(5),
 		typ:     Int,
 		wantErr: false,
 	}, {
+		name:    "infer constant bool correctly",
+		exp:     t.BConst(false),
+		typ:     Bool,
+		wantErr: false,
+	}, {
 		name:    "infer assigments in blocks",
-		exp:     t.Block(t.Id("a"), t.Assign("a", t.Iconst(5))),
+		exp:     t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
 		typ:     Int,
 		wantErr: false,
 	}, {
 		name:    "infer integer comparisons as boolean",
-		exp:     t.Block(t.Fcall(">", t.Iconst(1), t.Iconst(2))),
+		exp:     t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
 		typ:     Bool,
 		wantErr: false,
 	}, {
 		name:    "infer if expressions",
-		exp:     t.Block(t.Fcall("if", t.Fcall(">", t.Iconst(1), t.Iconst(2)), t.Iconst(1), t.Iconst(2))),
+		exp:     t.Block(t.Fcall("if", t.Fcall(">", t.IConst(1), t.IConst(2)), t.IConst(1), t.IConst(2))),
 		typ:     Int,
 		wantErr: false,
 	}, {
 		name: "infer function calls",
 		exp: t.Block(
-			t.Fcall("a", t.Iconst(1)),
-			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.Iconst(1), t.Id("x"))), "x"))),
+			t.Fcall("a", t.IConst(1)),
+			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
 		typ:     Int,
 		wantErr: false,
 	},

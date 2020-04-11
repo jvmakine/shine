@@ -14,7 +14,7 @@ func Parse(str string) (*Program, error) {
 	lexer, err := ebnf.New(`
 		Fun = "=>" .
 		Whitespace = " " | "\n" | "\r" | "\t" .
-		Reserved = "if" | "else" .
+		Reserved = "if" | "else" | "true" | "false" .
 		Comma = "," .
 		Brackets = "(" | ")" | "{" | "}" .
 		Op = "+" | "-" | "*" | "/" | ">" | "<" | "==" .
@@ -148,6 +148,14 @@ func convVal(from *Value) *ast.Exp {
 	} else if from.Int != nil {
 		return &ast.Exp{
 			Const: &ast.Const{Int: from.Int},
+		}
+	} else if from.Bool != nil {
+		value := false
+		if *from.Bool == "true" {
+			value = true
+		}
+		return &ast.Exp{
+			Const: &ast.Const{Bool: &value},
 		}
 	}
 	return nil

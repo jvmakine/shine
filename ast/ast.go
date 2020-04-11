@@ -14,7 +14,8 @@ type Exp struct {
 }
 
 type Const struct {
-	Int *int
+	Int  *int
+	Bool *bool
 }
 
 // Functions

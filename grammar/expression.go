@@ -24,6 +24,7 @@ type Block struct {
 
 type Value struct {
 	Int   *int        `@Int`
+	Bool  *string     `| @("true" | "false")`
 	Call  *FunCall    `| @@`
 	Id    *string     `| @Ident`
 	Block *Block      `| "{" @@ "}"`

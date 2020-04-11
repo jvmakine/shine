@@ -2,9 +2,15 @@ package test
 
 import "github.com/jvmakine/shine/ast"
 
-func Iconst(v int) *ast.Exp {
+func IConst(v int) *ast.Exp {
 	return &ast.Exp{
 		Const: &ast.Const{Int: &v},
+	}
+}
+
+func BConst(v bool) *ast.Exp {
+	return &ast.Exp{
+		Const: &ast.Const{Bool: &v},
 	}
 }
 

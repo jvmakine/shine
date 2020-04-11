@@ -14,9 +14,13 @@ func TestExpressionParsing(tes *testing.T) {
 		input string
 		want  *a.Exp
 	}{{
-		name:  "parse a simple numeric expression",
+		name:  "parse an int const",
 		input: "42",
-		want:  t.Block(t.Iconst(42)),
+		want:  t.Block(t.IConst(42)),
+	}, {
+		name:  "parse a bool const",
+		input: "true",
+		want:  t.Block(t.BConst(true)),
 	}, {
 		name:  "parse an identifier",
 		input: "abc",
@@ -24,43 +28,43 @@ func TestExpressionParsing(tes *testing.T) {
 	}, {
 		name:  "parse + term expression",
 		input: "1 + 2",
-		want:  t.Block(t.Fcall("+", t.Iconst(1), t.Iconst(2))),
+		want:  t.Block(t.Fcall("+", t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse - term expression",
 		input: "1 - 2",
-		want:  t.Block(t.Fcall("-", t.Iconst(1), t.Iconst(2))),
+		want:  t.Block(t.Fcall("-", t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse * factor expression",
 		input: "2 * 3",
-		want:  t.Block(t.Fcall("*", t.Iconst(2), t.Iconst(3))),
+		want:  t.Block(t.Fcall("*", t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse / factor expression",
 		input: "2 / 3",
-		want:  t.Block(t.Fcall("/", t.Iconst(2), t.Iconst(3))),
+		want:  t.Block(t.Fcall("/", t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "maintain right precedence with + and *",
 		input: "2 + 3 * 4",
-		want:  t.Block(t.Fcall("+", t.Iconst(2), t.Fcall("*", t.Iconst(3), t.Iconst(4)))),
+		want:  t.Block(t.Fcall("+", t.IConst(2), t.Fcall("*", t.IConst(3), t.IConst(4)))),
 	}, {
 		name:  "parse == operator",
 		input: "2 == 3",
-		want:  t.Block(t.Fcall("==", t.Iconst(2), t.Iconst(3))),
+		want:  t.Block(t.Fcall("==", t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse < operator",
 		input: "2 < 3",
-		want:  t.Block(t.Fcall("<", t.Iconst(2), t.Iconst(3))),
+		want:  t.Block(t.Fcall("<", t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse > operator",
 		input: "2 > 3",
-		want:  t.Block(t.Fcall(">", t.Iconst(2), t.Iconst(3))),
+		want:  t.Block(t.Fcall(">", t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse if expression",
 		input: "if(2 > 3) 1 else 2",
-		want:  t.Block(t.Fcall("if", t.Fcall(">", t.Iconst(2), t.Iconst(3)), t.Iconst(1), t.Iconst(2))),
+		want:  t.Block(t.Fcall("if", t.Fcall(">", t.IConst(2), t.IConst(3)), t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse a function call",
 		input: "f(1, x, y)",
-		want:  t.Block(t.Fcall("f", t.Iconst(1), t.Id("x"), t.Id("y"))),
+		want:  t.Block(t.Fcall("f", t.IConst(1), t.Id("x"), t.Id("y"))),
 	}, {
 		name: "parse a function definition",
 		input: `
@@ -68,7 +72,7 @@ func TestExpressionParsing(tes *testing.T) {
 			a(1, 2)
 		`,
 		want: t.Block(
-			t.Fcall("a", t.Iconst(1), t.Iconst(2)),
+			t.Fcall("a", t.IConst(1), t.IConst(2)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.Id("x"), t.Id("y"))), "x", "y"))),
 	}, {
 		name: "parse a nested function definition",
@@ -80,11 +84,11 @@ func TestExpressionParsing(tes *testing.T) {
 			a(1, 2)
 		`,
 		want: t.Block(
-			t.Fcall("a", t.Iconst(1), t.Iconst(2)),
+			t.Fcall("a", t.IConst(1), t.IConst(2)),
 			t.Assign("a", t.Fdef(
 				t.Block(
 					t.Fcall("+", t.Id("x"), t.Fcall("b", t.Id("y"))),
-					t.Assign("b", t.Fdef(t.Block(t.Fcall("+", t.Id("x"), t.Iconst(1))), "x"))),
+					t.Assign("b", t.Fdef(t.Block(t.Fcall("+", t.Id("x"), t.IConst(1))), "x"))),
 				"x", "y"))),
 	},
 	}

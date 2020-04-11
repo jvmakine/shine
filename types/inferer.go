@@ -52,7 +52,13 @@ func Infer(exp *ast.Exp) error {
 func inferExp(exp *ast.Exp, ctx *inferContext) error {
 	if exp.Type == nil {
 		if exp.Const != nil {
-			exp.Type = Int
+			if exp.Const.Int != nil {
+				exp.Type = Int
+			} else if exp.Const.Bool != nil {
+				exp.Type = Bool
+			} else {
+				panic("unknown constant")
+			}
 			return nil
 		} else if exp.Id != nil {
 			typ, err := inferId(*exp.Id, ctx)
