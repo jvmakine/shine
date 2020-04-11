@@ -1,5 +1,0 @@
-spow = (val, exp) => {
-    if (exp < 2) { val } else { spow(val*val, exp - 1) }
-}
-
-spow(2, 4)

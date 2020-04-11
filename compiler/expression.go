@@ -73,6 +73,8 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 			return ctx.Block.NewMul(params[0], params[1])
 		case "/":
 			return ctx.Block.NewUDiv(params[0], params[1])
+		case "%":
+			return ctx.Block.NewURem(params[0], params[1])
 		case "+":
 			return ctx.Block.NewAdd(params[0], params[1])
 		case "-":

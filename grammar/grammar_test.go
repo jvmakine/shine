@@ -42,6 +42,10 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "2 / 3",
 		want:  t.Block(t.Fcall("/", t.IConst(2), t.IConst(3))),
 	}, {
+		name:  "parse % factor expression",
+		input: "2 % 3",
+		want:  t.Block(t.Fcall("%", t.IConst(2), t.IConst(3))),
+	}, {
 		name:  "maintain right precedence with + and *",
 		input: "2 + 3 * 4",
 		want:  t.Block(t.Fcall("+", t.IConst(2), t.Fcall("*", t.IConst(3), t.IConst(4)))),

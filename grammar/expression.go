@@ -51,7 +51,7 @@ type FunCall struct {
 }
 
 type OpFactor struct {
-	Operation *string `@("*" | "/")`
+	Operation *string `@("*" | "/" | "%")`
 	Right     *Value  `@@`
 }
 

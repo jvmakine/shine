@@ -1,6 +1,0 @@
-square = (x) => { x * x }
-add = (x, y) => {
-    if (x) x + y else y
-}
-
-add(square(3), square(4))

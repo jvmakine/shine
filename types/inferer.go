@@ -18,6 +18,7 @@ var globalConsts map[string]*excon = map[string]*excon{
 	"+":  globalFun(Int, Int, Int),
 	"-":  globalFun(Int, Int, Int),
 	"*":  globalFun(Int, Int, Int),
+	"%":  globalFun(Int, Int, Int),
 	"/":  globalFun(Int, Int, Int),
 	"<":  globalFun(Int, Int, Bool),
 	">":  globalFun(Int, Int, Bool),
@@ -121,11 +122,11 @@ func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
 		ctx.ids[p.Name] = &excon{
 			v: &ast.Exp{
 				Id:   &p.Name,
-				Type: hm.TypeVariable('a' + i),
+				Type: Int,
 			},
 			c: ctx,
 		}
-		paramTypes[i] = hm.TypeVariable('a' + i)
+		paramTypes[i] = Int
 	}
 	paramTypes[len(def.Params)] = Int
 	err := inferExp(def.Body, ctx)
