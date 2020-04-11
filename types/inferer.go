@@ -7,16 +7,6 @@ import (
 	"github.com/jvmakine/shine/ast"
 )
 
-type excon struct {
-	v *ast.Exp
-	c *inferContext
-}
-
-type inferContext struct {
-	parent *inferContext
-	ids    map[string]*excon
-}
-
 func globalFun(ts ...hm.Type) *excon {
 	return &excon{
 		&ast.Exp{Type: hm.NewFnType(ts...)},
@@ -91,6 +81,10 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 		}
 		params[i] = p.Type
 	}
+	// Recursive type definition
+	if ctx.isInferring(call.Name) {
+		return hm.TypeVariable('r'), nil
+	}
 	ec := ctx.getId(call.Name)
 	if ec == nil {
 		return nil, errors.New("undefined function: '" + call.Name + "'")
@@ -101,11 +95,11 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 			return nil, err
 		}
 	}
-	/*ft, ok := ec.v.Type.(*hm.FunctionType)
+	ft, ok := ec.v.Type.(*hm.FunctionType)
 	if !ok {
 		return nil, errors.New("not a function: '" + call.Name + "'")
-	}*/
-	return Any, nil
+	}
+	return ft.Ret(true), nil
 }
 
 func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
@@ -150,19 +144,17 @@ func inferBlock(block *ast.Block, ctx *inferContext) (hm.Type, error) {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")
 		}
-		if a.Value.Type == nil {
-			// Assume any type in case of recursion
-			a.Value.Type = Any
-		}
 		ctx.ids[a.Name] = &excon{v: a.Value, c: ctx}
 	}
 	for _, a := range block.Assignments {
+		ctx.startInference(a.Name)
 		if a.Value.Type == nil {
 			err := inferExp(a.Value, ctx)
 			if err != nil {
 				return nil, err
 			}
 		}
+		ctx.stopInference(a.Name)
 	}
 
 	err := inferExp(block.Value, ctx)
