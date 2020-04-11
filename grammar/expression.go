@@ -2,7 +2,14 @@ package grammar
 
 type Expression struct {
 	Fun  *FunDef         `@@`
+	If   *IfExpression   `| @@`
 	Term *TermExpression `| @@`
+}
+
+type IfExpression struct {
+	Cond  *Expression `"if" "(" @@ ")"`
+	True  *Expression `@@`
+	False *Expression `"else" @@`
 }
 
 type TermExpression struct {

@@ -66,6 +66,8 @@ func compileCall(from *ast.FCall, ctx *context) (value.Value, error) {
 		return ctx.Block.NewICmp(enum.IPredSLT, params[0], params[1]), nil
 	case "==":
 		return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1]), nil
+	case "if":
+		return ctx.Block.NewSelect(params[0], params[1], params[2]), nil
 	default:
 		comp, err := ctx.resolveFun(name)
 		if err != nil {
@@ -98,7 +100,7 @@ func makeFDef(name string, fun *ast.FDef, ctx *context) error {
 func compileFDefs(ctx *context) error {
 	for _, f := range ctx.functions() {
 		body := f.Fun.NewBlock("")
-		subCtx := ctx.blockContext(body)
+		subCtx := ctx.blockContext(body, f.Fun)
 		var params []*ir.Param
 		for _, p := range f.From.Params {
 			param := ir.NewParam(p.Name, types.I32)

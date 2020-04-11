@@ -20,17 +20,18 @@ type compiledValue struct {
 
 type context struct {
 	Module *ir.Module
+	Func   *ir.Func
 	Block  *ir.Block
 	parent *context
 	ids    map[string]interface{}
 }
 
 func (c *context) subContext() *context {
-	return &context{parent: c, Module: c.Module, Block: c.Block}
+	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func}
 }
 
-func (c *context) blockContext(block *ir.Block) *context {
-	return &context{parent: c, Module: c.Module, Block: block}
+func (c *context) blockContext(block *ir.Block, fun *ir.Func) *context {
+	return &context{parent: c, Module: c.Module, Block: block, Func: fun}
 }
 
 func (c *context) resolveId(name string) (interface{}, error) {

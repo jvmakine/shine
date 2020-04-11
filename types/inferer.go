@@ -32,6 +32,7 @@ var globalConsts map[string]*excon = map[string]*excon{
 	"<":  globalFun(Int, Int, Bool),
 	">":  globalFun(Int, Int, Bool),
 	"==": globalFun(Int, Int, Bool),
+	"if": globalFun(Bool, Int, Int, Int),
 }
 
 func (ctx *inferContext) getId(id string) *excon {

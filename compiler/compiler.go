@@ -17,7 +17,7 @@ func Compile(prg *ast.Exp) (*ir.Module, error) {
 	mainfun := module.NewFunc("main", types.I32)
 	entry := mainfun.NewBlock("")
 
-	ctx := context{Module: module, Block: entry}
+	ctx := context{Module: module, Block: entry, Func: mainfun}
 
 	v, err := compileExp(prg, &ctx)
 	if err != nil {

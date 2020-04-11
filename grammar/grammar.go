@@ -14,6 +14,7 @@ func Parse(str string) (*Program, error) {
 	lexer, err := ebnf.New(`
 		Fun = "=>" .
 		Whitespace = " " | "\n" | "\r" | "\t" .
+		Reserved = "if" | "else" .
 		Comma = "," .
 		Brackets = "(" | ")" | "{" | "}" .
 		Op = "+" | "-" | "*" | "/" | ">" | "<" | "==" .
@@ -65,8 +66,21 @@ func convExp(from *Expression) *ast.Exp {
 		return &ast.Exp{
 			Def: convFDef(from.Fun),
 		}
+	} else if from.If != nil {
+		return convIf(from.If)
+	} else if from.Term != nil {
+		return convOpTerm(convTerm(from.Term.Left), from.Term.Right)
 	}
-	return convOpTerm(convTerm(from.Term.Left), from.Term.Right)
+	panic("invalid expression")
+}
+
+func convIf(from *IfExpression) *ast.Exp {
+	return &ast.Exp{
+		Call: &ast.FCall{
+			Name:   "if",
+			Params: []*ast.Exp{convExp(from.Cond), convExp(from.True), convExp(from.False)},
+		},
+	}
 }
 
 func convFDef(from *FunDef) *ast.FDef {
