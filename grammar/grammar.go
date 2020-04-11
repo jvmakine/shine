@@ -15,9 +15,9 @@ func Parse(str string) (*Program, error) {
 		Fun = "=>" .
 		Whitespace = " " | "\n" | "\r" | "\t" .
 		Comma = "," .
-		Eq = "=" .
 		Brackets = "(" | ")" | "{" | "}" .
-		Op = "+" | "-" | "*" | "/" .
+		Op = "+" | "-" | "*" | "/" | ">" | "<" | "==" .
+		Eq = "=" .
 		Ident = alpha { alpha | digit } .
 		Int = "1"…"9" { digit } .
 		alpha = "a"…"z" | "A"…"Z" | "_" .

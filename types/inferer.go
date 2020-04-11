@@ -17,23 +17,21 @@ type inferContext struct {
 	ids    map[string]*excon
 }
 
+func globalFun(ts ...hm.Type) *excon {
+	return &excon{
+		&ast.Exp{Type: hm.NewFnType(ts...)},
+		&inferContext{},
+	}
+}
+
 var globalConsts map[string]*excon = map[string]*excon{
-	"+": &excon{
-		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
-		&inferContext{},
-	},
-	"-": &excon{
-		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
-		&inferContext{},
-	},
-	"*": &excon{
-		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
-		&inferContext{},
-	},
-	"/": &excon{
-		&ast.Exp{Type: hm.NewFnType(Int, Int, Int)},
-		&inferContext{},
-	},
+	"+":  globalFun(Int, Int, Int),
+	"-":  globalFun(Int, Int, Int),
+	"*":  globalFun(Int, Int, Int),
+	"/":  globalFun(Int, Int, Int),
+	"<":  globalFun(Int, Int, Bool),
+	">":  globalFun(Int, Int, Bool),
+	"==": globalFun(Int, Int, Bool),
 }
 
 func (ctx *inferContext) getId(id string) *excon {
@@ -100,7 +98,7 @@ func inferCall(call *ast.FCall, ctx *inferContext) (hm.Type, error) {
 	if !ok {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
-	return ft.Ret(false), nil
+	return ft.Ret(true), nil
 }
 
 func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {

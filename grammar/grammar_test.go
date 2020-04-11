@@ -42,6 +42,18 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "2 + 3 * 4",
 		want:  t.Block(t.Fcall("+", t.Iconst(2), t.Fcall("*", t.Iconst(3), t.Iconst(4)))),
 	}, {
+		name:  "parse == operator",
+		input: "2 == 3",
+		want:  t.Block(t.Fcall("==", t.Iconst(2), t.Iconst(3))),
+	}, {
+		name:  "parse < operator",
+		input: "2 < 3",
+		want:  t.Block(t.Fcall("<", t.Iconst(2), t.Iconst(3))),
+	}, {
+		name:  "parse > operator",
+		input: "2 > 3",
+		want:  t.Block(t.Fcall(">", t.Iconst(2), t.Iconst(3))),
+	}, {
 		name:  "parse a function call",
 		input: "f(1, x, y)",
 		want:  t.Block(t.Fcall("f", t.Iconst(1), t.Id("x"), t.Id("y"))),

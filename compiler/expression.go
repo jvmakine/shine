@@ -60,6 +60,12 @@ func compileCall(from *ast.FCall, ctx *context) (value.Value, error) {
 		return ctx.Block.NewAdd(params[0], params[1]), nil
 	case "-":
 		return ctx.Block.NewSub(params[0], params[1]), nil
+	case ">":
+		return ctx.Block.NewICmp(enum.IPredSGT, params[0], params[1]), nil
+	case "<":
+		return ctx.Block.NewICmp(enum.IPredSLT, params[0], params[1]), nil
+	case "==":
+		return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1]), nil
 	default:
 		comp, err := ctx.resolveFun(name)
 		if err != nil {
