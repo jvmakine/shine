@@ -81,6 +81,10 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 			return ctx.Block.NewICmp(enum.IPredSGT, params[0], params[1])
 		case "<":
 			return ctx.Block.NewICmp(enum.IPredSLT, params[0], params[1])
+		case ">=":
+			return ctx.Block.NewICmp(enum.IPredSGE, params[0], params[1])
+		case "<=":
+			return ctx.Block.NewICmp(enum.IPredSLE, params[0], params[1])
 		case "==":
 			return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1])
 		default:

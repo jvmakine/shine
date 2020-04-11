@@ -21,6 +21,8 @@ var globalConsts map[string]*excon = map[string]*excon{
 	"/":  globalFun(Int, Int, Int),
 	"<":  globalFun(Int, Int, Bool),
 	">":  globalFun(Int, Int, Bool),
+	">=": globalFun(Int, Int, Bool),
+	"<=": globalFun(Int, Int, Bool),
 	"==": globalFun(Int, Int, Bool),
 	"if": globalFun(Bool, hm.TypeVariable('a'), hm.TypeVariable('a'), hm.TypeVariable('a')),
 }
