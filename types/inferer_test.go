@@ -56,6 +56,13 @@ func TestInfer(tes *testing.T) {
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
 		typ:     Int,
 		wantErr: false,
+	}, {
+		name: "infer function parameters",
+		exp: t.Block(
+			t.Fcall("a", t.IConst(1), t.BConst(true)),
+			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
+		typ:     Int,
+		wantErr: false,
 	},
 	}
 	for _, tt := range tests {

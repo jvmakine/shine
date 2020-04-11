@@ -119,13 +119,13 @@ func inferDef(def *ast.FDef, ctx *inferContext) (hm.Type, error) {
 		ctx.ids[p.Name] = &excon{
 			v: &ast.Exp{
 				Id:   &p.Name,
-				Type: Int,
+				Type: hm.TypeVariable('a' + i),
 			},
 			c: ctx,
 		}
-		paramTypes[i+1] = Int
+		paramTypes[i] = hm.TypeVariable('a' + i)
 	}
-	paramTypes[0] = Int
+	paramTypes[len(def.Params)] = Int
 	err := inferExp(def.Body, ctx)
 	if err != nil {
 		return nil, err

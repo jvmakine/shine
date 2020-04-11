@@ -20,7 +20,7 @@ func Parse(str string) (*Program, error) {
 		Op = "+" | "-" | "*" | "/" | ">" | "<" | "==" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
-		Int = "1"…"9" { digit } .
+		Int = "0" | "1"…"9" { digit } .
 		alpha = "a"…"z" | "A"…"Z" | "_" .
 		digit = "0"…"9" .
 	`)
