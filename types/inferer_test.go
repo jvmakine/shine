@@ -30,6 +30,11 @@ func TestInfer(tes *testing.T) {
 		typ:     Bool,
 		wantErr: false,
 	}, {
+		name:    "infer if expressions",
+		exp:     t.Block(t.Fcall("if", t.Fcall(">", t.Iconst(1), t.Iconst(2)), t.Iconst(1), t.Iconst(2))),
+		typ:     Int,
+		wantErr: false,
+	}, {
 		name: "infer function calls",
 		exp: t.Block(
 			t.Fcall("a", t.Iconst(1)),

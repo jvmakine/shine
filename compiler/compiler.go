@@ -15,17 +15,16 @@ func Compile(prg *ast.Exp) (*ir.Module, error) {
 	printf.Sig.Variadic = true
 
 	mainfun := module.NewFunc("main", types.I32)
-	entry := mainfun.NewBlock("")
 
-	ctx := context{Module: module, Block: entry, Func: mainfun}
+	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun}
 
 	v, err := compileExp(prg, &ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	ptr := entry.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
-	entry.NewCall(printf, ptr, v)
-	entry.NewRet(constant.NewInt(types.I32, 0))
+	ptr := ctx.Block.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
+	ctx.Block.NewCall(printf, ptr, v)
+	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
 	return module, nil
 }

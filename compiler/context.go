@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/jvmakine/shine/ast"
 	"github.com/llir/llvm/ir/value"
@@ -24,14 +25,25 @@ type context struct {
 	Block  *ir.Block
 	parent *context
 	ids    map[string]interface{}
+	labels int
 }
 
 func (c *context) subContext() *context {
 	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func}
 }
 
-func (c *context) blockContext(block *ir.Block, fun *ir.Func) *context {
+func (c *context) newLabel() string {
+	count := c.labels
+	c.labels = c.labels + 1
+	return "label_" + strconv.Itoa(count)
+}
+
+func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
 	return &context{parent: c, Module: c.Module, Block: block, Func: fun}
+}
+
+func (c *context) blockContext(block *ir.Block) *context {
+	return &context{parent: c, Module: c.Module, Block: block, Func: c.Func}
 }
 
 func (c *context) resolveId(name string) (interface{}, error) {

@@ -1,0 +1,5 @@
+rec = (left, agg) => {
+    if (left < 2) { agg } else { rec(left-1, agg + left) }
+}
+
+rec(1, 1)
