@@ -7,7 +7,7 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-func Compile(prg *ast.Exp) (*ir.Module, error) {
+func Compile(prg *ast.Exp) *ir.Module {
 	module := ir.NewModule()
 
 	msg := module.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%d\n"))
@@ -18,13 +18,10 @@ func Compile(prg *ast.Exp) (*ir.Module, error) {
 
 	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun}
 
-	v, err := compileExp(prg, &ctx)
-	if err != nil {
-		return nil, err
-	}
+	v := compileExp(prg, &ctx)
 
 	ptr := ctx.Block.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
 	ctx.Block.NewCall(printf, ptr, v)
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
-	return module, nil
+	return module
 }

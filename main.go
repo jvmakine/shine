@@ -25,10 +25,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(2)
 	}
-	module, err := compiler.Compile(ast)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
-		os.Exit(3)
-	}
+	module := compiler.Compile(ast)
 	fmt.Println(module)
 }
