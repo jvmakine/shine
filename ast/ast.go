@@ -2,15 +2,19 @@ package ast
 
 import "github.com/chewxy/hm"
 
+type InferredType struct {
+	Type hm.Type
+}
+
 // Expressions
 
 type Exp struct {
-	Const *Const
-	Block *Block
-	Id    *string
-	Call  *FCall
-	Def   *FDef
-	Type  hm.Type
+	Const        *Const
+	Block        *Block
+	Id           *string
+	Call         *FCall
+	Def          *FDef
+	InferredType *InferredType
 }
 
 type Const struct {

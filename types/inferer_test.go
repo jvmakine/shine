@@ -70,8 +70,10 @@ func TestInfer(tes *testing.T) {
 			if err := Infer(tt.exp); (err != nil) != tt.wantErr {
 				t.Errorf("Infer() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.exp.Type != tt.typ {
-				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type, tt.typ)
+			if tt.exp.InferredType == nil {
+				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
+			} else if tt.exp.InferredType.Type != tt.typ {
+				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.InferredType.Type, tt.typ)
 			}
 		})
 	}
