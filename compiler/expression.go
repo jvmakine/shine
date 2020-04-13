@@ -55,13 +55,15 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		cond := compileExp(from.Params[0], ctx)
 		ctx.Block.NewCondBr(cond, trueB, falseB)
 
-		trueV := compileExp(from.Params[1], ctx.blockContext(trueB))
-		trueB.NewStore(trueV, resV)
-		trueB.NewBr(continueB)
+		ctx.Block = trueB
+		trueV := compileExp(from.Params[1], ctx)
+		ctx.Block.NewStore(trueV, resV)
+		ctx.Block.NewBr(continueB)
 
-		falseV := compileExp(from.Params[2], ctx.blockContext(falseB))
-		falseB.NewStore(falseV, resV)
-		falseB.NewBr(continueB)
+		ctx.Block = falseB
+		falseV := compileExp(from.Params[2], ctx)
+		ctx.Block.NewStore(falseV, resV)
+		ctx.Block.NewBr(continueB)
 
 		ctx.Block = continueB
 		r := continueB.NewLoad(typ, resV)
