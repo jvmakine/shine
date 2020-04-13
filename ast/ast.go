@@ -1,5 +1,9 @@
 package ast
 
+type Typed interface {
+	GetType() interface{}
+}
+
 // Expressions
 
 type Exp struct {
@@ -25,6 +29,7 @@ type FCall struct {
 
 type FParam struct {
 	Name string
+	Type interface{}
 }
 
 type FDef struct {

@@ -149,6 +149,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 			c: ctx,
 		}
 		paramTypes[i] = typ
+		p.Type = typ
 	}
 	paramTypes[len(def.Params)] = variable()
 	ftyp := function(paramTypes...)

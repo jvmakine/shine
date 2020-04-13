@@ -49,7 +49,7 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		trueB := ctx.Func.NewBlock(trueL)
 		falseB := ctx.Func.NewBlock(falseL)
 		continueB := ctx.Func.NewBlock(continueL)
-		typ := getType(from.Params[1])
+		typ := getType(from.Params[1].Type)
 		resV := ctx.Block.NewAlloca(typ)
 
 		cond := compileExp(from.Params[0], ctx)
@@ -107,11 +107,11 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 func makeFDef(name string, fun *ast.FDef, ctx *context) {
 	var params []*ir.Param
 	for _, p := range fun.Params {
-		param := ir.NewParam(p.Name, IntType)
+		param := ir.NewParam(p.Name, getType(p.Type))
 		params = append(params, param)
 	}
 
-	rtype := getType(fun.Body)
+	rtype := getType(fun.Body.Type)
 	compiled := ctx.Module.NewFunc(name, rtype, params...)
 	compiled.Linkage = enum.LinkageInternal
 
@@ -124,7 +124,7 @@ func compileFDefs(ctx *context) {
 		subCtx := ctx.funcContext(body, f.Fun)
 		var params []*ir.Param
 		for _, p := range f.From.Params {
-			param := ir.NewParam(p.Name, IntType)
+			param := ir.NewParam(p.Name, getType(p.Type))
 			_, err := subCtx.addId(p.Name, compiledValue{param})
 			if err != nil {
 				panic(err)
