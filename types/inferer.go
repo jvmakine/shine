@@ -42,7 +42,7 @@ var global map[string]*excon = map[string]*excon{
 	">":  fun(Int, Int, Bool),
 	">=": fun(Int, Int, Bool),
 	"<=": fun(Int, Int, Bool),
-	"==": fun(Int, Int, Bool),
+	"==": fun("A", "A", Bool),
 	"if": fun(Bool, "A", "A", "A"),
 }
 
