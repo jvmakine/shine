@@ -3,32 +3,50 @@ package types
 import (
 	"errors"
 
-	"github.com/chewxy/hm"
 	"github.com/jvmakine/shine/ast"
 )
 
-func globalFun(ts ...hm.Type) *excon {
+func fun(ts ...interface{}) *excon {
+	result := make([]*Type, len(ts))
+	var variables map[string]*Type = map[string]*Type{}
+	for _, t := range ts {
+		switch v := t.(type) {
+		case string:
+			if variables[v] == nil {
+				variables[v] = &Type{}
+			}
+		}
+	}
+
+	for i, t := range ts {
+		switch v := t.(type) {
+		case *Type:
+			result[i] = v
+		case string:
+			result[i] = variables[v]
+		}
+	}
 	return &excon{
-		&ast.Exp{InferredType: &ast.InferredType{hm.NewFnType(ts...)}},
-		&inferContext{},
+		&ast.Exp{Type: function(result...)},
+		&context{},
 	}
 }
 
-var globalConsts map[string]*excon = map[string]*excon{
-	"+":  globalFun(Int, Int, Int),
-	"-":  globalFun(Int, Int, Int),
-	"*":  globalFun(Int, Int, Int),
-	"%":  globalFun(Int, Int, Int),
-	"/":  globalFun(Int, Int, Int),
-	"<":  globalFun(Int, Int, Bool),
-	">":  globalFun(Int, Int, Bool),
-	">=": globalFun(Int, Int, Bool),
-	"<=": globalFun(Int, Int, Bool),
-	"==": globalFun(Int, Int, Bool),
-	"if": globalFun(Bool, hm.TypeVariable('a'), hm.TypeVariable('a'), hm.TypeVariable('a')),
+var global map[string]*excon = map[string]*excon{
+	"+":  fun(Int, Int, Int),
+	"-":  fun(Int, Int, Int),
+	"*":  fun(Int, Int, Int),
+	"%":  fun(Int, Int, Int),
+	"/":  fun(Int, Int, Int),
+	"<":  fun(Int, Int, Bool),
+	">":  fun(Int, Int, Bool),
+	">=": fun(Int, Int, Bool),
+	"<=": fun(Int, Int, Bool),
+	"==": fun(Int, Int, Bool),
+	"if": fun(Bool, "A", "A", "A"),
 }
 
-func (ctx *inferContext) getId(id string) *excon {
+func (ctx *context) getId(id string) *excon {
 	if ctx.ids[id] != nil {
 		return ctx.ids[id]
 	} else if ctx.parent != nil {
@@ -38,36 +56,36 @@ func (ctx *inferContext) getId(id string) *excon {
 }
 
 func Infer(exp *ast.Exp) error {
-	parent := &inferContext{ids: globalConsts}
-	return inferExp(exp, &inferContext{ids: map[string]*excon{}, parent: parent})
+	parent := &context{ids: global}
+	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent})
 }
 
-func inferExp(exp *ast.Exp, ctx *inferContext) error {
-	if exp.InferredType == nil {
+func inferExp(exp *ast.Exp, ctx *context) error {
+	if exp.Type == nil {
 		if exp.Const != nil {
 			if exp.Const.Int != nil {
-				exp.InferredType = &ast.InferredType{Int}
+				exp.Type = Int
 			} else if exp.Const.Bool != nil {
-				exp.InferredType = &ast.InferredType{Bool}
+				exp.Type = Bool
 			} else {
 				panic("unknown constant")
 			}
 			return nil
 		} else if exp.Id != nil {
 			typ, err := inferId(*exp.Id, ctx)
-			exp.InferredType = typ
+			exp.Type = typ
 			return err
 		} else if exp.Call != nil {
 			typ, err := inferCall(exp.Call, ctx)
-			exp.InferredType = typ
+			exp.Type = typ
 			return err
 		} else if exp.Def != nil {
-			typ, err := inferDef(exp.Def, &inferContext{parent: ctx, ids: map[string]*excon{}})
-			exp.InferredType = typ
+			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}})
+			exp.Type = typ
 			return err
 		} else if exp.Block != nil {
-			typ, err := inferBlock(exp.Block, &inferContext{parent: ctx, ids: map[string]*excon{}})
-			exp.InferredType = typ
+			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}})
+			exp.Type = typ
 			return err
 		}
 		panic("unexpected expression")
@@ -75,54 +93,54 @@ func inferExp(exp *ast.Exp, ctx *inferContext) error {
 	return nil
 }
 
-func inferCall(call *ast.FCall, ctx *inferContext) (*ast.InferredType, error) {
-	var params []hm.Type = make([]hm.Type, len(call.Params)+1)
+func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
+	var params []*Type = make([]*Type, len(call.Params)+1)
 	for i, p := range call.Params {
 		err := inferExp(p, ctx)
 		if err != nil {
 			return nil, err
 		}
-		params[i] = p.InferredType.Type
+		params[i] = p.Type.(*Type)
 	}
 	// Recursive type definition
 	if ctx.isInferring(call.Name) {
-		return &ast.InferredType{hm.TypeVariable('r')}, nil
+		return &Type{}, nil
 	}
 	ec := ctx.getId(call.Name)
 	if ec == nil {
 		return nil, errors.New("undefined function: '" + call.Name + "'")
 	}
-	if ec.v.InferredType == nil {
+	if ec.v.Type == nil {
 		err := inferExp(ec.v, ec.c)
 		if err != nil {
 			return nil, err
 		}
 	}
-	ft, ok := ec.v.InferredType.Type.(*hm.FunctionType)
-	if !ok {
+	ft := ec.v.Type.(*Type)
+	if !ft.isFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
-	params[len(call.Params)] = ft.Ret(true)
+	params[len(call.Params)] = ft.returnType()
 
-	ft2 := hm.NewFnType(params...)
-	_, err := hm.Unify(ft.Clone().(hm.Type), ft2)
+	ft2 := function(params...)
+	err := unify(&ft2, &ft)
 	if err != nil {
 		return nil, err
 	}
 
-	return &ast.InferredType{ft2.Ret(true)}, nil
+	return ft2.returnType(), nil
 }
 
-func inferDef(def *ast.FDef, ctx *inferContext) (*ast.InferredType, error) {
-	var paramTypes []hm.Type = make([]hm.Type, len(def.Params)+1)
+func inferDef(def *ast.FDef, ctx *context) (*Type, error) {
+	var paramTypes []*Type = make([]*Type, len(def.Params)+1)
 	for i, p := range def.Params {
 		if ctx.getId(p.Name) != nil {
 			return nil, errors.New("redefinition of '" + p.Name + "'")
 		}
 		ctx.ids[p.Name] = &excon{
 			v: &ast.Exp{
-				Id:           &p.Name,
-				InferredType: &ast.InferredType{Int},
+				Id:   &p.Name,
+				Type: Int,
 			},
 			c: ctx,
 		}
@@ -133,24 +151,24 @@ func inferDef(def *ast.FDef, ctx *inferContext) (*ast.InferredType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ast.InferredType{hm.NewFnType(paramTypes...)}, nil
+	return function(paramTypes...), nil
 }
 
-func inferId(id string, ctx *inferContext) (*ast.InferredType, error) {
+func inferId(id string, ctx *context) (*Type, error) {
 	def := ctx.getId(id)
 	if def == nil {
 		return nil, errors.New("undefined id '" + id + "'")
 	}
-	if def.v.InferredType == nil {
+	if def.v.Type == nil {
 		err := inferExp(def.v, def.c)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return def.v.InferredType, nil
+	return def.v.Type.(*Type), nil
 }
 
-func inferBlock(block *ast.Block, ctx *inferContext) (*ast.InferredType, error) {
+func inferBlock(block *ast.Block, ctx *context) (*Type, error) {
 	for _, a := range block.Assignments {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")
@@ -159,7 +177,7 @@ func inferBlock(block *ast.Block, ctx *inferContext) (*ast.InferredType, error) 
 	}
 	for _, a := range block.Assignments {
 		ctx.startInference(a.Name)
-		if a.Value.InferredType == nil {
+		if a.Value.Type == nil {
 			err := inferExp(a.Value, ctx)
 			if err != nil {
 				return nil, err
@@ -172,5 +190,5 @@ func inferBlock(block *ast.Block, ctx *inferContext) (*ast.InferredType, error) 
 	if err != nil {
 		return nil, err
 	}
-	return block.Value.InferredType, nil
+	return block.Value.Type.(*Type), nil
 }

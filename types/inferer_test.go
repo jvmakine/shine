@@ -1,9 +1,9 @@
 package types
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/chewxy/hm"
 	"github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
 )
@@ -12,7 +12,7 @@ func TestInfer(tes *testing.T) {
 	tests := []struct {
 		name    string
 		exp     *ast.Exp
-		typ     hm.Type
+		typ     *Type
 		wantErr bool
 	}{{
 		name:    "infer constant int correctly",
@@ -70,10 +70,10 @@ func TestInfer(tes *testing.T) {
 			if err := Infer(tt.exp); (err != nil) != tt.wantErr {
 				t.Errorf("Infer() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if tt.exp.InferredType == nil {
+			if tt.exp.Type == nil {
 				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-			} else if tt.exp.InferredType.Type != tt.typ {
-				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.InferredType.Type, tt.typ)
+			} else if !reflect.DeepEqual(tt.exp.Type.(*Type), tt.typ) {
+				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type, tt.typ)
 			}
 		})
 	}
