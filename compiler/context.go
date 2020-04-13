@@ -42,10 +42,6 @@ func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
 	return &context{parent: c, Module: c.Module, Block: block, Func: fun}
 }
 
-func (c *context) blockContext(block *ir.Block) *context {
-	return &context{parent: c, Module: c.Module, Block: block, Func: c.Func}
-}
-
 func (c *context) resolveId(name string) (interface{}, error) {
 	if c.ids[name] != nil {
 		return c.ids[name], nil

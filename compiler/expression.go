@@ -40,34 +40,38 @@ func compileID(name string, ctx *context) value.Value {
 	return id
 }
 
+func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
+	trueL := ctx.newLabel()
+	falseL := ctx.newLabel()
+	continueL := ctx.newLabel()
+	trueB := ctx.Func.NewBlock(trueL)
+	falseB := ctx.Func.NewBlock(falseL)
+	continueB := ctx.Func.NewBlock(continueL)
+	typ := getType(t.Type)
+	resV := ctx.Block.NewAlloca(typ)
+
+	cond := compileExp(c, ctx)
+	ctx.Block.NewCondBr(cond, trueB, falseB)
+
+	ctx.Block = trueB
+	trueV := compileExp(t, ctx)
+	ctx.Block.NewStore(trueV, resV)
+	ctx.Block.NewBr(continueB)
+
+	ctx.Block = falseB
+	falseV := compileExp(f, ctx)
+	ctx.Block.NewStore(falseV, resV)
+	ctx.Block.NewBr(continueB)
+
+	ctx.Block = continueB
+	r := continueB.NewLoad(typ, resV)
+	return r
+}
+
 func compileCall(from *ast.FCall, ctx *context) value.Value {
 	name := from.Name
 	if name == "if" { // Need to evaluate if parameters lazily
-		trueL := ctx.newLabel()
-		falseL := ctx.newLabel()
-		continueL := ctx.newLabel()
-		trueB := ctx.Func.NewBlock(trueL)
-		falseB := ctx.Func.NewBlock(falseL)
-		continueB := ctx.Func.NewBlock(continueL)
-		typ := getType(from.Params[1].Type)
-		resV := ctx.Block.NewAlloca(typ)
-
-		cond := compileExp(from.Params[0], ctx)
-		ctx.Block.NewCondBr(cond, trueB, falseB)
-
-		ctx.Block = trueB
-		trueV := compileExp(from.Params[1], ctx)
-		ctx.Block.NewStore(trueV, resV)
-		ctx.Block.NewBr(continueB)
-
-		ctx.Block = falseB
-		falseV := compileExp(from.Params[2], ctx)
-		ctx.Block.NewStore(falseV, resV)
-		ctx.Block.NewBr(continueB)
-
-		ctx.Block = continueB
-		r := continueB.NewLoad(typ, resV)
-		return r
+		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx)
 	} else {
 		var params []value.Value
 		for _, p := range from.Params {
@@ -156,7 +160,6 @@ func compileBlock(from *ast.Block, ctx *context) value.Value {
 		}
 	}
 	res := compileExp(from.Value, sub)
-	// TODO: refactor block handling
 	ctx.Block = sub.Block
 	return res
 }
