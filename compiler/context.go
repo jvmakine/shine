@@ -10,12 +10,12 @@ import (
 	"github.com/llir/llvm/ir"
 )
 
-type compiledFun struct {
+type function struct {
 	From *ast.FDef
 	Fun  *ir.Func
 }
 
-type compiledValue struct {
+type val struct {
 	Value value.Value
 }
 
@@ -62,16 +62,16 @@ func (c *context) addId(name string, val interface{}) (*context, error) {
 	return c, nil
 }
 
-func (c *context) resolveFun(name string) (compiledFun, error) {
+func (c *context) resolveFun(name string) (function, error) {
 	i, err := c.resolveId(name)
 	if err != nil {
-		return compiledFun{}, err
+		return function{}, err
 	}
 	switch i.(type) {
-	case compiledFun:
-		return i.(compiledFun), nil
+	case function:
+		return i.(function), nil
 	}
-	return compiledFun{}, errors.New(name + " is not a function")
+	return function{}, errors.New(name + " is not a function")
 }
 
 func (c *context) resolveVal(name string) (value.Value, error) {
@@ -80,18 +80,18 @@ func (c *context) resolveVal(name string) (value.Value, error) {
 		return nil, err
 	}
 	switch i.(type) {
-	case compiledValue:
-		return i.(compiledValue).Value, nil
+	case val:
+		return i.(val).Value, nil
 	}
 	return nil, errors.New(name + " is not a value")
 }
 
-func (c *context) functions() []compiledFun {
-	var res []compiledFun
+func (c *context) functions() []function {
+	var res []function
 	for _, i := range c.ids {
 		switch i.(type) {
-		case compiledFun:
-			res = append(res, i.(compiledFun))
+		case function:
+			res = append(res, i.(function))
 		}
 	}
 	return res

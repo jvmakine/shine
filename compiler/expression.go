@@ -121,7 +121,7 @@ func makeFDef(name string, fun *ast.FDef, ctx *context) {
 	compiled := ctx.Module.NewFunc(name, rtype, params...)
 	compiled.Linkage = enum.LinkageInternal
 
-	ctx.addId(name, compiledFun{fun, compiled})
+	ctx.addId(name, function{fun, compiled})
 }
 
 func compileFDefs(ctx *context) {
@@ -131,7 +131,7 @@ func compileFDefs(ctx *context) {
 		var params []*ir.Param
 		for _, p := range f.From.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
-			_, err := subCtx.addId(p.Name, compiledValue{param})
+			_, err := subCtx.addId(p.Name, val{param})
 			if err != nil {
 				panic(err)
 			}
@@ -153,7 +153,7 @@ func compileBlock(from *ast.Block, ctx *context) value.Value {
 	for _, c := range from.Assignments {
 		if c.Value.Def == nil {
 			v := compileExp(c.Value, sub)
-			_, err := sub.addId(c.Name, compiledValue{v})
+			_, err := sub.addId(c.Name, val{v})
 			if err != nil {
 				panic(err)
 			}
