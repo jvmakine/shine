@@ -29,6 +29,25 @@ func variable() *Type {
 	return &Type{}
 }
 
+func (t *Type) copy() *Type {
+	var params []*Type = nil
+	if t.Fn != nil {
+		params = make([]*Type, len(t.Fn))
+		var seen map[*Type]*Type = map[*Type]*Type{}
+		for i, p := range t.Fn {
+			if seen[p] == nil {
+				seen[p] = p.copy()
+			}
+			params[i] = seen[p]
+		}
+	}
+
+	return &Type{
+		Base: t.Base,
+		Fn:   params,
+	}
+}
+
 func (t *Type) isFunction() bool {
 	return t.Fn != nil
 }

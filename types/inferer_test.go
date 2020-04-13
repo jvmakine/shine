@@ -44,7 +44,7 @@ func TestInfer(tes *testing.T) {
 		exp: t.Block(
 			t.Fcall("a", t.BConst(false)),
 			t.Assign("a", t.Fdef(t.Block(
-				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(false)))),
+				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(true)))),
 				"x",
 			))),
 		typ:     Bool,

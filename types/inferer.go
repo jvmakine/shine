@@ -13,7 +13,7 @@ func fun(ts ...interface{}) *excon {
 		switch v := t.(type) {
 		case string:
 			if variables[v] == nil {
-				variables[v] = &Type{}
+				variables[v] = variable()
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 			return nil, err
 		}
 	}
-	ft := ec.v.Type.(*Type)
+	ft := ec.v.Type.(*Type).copy()
 	if !ft.isFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
