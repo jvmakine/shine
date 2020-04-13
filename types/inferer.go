@@ -57,10 +57,10 @@ func (ctx *context) getId(id string) *excon {
 
 func Infer(exp *ast.Exp) error {
 	parent := &context{ids: global}
-	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent})
+	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent}, nil)
 }
 
-func inferExp(exp *ast.Exp, ctx *context) error {
+func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 	if exp.Type == nil {
 		if exp.Const != nil {
 			if exp.Const.Int != nil {
@@ -80,11 +80,11 @@ func inferExp(exp *ast.Exp, ctx *context) error {
 			exp.Type = typ
 			return err
 		} else if exp.Def != nil {
-			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}})
+			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}}, name)
 			exp.Type = typ
 			return err
 		} else if exp.Block != nil {
-			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}})
+			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}}, name)
 			exp.Type = typ
 			return err
 		}
@@ -96,27 +96,30 @@ func inferExp(exp *ast.Exp, ctx *context) error {
 func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 	var params []*Type = make([]*Type, len(call.Params)+1)
 	for i, p := range call.Params {
-		err := inferExp(p, ctx)
+		err := inferExp(p, ctx, nil)
 		if err != nil {
 			return nil, err
 		}
 		params[i] = p.Type.(*Type)
 	}
 	// Recursive type definition
-	if ctx.isInferring(call.Name) {
-		return variable(), nil
-	}
-	ec := ctx.getId(call.Name)
-	if ec == nil {
-		return nil, errors.New("undefined function: '" + call.Name + "'")
-	}
-	if ec.v.Type == nil {
-		err := inferExp(ec.v, ec.c)
-		if err != nil {
-			return nil, err
+	it := ctx.getActiveType(call.Name)
+	var ft *Type = nil
+	if it != nil {
+		ft = it
+	} else {
+		ec := ctx.getId(call.Name)
+		if ec == nil {
+			return nil, errors.New("undefined function: '" + call.Name + "'")
 		}
+		if ec.v.Type == nil {
+			err := inferExp(ec.v, ec.c, nil)
+			if err != nil {
+				return nil, err
+			}
+		}
+		ft = ec.v.Type.(*Type).copy()
 	}
-	ft := ec.v.Type.(*Type).copy()
 	if !ft.isFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
@@ -131,7 +134,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 	return ft2.returnType(), nil
 }
 
-func inferDef(def *ast.FDef, ctx *context) (*Type, error) {
+func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 	var paramTypes []*Type = make([]*Type, len(def.Params)+1)
 	for i, p := range def.Params {
 		if ctx.getId(p.Name) != nil {
@@ -147,12 +150,24 @@ func inferDef(def *ast.FDef, ctx *context) (*Type, error) {
 		}
 		paramTypes[i] = typ
 	}
-	err := inferExp(def.Body, ctx)
+	paramTypes[len(def.Params)] = variable()
+	ftyp := function(paramTypes...)
+	if name != nil {
+		ctx.setActiveType(*name, ftyp)
+	}
+	err := inferExp(def.Body, ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	paramTypes[len(def.Params)] = def.Body.Type.(*Type)
-	return function(paramTypes...), nil
+	inferred := def.Body.Type.(*Type)
+	err = unify(&paramTypes[len(def.Params)], &inferred)
+	if err != nil {
+		return nil, err
+	}
+	if name != nil {
+		ctx.stopInference(*name)
+	}
+	return ftyp, nil
 }
 
 func inferId(id string, ctx *context) (*Type, error) {
@@ -161,7 +176,7 @@ func inferId(id string, ctx *context) (*Type, error) {
 		return nil, errors.New("undefined id '" + id + "'")
 	}
 	if def.v.Type == nil {
-		err := inferExp(def.v, def.c)
+		err := inferExp(def.v, def.c, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +184,7 @@ func inferId(id string, ctx *context) (*Type, error) {
 	return def.v.Type.(*Type), nil
 }
 
-func inferBlock(block *ast.Block, ctx *context) (*Type, error) {
+func inferBlock(block *ast.Block, ctx *context, name *string) (*Type, error) {
 	for _, a := range block.Assignments {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")
@@ -177,17 +192,15 @@ func inferBlock(block *ast.Block, ctx *context) (*Type, error) {
 		ctx.ids[a.Name] = &excon{v: a.Value, c: ctx}
 	}
 	for _, a := range block.Assignments {
-		ctx.startInference(a.Name)
 		if a.Value.Type == nil {
-			err := inferExp(a.Value, ctx)
+			err := inferExp(a.Value, ctx, &a.Name)
 			if err != nil {
 				return nil, err
 			}
 		}
-		ctx.stopInference(a.Name)
 	}
 
-	err := inferExp(block.Value, ctx)
+	err := inferExp(block.Value, ctx, name)
 	if err != nil {
 		return nil, err
 	}

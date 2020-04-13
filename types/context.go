@@ -10,26 +10,26 @@ type excon struct {
 type context struct {
 	parent *context
 	ids    map[string]*excon
-	active map[string]bool
+	active map[string]*Type
 }
 
-func (ctx *context) startInference(id string) {
+func (ctx *context) setActiveType(id string, typ *Type) {
 	if ctx.active == nil {
-		ctx.active = map[string]bool{}
+		ctx.active = map[string]*Type{}
 	}
-	ctx.active[id] = true
+	ctx.active[id] = typ
 }
 
 func (ctx *context) stopInference(id string) {
-	ctx.active[id] = false
+	ctx.active[id] = nil
 }
 
-func (ctx *context) isInferring(id string) bool {
-	if ctx.active[id] {
-		return true
+func (ctx *context) getActiveType(id string) *Type {
+	if ctx.active[id] != nil {
+		return ctx.active[id]
 	}
 	if ctx.parent != nil {
-		return ctx.parent.isInferring(id)
+		return ctx.parent.getActiveType(id)
 	}
-	return false
+	return nil
 }
