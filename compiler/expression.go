@@ -41,12 +41,9 @@ func compileID(name string, ctx *context) value.Value {
 }
 
 func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
-	trueL := ctx.newLabel()
-	falseL := ctx.newLabel()
-	continueL := ctx.newLabel()
-	trueB := ctx.Func.NewBlock(trueL)
-	falseB := ctx.Func.NewBlock(falseL)
-	continueB := ctx.Func.NewBlock(continueL)
+	trueB := ctx.Func.NewBlock(ctx.newLabel())
+	falseB := ctx.Func.NewBlock(ctx.newLabel())
+	continueB := ctx.Func.NewBlock(ctx.newLabel())
 	typ := getType(t.Type)
 	resV := ctx.Block.NewAlloca(typ)
 
@@ -54,13 +51,11 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
 	ctx.Block.NewCondBr(cond, trueB, falseB)
 
 	ctx.Block = trueB
-	trueV := compileExp(t, ctx)
-	ctx.Block.NewStore(trueV, resV)
+	ctx.Block.NewStore(compileExp(t, ctx), resV)
 	ctx.Block.NewBr(continueB)
 
 	ctx.Block = falseB
-	falseV := compileExp(f, ctx)
-	ctx.Block.NewStore(falseV, resV)
+	ctx.Block.NewStore(compileExp(f, ctx), resV)
 	ctx.Block.NewBr(continueB)
 
 	ctx.Block = continueB
