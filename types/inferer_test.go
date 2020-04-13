@@ -69,6 +69,13 @@ func TestInfer(tes *testing.T) {
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
 		typ: Int,
 		err: nil,
+	}, {
+		name: "fail on inferred function parameter mismatch",
+		exp: t.Block(
+			t.Fcall("a", t.BConst(true), t.BConst(true)),
+			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
+		typ: nil,
+		err: errors.New("can not unify bool with int"),
 	},
 	}
 	for _, tt := range tests {

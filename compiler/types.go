@@ -13,13 +13,13 @@ var (
 func getType(from interface{}) types.Type {
 	var rtype types.Type = nil
 	typ := from.(*t.Type)
-	if typ == nil || typ.Base == nil {
+	if typ == nil || typ.Def.Base == nil {
 		panic("trying to use undefined type at compilation")
 	}
-	switch *(typ.Base) {
-	case *(t.Int.Base):
+	switch *(typ.Def.Base) {
+	case *(t.Int.Def.Base):
 		rtype = IntType
-	case *(t.Bool.Base):
+	case *(t.Bool.Def.Base):
 		rtype = BoolType
 	default:
 		panic("unsupported type at compilation")

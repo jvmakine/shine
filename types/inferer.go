@@ -113,7 +113,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 			return nil, errors.New("undefined function: '" + call.Name + "'")
 		}
 		if ec.v.Type == nil {
-			err := inferExp(ec.v, ec.c, nil)
+			err := inferExp(ec.v, ec.c, &call.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -126,7 +126,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 	params[len(call.Params)] = ft.returnType()
 
 	ft2 := function(params...)
-	err := unify(&ft2, &ft)
+	err := unify(ft2, ft)
 	if err != nil {
 		return nil, err
 	}
@@ -141,13 +141,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 			return nil, errors.New("redefinition of '" + p.Name + "'")
 		}
 		typ := variable()
-		ctx.ids[p.Name] = &excon{
-			v: &ast.Exp{
-				Id:   &p.Name,
-				Type: typ,
-			},
-			c: ctx,
-		}
+		ctx.setActiveType(p.Name, typ)
 		paramTypes[i] = typ
 		p.Type = typ
 	}
@@ -161,12 +155,15 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 		return nil, err
 	}
 	inferred := def.Body.Type.(*Type)
-	err = unify(&paramTypes[len(def.Params)], &inferred)
+	err = unify(paramTypes[len(def.Params)], inferred)
 	if err != nil {
 		return nil, err
 	}
 	if name != nil {
 		ctx.stopInference(*name)
+	}
+	for _, p := range def.Params {
+		ctx.stopInference(p.Name)
 	}
 	return ftyp, nil
 }
@@ -174,15 +171,19 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 func inferId(id string, ctx *context) (*Type, error) {
 	def := ctx.getId(id)
 	if def == nil {
+		act := ctx.getActiveType(id)
+		if act != nil {
+			return act, nil
+		}
 		return nil, errors.New("undefined id '" + id + "'")
 	}
 	if def.v.Type == nil {
-		err := inferExp(def.v, def.c, nil)
+		err := inferExp(def.v, def.c, &id)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return def.v.Type.(*Type), nil
+	return def.v.Type.(*Type).copy(), nil
 }
 
 func inferBlock(block *ast.Block, ctx *context, name *string) (*Type, error) {
