@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -10,35 +11,40 @@ import (
 
 func TestInfer(tes *testing.T) {
 	tests := []struct {
-		name    string
-		exp     *ast.Exp
-		typ     *Type
-		wantErr bool
+		name string
+		exp  *ast.Exp
+		typ  *Type
+		err  error
 	}{{
-		name:    "infer constant int correctly",
-		exp:     t.IConst(5),
-		typ:     Int,
-		wantErr: false,
+		name: "infer constant int correctly",
+		exp:  t.IConst(5),
+		typ:  Int,
+		err:  nil,
 	}, {
-		name:    "infer constant bool correctly",
-		exp:     t.BConst(false),
-		typ:     Bool,
-		wantErr: false,
+		name: "infer constant bool correctly",
+		exp:  t.BConst(false),
+		typ:  Bool,
+		err:  nil,
 	}, {
-		name:    "infer assigments in blocks",
-		exp:     t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
-		typ:     Int,
-		wantErr: false,
+		name: "infer assigments in blocks",
+		exp:  t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
+		typ:  Int,
+		err:  nil,
 	}, {
-		name:    "infer integer comparisons as boolean",
-		exp:     t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
-		typ:     Bool,
-		wantErr: false,
+		name: "infer integer comparisons as boolean",
+		exp:  t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
+		typ:  Bool,
+		err:  nil,
 	}, {
-		name:    "infer if expressions",
-		exp:     t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
-		typ:     Int,
-		wantErr: false,
+		name: "infer if expressions",
+		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
+		typ:  Int,
+		err:  nil,
+	}, {
+		name: "fail on mismatching if expression branches",
+		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.BConst(false))),
+		typ:  nil,
+		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "infer recursive functions",
 		exp: t.Block(
@@ -47,28 +53,29 @@ func TestInfer(tes *testing.T) {
 				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(true)))),
 				"x",
 			))),
-		typ:     Bool,
-		wantErr: false,
+		typ: Bool,
+		err: nil,
 	}, {
 		name: "infer function calls",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
-		typ:     Int,
-		wantErr: false,
+		typ: Int,
+		err: nil,
 	}, {
 		name: "infer function parameters",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1), t.BConst(true)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
-		typ:     Int,
-		wantErr: false,
+		typ: Int,
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
-			if err := Infer(tt.exp); (err != nil) != tt.wantErr {
-				t.Errorf("Infer() error = %v, wantErr %v", err, tt.wantErr)
+			err := Infer(tt.exp)
+			if !reflect.DeepEqual(err, tt.err) {
+				t.Errorf("Infer() error = %v, want %v", err, tt.err)
 			}
 			if tt.exp.Type == nil {
 				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)

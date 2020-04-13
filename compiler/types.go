@@ -13,6 +13,9 @@ var (
 func getType(from interface{}) types.Type {
 	var rtype types.Type = nil
 	typ := from.(*t.Type)
+	if typ == nil || typ.Base == nil {
+		panic("trying to use undefined type at compilation")
+	}
 	switch *(typ.Base) {
 	case *(t.Int.Base):
 		rtype = IntType
