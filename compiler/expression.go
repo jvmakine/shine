@@ -5,7 +5,6 @@ import (
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
-	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 )
 
@@ -25,7 +24,12 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 }
 
 func compileConst(from *ast.Const, ctx *context) value.Value {
-	return constant.NewInt(types.I32, int64(*from.Int))
+	if from.Int != nil {
+		return constant.NewInt(IntType, int64(*from.Int))
+	} else if from.Bool != nil {
+		return constant.NewBool(*from.Bool)
+	}
+	panic("invalid constant at compilation")
 }
 
 func compileID(name string, ctx *context) value.Value {
@@ -45,7 +49,8 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		trueB := ctx.Func.NewBlock(trueL)
 		falseB := ctx.Func.NewBlock(falseL)
 		continueB := ctx.Func.NewBlock(continueL)
-		resV := ctx.Block.NewAlloca(types.I32)
+		typ := getType(from.Params[1])
+		resV := ctx.Block.NewAlloca(typ)
 
 		cond := compileExp(from.Params[0], ctx)
 		ctx.Block.NewCondBr(cond, trueB, falseB)
@@ -59,7 +64,7 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		falseB.NewBr(continueB)
 
 		ctx.Block = continueB
-		r := continueB.NewLoad(types.I32, resV)
+		r := continueB.NewLoad(typ, resV)
 		return r
 	} else {
 		var params []value.Value
@@ -102,11 +107,12 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 func makeFDef(name string, fun *ast.FDef, ctx *context) {
 	var params []*ir.Param
 	for _, p := range fun.Params {
-		param := ir.NewParam(p.Name, types.I32)
+		param := ir.NewParam(p.Name, IntType)
 		params = append(params, param)
 	}
 
-	compiled := ctx.Module.NewFunc(name, types.I32, params...)
+	rtype := getType(fun.Body)
+	compiled := ctx.Module.NewFunc(name, rtype, params...)
 	compiled.Linkage = enum.LinkageInternal
 
 	ctx.addId(name, compiledFun{fun, compiled})
@@ -118,7 +124,7 @@ func compileFDefs(ctx *context) {
 		subCtx := ctx.funcContext(body, f.Fun)
 		var params []*ir.Param
 		for _, p := range f.From.Params {
-			param := ir.NewParam(p.Name, types.I32)
+			param := ir.NewParam(p.Name, IntType)
 			_, err := subCtx.addId(p.Name, compiledValue{param})
 			if err != nil {
 				panic(err)
