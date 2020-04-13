@@ -59,8 +59,7 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
 	ctx.Block.NewBr(continueB)
 
 	ctx.Block = continueB
-	r := continueB.NewLoad(typ, resV)
-	return r
+	return continueB.NewLoad(typ, resV)
 }
 
 func compileCall(from *ast.FCall, ctx *context) value.Value {
