@@ -25,6 +25,10 @@ func function(ts ...*Type) *Type {
 	return &Type{Fn: ts}
 }
 
+func variable() *Type {
+	return &Type{}
+}
+
 func (t *Type) isFunction() bool {
 	return t.Fn != nil
 }
@@ -42,14 +46,18 @@ func (t *Type) returnType() *Type {
 }
 
 func unify(a **Type, b **Type) error {
+	if (*a).isVariable() && (*b).isVariable() {
+		*a = *b
+		return nil
+	}
 	if (*a).isVariable() {
-		(*a).Base = (*b).Base
 		(*a).Fn = (*b).Fn
+		(*a).Base = (*b).Base
 		return nil
 	}
 	if (*b).isVariable() {
-		(*b).Base = (*a).Base
 		(*b).Fn = (*a).Fn
+		(*b).Base = (*a).Base
 		return nil
 	}
 	if (*a).isBase() && (*b).isBase() {

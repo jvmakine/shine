@@ -104,7 +104,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 	}
 	// Recursive type definition
 	if ctx.isInferring(call.Name) {
-		return &Type{}, nil
+		return variable(), nil
 	}
 	ec := ctx.getId(call.Name)
 	if ec == nil {
@@ -137,20 +137,21 @@ func inferDef(def *ast.FDef, ctx *context) (*Type, error) {
 		if ctx.getId(p.Name) != nil {
 			return nil, errors.New("redefinition of '" + p.Name + "'")
 		}
+		typ := variable()
 		ctx.ids[p.Name] = &excon{
 			v: &ast.Exp{
 				Id:   &p.Name,
-				Type: Int,
+				Type: typ,
 			},
 			c: ctx,
 		}
-		paramTypes[i] = Int
+		paramTypes[i] = typ
 	}
-	paramTypes[len(def.Params)] = Int
 	err := inferExp(def.Body, ctx)
 	if err != nil {
 		return nil, err
 	}
+	paramTypes[len(def.Params)] = def.Body.Type.(*Type)
 	return function(paramTypes...), nil
 }
 
