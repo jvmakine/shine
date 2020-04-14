@@ -9,32 +9,32 @@ import (
 
 type TypeDef struct {
 	Base *typedef.Primitive
-	Fn   []*Type
+	Fn   []*TypePtr
 }
 
-type Type struct {
+type TypePtr struct {
 	Def *TypeDef
 }
 
-func base(t typedef.Primitive) *Type {
-	return &Type{Def: &TypeDef{Base: &t}}
+func base(t typedef.Primitive) *TypePtr {
+	return &TypePtr{Def: &TypeDef{Base: &t}}
 }
 
-func function(ts ...*Type) *Type {
-	return &Type{&TypeDef{Fn: ts}}
+func function(ts ...*TypePtr) *TypePtr {
+	return &TypePtr{&TypeDef{Fn: ts}}
 }
 
-func variable() *Type {
-	return &Type{Def: &TypeDef{}}
+func variable() *TypePtr {
+	return &TypePtr{Def: &TypeDef{}}
 }
 
-func (t *Type) Copy() *Type {
-	var params []*Type = nil
+func (t *TypePtr) Copy() *TypePtr {
+	var params []*TypePtr = nil
 	var def *TypeDef = nil
 	if t.Def != nil {
 		if t.Def.Fn != nil {
-			params = make([]*Type, len(t.Def.Fn))
-			var seen map[*Type]*Type = map[*Type]*Type{}
+			params = make([]*TypePtr, len(t.Def.Fn))
+			var seen map[*TypePtr]*TypePtr = map[*TypePtr]*TypePtr{}
 			for i, p := range t.Def.Fn {
 				if seen[p] == nil {
 					seen[p] = p.Copy()
@@ -48,26 +48,26 @@ func (t *Type) Copy() *Type {
 		}
 	}
 
-	return &Type{Def: def}
+	return &TypePtr{Def: def}
 }
 
-func (t *Type) IsFunction() bool {
+func (t *TypePtr) IsFunction() bool {
 	return t.Def.Fn != nil
 }
 
-func (t *Type) IsBase() bool {
+func (t *TypePtr) IsBase() bool {
 	return t.Def.Base != nil
 }
 
-func (t *Type) IsVariable() bool {
+func (t *TypePtr) IsVariable() bool {
 	return !t.IsBase() && !t.IsFunction()
 }
 
-func (t *Type) ReturnType() *Type {
+func (t *TypePtr) ReturnType() *TypePtr {
 	return t.Def.Fn[len(t.Def.Fn)-1]
 }
 
-func Unify(a *Type, b *Type) error {
+func Unify(a *TypePtr, b *TypePtr) error {
 	if a.IsVariable() && b.IsVariable() {
 		a.Def = b.Def
 		return nil

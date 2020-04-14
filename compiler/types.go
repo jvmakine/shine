@@ -13,7 +13,7 @@ var (
 
 func getType(from interface{}) types.Type {
 	var rtype types.Type = nil
-	typ := from.(*t.Type)
+	typ := from.(*t.TypePtr)
 	if typ == nil || typ.Def.Base == nil {
 		panic("trying to use undefined type at compilation")
 	}

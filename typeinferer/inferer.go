@@ -8,8 +8,8 @@ import (
 )
 
 func fun(ts ...interface{}) *excon {
-	result := make([]*Type, len(ts))
-	var variables map[string]*Type = map[string]*Type{}
+	result := make([]*TypePtr, len(ts))
+	var variables map[string]*TypePtr = map[string]*TypePtr{}
 	for _, t := range ts {
 		switch v := t.(type) {
 		case string:
@@ -21,7 +21,7 @@ func fun(ts ...interface{}) *excon {
 
 	for i, t := range ts {
 		switch v := t.(type) {
-		case *Type:
+		case *TypePtr:
 			result[i] = v
 		case string:
 			result[i] = variables[v]
@@ -94,18 +94,18 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 	return nil
 }
 
-func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
-	var params []*Type = make([]*Type, len(call.Params)+1)
+func inferCall(call *ast.FCall, ctx *context) (*TypePtr, error) {
+	var params []*TypePtr = make([]*TypePtr, len(call.Params)+1)
 	for i, p := range call.Params {
 		err := inferExp(p, ctx, nil)
 		if err != nil {
 			return nil, err
 		}
-		params[i] = p.Type.(*Type)
+		params[i] = p.Type.(*TypePtr)
 	}
 	// Recursive type definition
 	it := ctx.getActiveType(call.Name)
-	var ft *Type = nil
+	var ft *TypePtr = nil
 	if it != nil {
 		ft = it
 	} else {
@@ -119,7 +119,7 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 				return nil, err
 			}
 		}
-		ft = ec.v.Type.(*Type).Copy()
+		ft = ec.v.Type.(*TypePtr).Copy()
 	}
 	if !ft.IsFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
@@ -135,8 +135,8 @@ func inferCall(call *ast.FCall, ctx *context) (*Type, error) {
 	return ft2.ReturnType(), nil
 }
 
-func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
-	var paramTypes []*Type = make([]*Type, len(def.Params)+1)
+func inferDef(def *ast.FDef, ctx *context, name *string) (*TypePtr, error) {
+	var paramTypes []*TypePtr = make([]*TypePtr, len(def.Params)+1)
 	for i, p := range def.Params {
 		if ctx.getId(p.Name) != nil {
 			return nil, errors.New("redefinition of '" + p.Name + "'")
@@ -155,7 +155,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	inferred := def.Body.Type.(*Type)
+	inferred := def.Body.Type.(*TypePtr)
 	err = Unify(paramTypes[len(def.Params)], inferred)
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*Type, error) {
 	return ftyp, nil
 }
 
-func inferId(id string, ctx *context) (*Type, error) {
+func inferId(id string, ctx *context) (*TypePtr, error) {
 	def := ctx.getId(id)
 	if def == nil {
 		act := ctx.getActiveType(id)
@@ -184,10 +184,10 @@ func inferId(id string, ctx *context) (*Type, error) {
 			return nil, err
 		}
 	}
-	return def.v.Type.(*Type).Copy(), nil
+	return def.v.Type.(*TypePtr).Copy(), nil
 }
 
-func inferBlock(block *ast.Block, ctx *context, name *string) (*Type, error) {
+func inferBlock(block *ast.Block, ctx *context, name *string) (*TypePtr, error) {
 	for _, a := range block.Assignments {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")
@@ -207,5 +207,5 @@ func inferBlock(block *ast.Block, ctx *context, name *string) (*Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	return block.Value.Type.(*Type), nil
+	return block.Value.Type.(*TypePtr), nil
 }

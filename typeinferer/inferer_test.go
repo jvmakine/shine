@@ -14,7 +14,7 @@ func TestInfer(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		typ  *Type
+		typ  *TypePtr
 		err  error
 	}{{
 		name: "infer constant int correctly",
@@ -87,7 +87,7 @@ func TestInfer(tes *testing.T) {
 			}
 			if tt.exp.Type == nil {
 				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-			} else if !reflect.DeepEqual(tt.exp.Type.(*Type), tt.typ) {
+			} else if !reflect.DeepEqual(tt.exp.Type.(*TypePtr), tt.typ) {
 				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type, tt.typ)
 			}
 		})

@@ -10,12 +10,12 @@ type excon struct {
 type context struct {
 	parent *context
 	ids    map[string]*excon
-	active map[string]*Type
+	active map[string]*TypePtr
 }
 
-func (ctx *context) setActiveType(id string, typ *Type) {
+func (ctx *context) setActiveType(id string, typ *TypePtr) {
 	if ctx.active == nil {
-		ctx.active = map[string]*Type{}
+		ctx.active = map[string]*TypePtr{}
 	}
 	ctx.active[id] = typ
 }
@@ -24,7 +24,7 @@ func (ctx *context) stopInference(id string) {
 	ctx.active[id] = nil
 }
 
-func (ctx *context) getActiveType(id string) *Type {
+func (ctx *context) getActiveType(id string) *TypePtr {
 	if ctx.active[id] != nil {
 		return ctx.active[id]
 	}
