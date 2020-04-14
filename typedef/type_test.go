@@ -1,4 +1,4 @@
-package types
+package typedef
 
 import (
 	"reflect"
@@ -12,26 +12,22 @@ func TestSignature(t *testing.T) {
 		want TypeSignature
 	}{{
 		name: "return base type signature",
-		typ:  base("int"),
+		typ:  primitive("int"),
 		want: "int",
 	}, {
 		name: "return function type signature",
-		typ:  function(base("int"), base("bool"), base("int")),
+		typ:  function(primitive("int"), primitive("bool"), primitive("int")),
 		want: "(int,bool,int)",
 	}, {
 		name: "return nested function type signature",
-		typ:  function(base("int"), function(base("bool"), base("bool")), base("int")),
+		typ:  function(primitive("int"), function(primitive("bool"), primitive("bool")), primitive("int")),
 		want: "(int,(bool,bool),int)",
 	},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := tt.typ
-			got, err := tr.Signature()
-			if err != nil {
-				t.Errorf("Type.Signature() error = %v", err)
-				return
-			}
+			got := tr.Signature()
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Type.Signature() = %v, want %v", got, tt.want)
 			}

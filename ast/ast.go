@@ -1,8 +1,6 @@
+// Package ast contains the definition of the inital program structure
+// as parsed from the translation unit
 package ast
-
-type Typed interface {
-	GetType() interface{}
-}
 
 // Expressions
 
@@ -12,7 +10,9 @@ type Exp struct {
 	Id    *string
 	Call  *FCall
 	Def   *FDef
-	Type  interface{}
+	// Type may contain data related to the type inference
+	// The actual structure of the type is up to the inference algorithm
+	Type interface{}
 }
 
 type Const struct {

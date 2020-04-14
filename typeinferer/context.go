@@ -1,4 +1,4 @@
-package types
+package typeinferer
 
 import "github.com/jvmakine/shine/ast"
 

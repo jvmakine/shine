@@ -1,7 +1,8 @@
 package compiler
 
 import (
-	t "github.com/jvmakine/shine/types"
+	"github.com/jvmakine/shine/typedef"
+	t "github.com/jvmakine/shine/typeinferer"
 	"github.com/llir/llvm/ir/types"
 )
 
@@ -17,9 +18,9 @@ func getType(from interface{}) types.Type {
 		panic("trying to use undefined type at compilation")
 	}
 	switch *(typ.Def.Base) {
-	case *(t.Int.Def.Base):
+	case typedef.Int:
 		rtype = IntType
-	case *(t.Bool.Def.Base):
+	case typedef.Bool:
 		rtype = BoolType
 	default:
 		panic("unsupported type at compilation")

@@ -1,17 +1,14 @@
-package types
+package typeinferer
 
 import (
 	"errors"
 	"strconv"
-	"strings"
+
+	"github.com/jvmakine/shine/typedef"
 )
 
-type TypeSignature = string
-
-type TypeBase = string
-
 type TypeDef struct {
-	Base *TypeBase
+	Base *typedef.Primitive
 	Fn   []*Type
 }
 
@@ -19,12 +16,7 @@ type Type struct {
 	Def *TypeDef
 }
 
-var (
-	Int  *Type = base("int")
-	Bool *Type = base("bool")
-)
-
-func base(t string) *Type {
+func base(t typedef.Primitive) *Type {
 	return &Type{Def: &TypeDef{Base: &t}}
 }
 
@@ -73,29 +65,6 @@ func (t *Type) IsVariable() bool {
 
 func (t *Type) ReturnType() *Type {
 	return t.Def.Fn[len(t.Def.Fn)-1]
-}
-
-func (t *Type) Signature() (TypeSignature, error) {
-	if t.IsBase() {
-		return *t.Def.Base, nil
-	}
-	if t.IsFunction() {
-		var sb strings.Builder
-		sb.WriteString("(")
-		for i, p := range t.Def.Fn {
-			s, err := p.Signature()
-			if err != nil {
-				return "", err
-			}
-			sb.WriteString(s)
-			if i < len(t.Def.Fn)-1 {
-				sb.WriteString(",")
-			}
-		}
-		sb.WriteString(")")
-		return sb.String(), nil
-	}
-	return "", errors.New("can not get signature for a type variable")
 }
 
 func Unify(a *Type, b *Type) error {

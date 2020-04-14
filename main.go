@@ -7,7 +7,7 @@ import (
 
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
-	"github.com/jvmakine/shine/types"
+	"github.com/jvmakine/shine/typeinferer"
 )
 
 func main() {
@@ -20,7 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 	ast := parsed.ToAst()
-	err = types.Infer(ast)
+	err = typeinferer.Infer(ast)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(2)

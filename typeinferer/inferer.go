@@ -1,9 +1,10 @@
-package types
+package typeinferer
 
 import (
 	"errors"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/typedef"
 )
 
 func fun(ts ...interface{}) *excon {
@@ -33,17 +34,17 @@ func fun(ts ...interface{}) *excon {
 }
 
 var global map[string]*excon = map[string]*excon{
-	"+":  fun(Int, Int, Int),
-	"-":  fun(Int, Int, Int),
-	"*":  fun(Int, Int, Int),
-	"%":  fun(Int, Int, Int),
-	"/":  fun(Int, Int, Int),
-	"<":  fun(Int, Int, Bool),
-	">":  fun(Int, Int, Bool),
-	">=": fun(Int, Int, Bool),
-	"<=": fun(Int, Int, Bool),
-	"==": fun("A", "A", Bool),
-	"if": fun(Bool, "A", "A", "A"),
+	"+":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Int)),
+	"-":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Int)),
+	"*":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Int)),
+	"%":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Int)),
+	"/":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Int)),
+	"<":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Bool)),
+	">":  fun(base(typedef.Int), base(typedef.Int), base(typedef.Bool)),
+	">=": fun(base(typedef.Int), base(typedef.Int), base(typedef.Bool)),
+	"<=": fun(base(typedef.Int), base(typedef.Int), base(typedef.Bool)),
+	"==": fun("A", "A", base(typedef.Bool)),
+	"if": fun(base(typedef.Bool), "A", "A", "A"),
 }
 
 func (ctx *context) getId(id string) *excon {
@@ -64,9 +65,9 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 	if exp.Type == nil {
 		if exp.Const != nil {
 			if exp.Const.Int != nil {
-				exp.Type = Int
+				exp.Type = base(typedef.Int)
 			} else if exp.Const.Bool != nil {
-				exp.Type = Bool
+				exp.Type = base(typedef.Bool)
 			} else {
 				panic("unknown constant")
 			}
