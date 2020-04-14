@@ -3,7 +3,10 @@ package types
 import (
 	"errors"
 	"strconv"
+	"strings"
 )
+
+type TypeSignature = string
 
 type TypeBase = string
 
@@ -70,6 +73,29 @@ func (t *Type) isVariable() bool {
 
 func (t *Type) returnType() *Type {
 	return t.Def.Fn[len(t.Def.Fn)-1]
+}
+
+func (t *Type) Signature() (TypeSignature, error) {
+	if t.isBase() {
+		return *t.Def.Base, nil
+	}
+	if t.isFunction() {
+		var sb strings.Builder
+		sb.WriteString("(")
+		for i, p := range t.Def.Fn {
+			s, err := p.Signature()
+			if err != nil {
+				return "", err
+			}
+			sb.WriteString(s)
+			if i < len(t.Def.Fn)-1 {
+				sb.WriteString(",")
+			}
+		}
+		sb.WriteString(")")
+		return sb.String(), nil
+	}
+	return "", errors.New("can not get signature for a type variable")
 }
 
 func unify(a *Type, b *Type) error {
