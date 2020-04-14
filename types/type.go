@@ -36,7 +36,7 @@ func variable() *Type {
 	return &Type{Def: &TypeDef{}}
 }
 
-func (t *Type) copy() *Type {
+func (t *Type) Copy() *Type {
 	var params []*Type = nil
 	var def *TypeDef = nil
 	if t.Def != nil {
@@ -45,7 +45,7 @@ func (t *Type) copy() *Type {
 			var seen map[*Type]*Type = map[*Type]*Type{}
 			for i, p := range t.Def.Fn {
 				if seen[p] == nil {
-					seen[p] = p.copy()
+					seen[p] = p.Copy()
 				}
 				params[i] = seen[p]
 			}
@@ -59,27 +59,27 @@ func (t *Type) copy() *Type {
 	return &Type{Def: def}
 }
 
-func (t *Type) isFunction() bool {
+func (t *Type) IsFunction() bool {
 	return t.Def.Fn != nil
 }
 
-func (t *Type) isBase() bool {
+func (t *Type) IsBase() bool {
 	return t.Def.Base != nil
 }
 
-func (t *Type) isVariable() bool {
-	return !t.isBase() && !t.isFunction()
+func (t *Type) IsVariable() bool {
+	return !t.IsBase() && !t.IsFunction()
 }
 
-func (t *Type) returnType() *Type {
+func (t *Type) ReturnType() *Type {
 	return t.Def.Fn[len(t.Def.Fn)-1]
 }
 
 func (t *Type) Signature() (TypeSignature, error) {
-	if t.isBase() {
+	if t.IsBase() {
 		return *t.Def.Base, nil
 	}
-	if t.isFunction() {
+	if t.IsFunction() {
 		var sb strings.Builder
 		sb.WriteString("(")
 		for i, p := range t.Def.Fn {
@@ -98,43 +98,43 @@ func (t *Type) Signature() (TypeSignature, error) {
 	return "", errors.New("can not get signature for a type variable")
 }
 
-func unify(a *Type, b *Type) error {
-	if a.isVariable() && b.isVariable() {
+func Unify(a *Type, b *Type) error {
+	if a.IsVariable() && b.IsVariable() {
 		a.Def = b.Def
 		return nil
 	}
-	if a.isVariable() {
+	if a.IsVariable() {
 		a.Def.Fn = b.Def.Fn
 		a.Def.Base = b.Def.Base
 		return nil
 	}
-	if b.isVariable() {
+	if b.IsVariable() {
 		b.Def.Fn = a.Def.Fn
 		b.Def.Base = a.Def.Base
 		return nil
 	}
-	if a.isBase() && b.isBase() {
+	if a.IsBase() && b.IsBase() {
 		if *(a.Def.Base) != *(b.Def.Base) {
 			return errors.New("can not unify " + *(a.Def.Base) + " with " + *(b.Def.Base))
 		}
 		return nil
 	}
-	if a.isFunction() && b.isFunction() {
+	if a.IsFunction() && b.IsFunction() {
 		if len(a.Def.Fn) != len(b.Def.Fn) {
 			return errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + "given " + strconv.Itoa(len(b.Def.Fn)) + "required")
 		}
 		for i := range a.Def.Fn {
-			err := unify(a.Def.Fn[i], b.Def.Fn[i])
+			err := Unify(a.Def.Fn[i], b.Def.Fn[i])
 			if err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	if a.isFunction() {
+	if a.IsFunction() {
 		return errors.New("not a function")
 	}
-	if b.isFunction() {
+	if b.IsFunction() {
 		return errors.New("a function required")
 	}
 	panic("missing unification rule")
