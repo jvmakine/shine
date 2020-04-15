@@ -119,12 +119,12 @@ func inferCall(call *ast.FCall, ctx *context) (*TypePtr, error) {
 				return nil, err
 			}
 		}
-		ft = ec.v.Type.(*TypePtr).Copy()
+		ft = ec.v.Type.(*TypePtr)
 	}
 	if !ft.IsFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
-	params[len(call.Params)] = ft.ReturnType()
+	params[len(call.Params)] = ft.ReturnType().Copy()
 
 	ft2 := function(params...)
 	unifier, err := Unify(ft2, ft)
@@ -132,7 +132,9 @@ func inferCall(call *ast.FCall, ctx *context) (*TypePtr, error) {
 		return nil, err
 	}
 	unifier.ApplySource(ft2)
-	unifier.ApplyDest(ft)
+	if it != nil {
+		unifier.ApplyDest(ft)
+	}
 	return ft2.ReturnType(), nil
 }
 
