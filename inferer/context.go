@@ -1,6 +1,9 @@
-package types
+package inferer
 
-import "github.com/jvmakine/shine/ast"
+import (
+	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/types"
+)
 
 type excon struct {
 	v *ast.Exp
@@ -10,12 +13,12 @@ type excon struct {
 type context struct {
 	parent *context
 	ids    map[string]*excon
-	active map[string]*TypePtr
+	active map[string]*types.TypePtr
 }
 
-func (ctx *context) setActiveType(id string, typ *TypePtr) {
+func (ctx *context) setActiveType(id string, typ *types.TypePtr) {
 	if ctx.active == nil {
-		ctx.active = map[string]*TypePtr{}
+		ctx.active = map[string]*types.TypePtr{}
 	}
 	ctx.active[id] = typ
 }
@@ -24,7 +27,7 @@ func (ctx *context) stopInference(id string) {
 	ctx.active[id] = nil
 }
 
-func (ctx *context) getActiveType(id string) *TypePtr {
+func (ctx *context) getActiveType(id string) *types.TypePtr {
 	if ctx.active[id] != nil {
 		return ctx.active[id]
 	}

@@ -1,15 +1,17 @@
-package types
+package inferer
 
 import (
 	"errors"
 	"strconv"
+
+	"github.com/jvmakine/shine/types"
 )
 
 type Subs struct {
-	Variables map[*TypePtr]*TypePtr
+	Variables map[*types.TypePtr]*types.TypePtr
 }
 
-func apply(t *TypePtr, s *Subs, d *Subs) {
+func apply(t *types.TypePtr, s *Subs, d *Subs) {
 	if fv := s.Variables[t]; fv != nil {
 		if dv := d.Variables[fv]; dv != nil {
 			t.Def = dv.Def
@@ -32,22 +34,22 @@ type Unifier struct {
 	dest   Subs
 }
 
-func (u *Unifier) ApplySource(t *TypePtr) {
+func (u *Unifier) ApplySource(t *types.TypePtr) {
 	apply(t, &u.source, &u.dest)
 }
 
-func (u *Unifier) ApplyDest(t *TypePtr) {
+func (u *Unifier) ApplyDest(t *types.TypePtr) {
 	apply(t, &u.dest, &u.source)
 }
 
 func NewUnifier() *Unifier {
 	return &Unifier{
-		source: Subs{Variables: map[*TypePtr]*TypePtr{}},
-		dest:   Subs{Variables: map[*TypePtr]*TypePtr{}},
+		source: Subs{Variables: map[*types.TypePtr]*types.TypePtr{}},
+		dest:   Subs{Variables: map[*types.TypePtr]*types.TypePtr{}},
 	}
 }
 
-func doesConflict(x *TypePtr, y *TypePtr) error {
+func doesConflict(x *types.TypePtr, y *types.TypePtr) error {
 	if x == nil || y == nil || x.Def.Base == nil || y.Def.Base == nil || x.Def == nil || y.Def == nil {
 		return nil
 	}
@@ -91,7 +93,7 @@ func (u *Unifier) combine(o *Unifier) error {
 	return nil
 }
 
-func Unify(a *TypePtr, b *TypePtr) (*Unifier, error) {
+func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
 	if a.IsVariable() && b.IsVariable() {
 		u := NewUnifier()
 		u.source.Variables[a] = b

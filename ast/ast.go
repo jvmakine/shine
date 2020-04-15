@@ -2,6 +2,8 @@
 // as parsed from the translation unit
 package ast
 
+import "github.com/jvmakine/shine/types"
+
 // Expressions
 
 type Exp struct {
@@ -12,7 +14,7 @@ type Exp struct {
 	Def   *FDef
 	// Type may contain data related to the type inference
 	// The actual structure of the type is up to the inference algorithm
-	Type interface{}
+	Type *types.TypePtr
 }
 
 type Const struct {

@@ -50,18 +50,6 @@ func (t *TypePtr) Signature() string {
 	return sign(t, &varc, &varm)
 }
 
-func base(t Primitive) *TypePtr {
-	return &TypePtr{Def: &TypeDef{Base: &t}}
-}
-
-func function(ts ...*TypePtr) *TypePtr {
-	return &TypePtr{&TypeDef{Fn: ts}}
-}
-
-func variable() *TypePtr {
-	return &TypePtr{Def: &TypeDef{}}
-}
-
 func (t *TypePtr) Copy() *TypePtr {
 	var params []*TypePtr = nil
 	var def *TypeDef = nil
@@ -95,6 +83,21 @@ func (t *TypePtr) IsBase() bool {
 
 func (t *TypePtr) IsVariable() bool {
 	return !t.IsBase() && !t.IsFunction()
+}
+
+func (t *TypePtr) IsDefined() bool {
+	if t.IsVariable() {
+		return false
+	}
+	if t.IsBase() {
+		return true
+	}
+	for _, p := range t.Def.Fn {
+		if !p.IsDefined() {
+			return false
+		}
+	}
+	return true
 }
 
 func (t *TypePtr) ReturnType() *TypePtr {

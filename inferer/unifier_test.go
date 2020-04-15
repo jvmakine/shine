@@ -1,20 +1,22 @@
-package types
+package inferer
 
 import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/jvmakine/shine/types"
 )
 
 func TestUnify(t *testing.T) {
 	type args struct {
-		a *TypePtr
-		b *TypePtr
+		a *types.TypePtr
+		b *types.TypePtr
 	}
 	tests := []struct {
 		name  string
-		left  *TypePtr
-		right *TypePtr
+		left  *types.TypePtr
+		right *types.TypePtr
 		want  string
 		err   error
 	}{{
@@ -37,32 +39,32 @@ func TestUnify(t *testing.T) {
 		err:   nil,
 	}, {
 		name:  "should unify simple variables in functions",
-		left:  fun("A", base("int")).v.Type.(*TypePtr),
-		right: fun(base("bool"), base("int")).v.Type.(*TypePtr),
+		left:  fun("A", base("int")).v.Type,
+		right: fun(base("bool"), base("int")).v.Type,
 		want:  "(bool,int)",
 		err:   nil,
 	}, {
 		name:  "should unify repeating variables in functions",
-		left:  fun("A", "A").v.Type.(*TypePtr),
-		right: fun(base("bool"), "A").v.Type.(*TypePtr),
+		left:  fun("A", "A").v.Type,
+		right: fun(base("bool"), "A").v.Type,
 		want:  "(bool,bool)",
 		err:   nil,
 	}, {
 		name:  "should fail repeating variables in conflict",
-		left:  fun("A", "A").v.Type.(*TypePtr),
-		right: fun(base("bool"), base("int")).v.Type.(*TypePtr),
+		left:  fun("A", "A").v.Type,
+		right: fun(base("bool"), base("int")).v.Type,
 		want:  "",
 		err:   errors.New("can not unify int with bool"),
 	}, {
 		name:  "should unify two way parameter references",
-		left:  fun("A", "A", "B", "A").v.Type.(*TypePtr),
-		right: fun("C", base("int"), "D", "E").v.Type.(*TypePtr),
+		left:  fun("A", "A", "B", "A").v.Type,
+		right: fun("C", base("int"), "D", "E").v.Type,
 		want:  "(int,int,V1,int)",
 		err:   nil,
 	}, {
 		name:  "should fail on two way parameter reference conflicts",
-		left:  fun("A", "A", base("bool"), "A").v.Type.(*TypePtr),
-		right: fun("C", base("int"), "C", "E").v.Type.(*TypePtr),
+		left:  fun("A", "A", base("bool"), "A").v.Type,
+		right: fun("C", base("int"), "C", "E").v.Type,
 		want:  "",
 		err:   errors.New("can not unify bool with int"),
 	}}
