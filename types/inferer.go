@@ -163,7 +163,6 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*TypePtr, error) {
 		return nil, err
 	}
 	unifier.ApplySource(paramTypes[len(def.Params)])
-	unifier.ApplyDest(inferred)
 	if name != nil {
 		ctx.stopInference(*name)
 	}

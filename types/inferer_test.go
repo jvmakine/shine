@@ -7,7 +7,6 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
-	"github.com/jvmakine/shine/typedef"
 )
 
 func TestInfer(tes *testing.T) {
@@ -19,27 +18,27 @@ func TestInfer(tes *testing.T) {
 	}{{
 		name: "infer constant int correctly",
 		exp:  t.IConst(5),
-		typ:  base(typedef.Int),
+		typ:  base(Int),
 		err:  nil,
 	}, {
 		name: "infer constant bool correctly",
 		exp:  t.BConst(false),
-		typ:  base(typedef.Bool),
+		typ:  base(Bool),
 		err:  nil,
 	}, {
 		name: "infer assigments in blocks",
 		exp:  t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
-		typ:  base(typedef.Int),
+		typ:  base(Int),
 		err:  nil,
 	}, {
 		name: "infer integer comparisons as boolean",
 		exp:  t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
-		typ:  base(typedef.Bool),
+		typ:  base(Bool),
 		err:  nil,
 	}, {
 		name: "infer if expressions",
 		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
-		typ:  base(typedef.Int),
+		typ:  base(Int),
 		err:  nil,
 	}, {
 		name: "fail on mismatching if expression branches",
@@ -54,21 +53,21 @@ func TestInfer(tes *testing.T) {
 				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(true)))),
 				"x",
 			))),
-		typ: base(typedef.Bool),
+		typ: base(Bool),
 		err: nil,
 	}, {
 		name: "infer function calls",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
-		typ: base(typedef.Int),
+		typ: base(Int),
 		err: nil,
 	}, {
 		name: "infer function parameters",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1), t.BConst(true)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
-		typ: base(typedef.Int),
+		typ: base(Int),
 		err: nil,
 	}, {
 		name: "fail on inferred function parameter mismatch",
