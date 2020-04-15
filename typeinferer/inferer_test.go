@@ -76,7 +76,7 @@ func TestInfer(tes *testing.T) {
 			t.Fcall("a", t.BConst(true), t.BConst(true)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
 		typ: nil,
-		err: errors.New("can not unify bool with int"),
+		err: errors.New("can not unify int with bool"),
 	},
 	}
 	for _, tt := range tests {

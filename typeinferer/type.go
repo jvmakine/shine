@@ -1,8 +1,8 @@
 package typeinferer
 
 import (
-	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/jvmakine/shine/typedef"
 )
@@ -14,6 +14,35 @@ type TypeDef struct {
 
 type TypePtr struct {
 	Def *TypeDef
+}
+
+func sign(t *TypePtr, varc *int, varm *map[*TypeDef]string) string {
+	if t.IsBase() {
+		return *t.Def.Base
+	}
+	if t.IsFunction() {
+		var sb strings.Builder
+		sb.WriteString("(")
+		for i, p := range t.Def.Fn {
+			sb.WriteString(p.Signature())
+			if i < len(t.Def.Fn)-1 {
+				sb.WriteString(",")
+			}
+		}
+		sb.WriteString(")")
+		return sb.String()
+	}
+	if (*varm)[t.Def] == "" {
+		*varc = *varc + 1
+		(*varm)[t.Def] = "V" + strconv.Itoa(*varc)
+	}
+	return (*varm)[t.Def]
+}
+
+func (t *TypePtr) Signature() string {
+	varc := 0
+	varm := map[*TypeDef]string{}
+	return sign(t, &varc, &varm)
 }
 
 func base(t typedef.Primitive) *TypePtr {
@@ -65,46 +94,4 @@ func (t *TypePtr) IsVariable() bool {
 
 func (t *TypePtr) ReturnType() *TypePtr {
 	return t.Def.Fn[len(t.Def.Fn)-1]
-}
-
-func Unify(a *TypePtr, b *TypePtr) error {
-	if a.IsVariable() && b.IsVariable() {
-		a.Def = b.Def
-		return nil
-	}
-	if a.IsVariable() {
-		a.Def.Fn = b.Def.Fn
-		a.Def.Base = b.Def.Base
-		return nil
-	}
-	if b.IsVariable() {
-		b.Def.Fn = a.Def.Fn
-		b.Def.Base = a.Def.Base
-		return nil
-	}
-	if a.IsBase() && b.IsBase() {
-		if *(a.Def.Base) != *(b.Def.Base) {
-			return errors.New("can not unify " + *(a.Def.Base) + " with " + *(b.Def.Base))
-		}
-		return nil
-	}
-	if a.IsFunction() && b.IsFunction() {
-		if len(a.Def.Fn) != len(b.Def.Fn) {
-			return errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + "given " + strconv.Itoa(len(b.Def.Fn)) + "required")
-		}
-		for i := range a.Def.Fn {
-			err := Unify(a.Def.Fn[i], b.Def.Fn[i])
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	if a.IsFunction() {
-		return errors.New("not a function")
-	}
-	if b.IsFunction() {
-		return errors.New("a function required")
-	}
-	panic("missing unification rule")
 }

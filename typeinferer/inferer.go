@@ -127,11 +127,12 @@ func inferCall(call *ast.FCall, ctx *context) (*TypePtr, error) {
 	params[len(call.Params)] = ft.ReturnType()
 
 	ft2 := function(params...)
-	err := Unify(ft2, ft)
+	unifier, err := Unify(ft2, ft)
 	if err != nil {
 		return nil, err
 	}
-
+	unifier.ApplySource(ft2)
+	unifier.ApplyDest(ft)
 	return ft2.ReturnType(), nil
 }
 
@@ -156,10 +157,12 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*TypePtr, error) {
 		return nil, err
 	}
 	inferred := def.Body.Type.(*TypePtr)
-	err = Unify(paramTypes[len(def.Params)], inferred)
+	unifier, err := Unify(paramTypes[len(def.Params)], inferred)
 	if err != nil {
 		return nil, err
 	}
+	unifier.ApplySource(paramTypes[len(def.Params)])
+	unifier.ApplyDest(inferred)
 	if name != nil {
 		ctx.stopInference(*name)
 	}
