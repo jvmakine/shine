@@ -1,4 +1,4 @@
-package typeinferer
+package types
 
 import (
 	"errors"

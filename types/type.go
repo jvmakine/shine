@@ -1,14 +1,19 @@
-package typeinferer
+package types
 
 import (
 	"strconv"
 	"strings"
+)
 
-	"github.com/jvmakine/shine/typedef"
+type Primitive = string
+
+const (
+	Int  Primitive = "int"
+	Bool Primitive = "bool"
 )
 
 type TypeDef struct {
-	Base *typedef.Primitive
+	Base *Primitive
 	Fn   []*TypePtr
 }
 
@@ -45,7 +50,7 @@ func (t *TypePtr) Signature() string {
 	return sign(t, &varc, &varm)
 }
 
-func base(t typedef.Primitive) *TypePtr {
+func base(t Primitive) *TypePtr {
 	return &TypePtr{Def: &TypeDef{Base: &t}}
 }
 
