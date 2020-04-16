@@ -112,11 +112,6 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value}
 		}
 	}
-	for _, a := range block.Assignments {
-		if def := a.Value.Def; def != nil {
-			resolveExp(a.Value, ctx)
-		}
-	}
 	resolveExp(block.Value, ctx)
 }
 
