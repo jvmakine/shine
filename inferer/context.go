@@ -11,9 +11,10 @@ type excon struct {
 }
 
 type context struct {
-	parent *context
-	ids    map[string]*excon
-	active map[string]*types.TypePtr
+	parent     *context
+	ids        map[string]*excon
+	active     map[string]*types.TypePtr
+	activeVals *[]string
 }
 
 func (ctx *context) setActiveType(id string, typ *types.TypePtr) {

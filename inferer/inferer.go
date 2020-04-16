@@ -70,7 +70,7 @@ func (ctx *context) getId(id string) *excon {
 
 func Infer(exp *ast.Exp) error {
 	parent := &context{ids: global}
-	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent}, nil)
+	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent, activeVals: &[]string{}}, nil)
 }
 
 func inferExp(exp *ast.Exp, ctx *context, name *string) error {
@@ -93,11 +93,11 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 			exp.Type = typ
 			return err
 		} else if exp.Def != nil {
-			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}}, name)
+			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}, activeVals: ctx.activeVals}, name)
 			exp.Type = typ
 			return err
 		} else if exp.Block != nil {
-			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}}, name)
+			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}, activeVals: ctx.activeVals}, name)
 			exp.Type = typ
 			return err
 		}
@@ -190,12 +190,34 @@ func inferId(id string, ctx *context) (*types.TypePtr, error) {
 		return nil, errors.New("undefined id '" + id + "'")
 	}
 	if def.v.Type == nil {
+		if contains((*ctx.activeVals), id) {
+			return nil, errors.New("recursive value: " + cycleToStr((*ctx.activeVals), id))
+		}
+		(*ctx.activeVals) = append((*ctx.activeVals), id)
 		err := inferExp(def.v, def.c, &id)
 		if err != nil {
 			return nil, err
 		}
+		(*ctx.activeVals) = (*ctx.activeVals)[:1]
 	}
 	return def.v.Type.Copy(types.NewTypeCopyCtx()), nil
+}
+
+func contains(arr []string, v string) bool {
+	for _, a := range arr {
+		if a == v {
+			return true
+		}
+	}
+	return false
+}
+
+func cycleToStr(arr []string, v string) string {
+	res := ""
+	for _, a := range arr {
+		res = res + a + " -> "
+	}
+	return res + v
 }
 
 func inferBlock(block *ast.Block, ctx *context, name *string) (*types.TypePtr, error) {
