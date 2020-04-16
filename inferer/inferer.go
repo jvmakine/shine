@@ -9,12 +9,12 @@ import (
 
 func fun(ts ...interface{}) *excon {
 	result := make([]*types.TypePtr, len(ts))
-	var variables map[string]*types.TypePtr = map[string]*types.TypePtr{}
+	var variables map[string]*types.TypeDef = map[string]*types.TypeDef{}
 	for _, t := range ts {
 		switch v := t.(type) {
 		case string:
 			if variables[v] == nil {
-				variables[v] = variable()
+				variables[v] = &types.TypeDef{}
 			}
 		}
 	}
@@ -24,7 +24,7 @@ func fun(ts ...interface{}) *excon {
 		case *types.TypePtr:
 			result[i] = v
 		case string:
-			result[i] = variables[v]
+			result[i] = &types.TypePtr{Def: variables[v]}
 		}
 	}
 	return &excon{

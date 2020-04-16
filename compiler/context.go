@@ -62,16 +62,16 @@ func (c *context) addId(name string, val interface{}) (*context, error) {
 	return c, nil
 }
 
-func (c *context) resolveFun(name string) (function, error) {
+func (c *context) resolveFun(name string) function {
 	i, err := c.resolveId(name)
 	if err != nil {
-		return function{}, err
+		panic(name + " is not a function")
 	}
 	switch i.(type) {
 	case function:
-		return i.(function), nil
+		return i.(function)
 	}
-	return function{}, errors.New(name + " is not a function")
+	panic(name + " is not a function")
 }
 
 func (c *context) resolveVal(name string) (value.Value, error) {

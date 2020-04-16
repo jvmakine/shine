@@ -2,7 +2,9 @@
 // as parsed from the translation unit
 package ast
 
-import "github.com/jvmakine/shine/types"
+import (
+	"github.com/jvmakine/shine/types"
+)
 
 // Expressions
 
@@ -38,6 +40,8 @@ type FParam struct {
 type FDef struct {
 	Params []*FParam
 	Body   *Exp
+
+	Resolved string
 }
 
 // Blocks
@@ -67,6 +71,9 @@ func (a *Exp) Copy() *Exp {
 }
 
 func (a *Block) Copy() *Block {
+	if a == nil {
+		return nil
+	}
 	ac := make([]*Assign, len(a.Assignments))
 	for i, as := range a.Assignments {
 		ac[i] = as.Copy()
@@ -78,6 +85,9 @@ func (a *Block) Copy() *Block {
 }
 
 func (a *Assign) Copy() *Assign {
+	if a == nil {
+		return nil
+	}
 	return &Assign{
 		Name:  a.Name,
 		Value: a.Value.Copy(),
@@ -85,6 +95,9 @@ func (a *Assign) Copy() *Assign {
 }
 
 func (a *FCall) Copy() *FCall {
+	if a == nil {
+		return nil
+	}
 	pc := make([]*Exp, len(a.Params))
 	for i, p := range a.Params {
 		pc[i] = p.Copy()
@@ -97,6 +110,9 @@ func (a *FCall) Copy() *FCall {
 }
 
 func (a *FDef) Copy() *FDef {
+	if a == nil {
+		return nil
+	}
 	pc := make([]*FParam, len(a.Params))
 	for i, p := range a.Params {
 		pc[i] = p.Copy()
@@ -108,6 +124,9 @@ func (a *FDef) Copy() *FDef {
 }
 
 func (a *FParam) Copy() *FParam {
+	if a == nil {
+		return nil
+	}
 	return &FParam{
 		Name: a.Name,
 		Type: a.Type.Copy(),

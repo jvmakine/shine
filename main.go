@@ -25,6 +25,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ERROR: "+err.Error())
 		os.Exit(2)
 	}
-	module := compiler.Compile(ast)
+	fcat := inferer.Resolve(ast)
+	module := compiler.Compile(ast, fcat)
 	fmt.Println(module)
 }

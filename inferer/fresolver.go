@@ -55,12 +55,17 @@ func resolveExp(exp *ast.Exp, ctx *lctx) {
 	if exp.Block != nil {
 		resolveBlock(exp, ctx)
 	} else if exp.Call != nil {
-
+		resolveCall(exp, ctx)
+	} else if exp.Def != nil {
+		resolveDef(exp, ctx)
 	}
 }
 
 func resolveCall(exp *ast.Exp, ctx *lctx) {
 	call := exp.Call
+	for _, p := range call.Params {
+		resolveExp(p, ctx)
+	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
 		if es.def.Type.IsDefined() {
@@ -75,12 +80,22 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			}
 			ptypes[len(call.Params)] = exp.Type
 			ftype := types.MakeFun(ptypes...)
+			cop := es.def.Copy()
+			u1 := ftype.Signature()
+			u2 := cop.Type.Signature()
+
+			uni, err := Unify(ftype, cop.Type)
+			if err != nil {
+				panic(err)
+			}
+			uni.ApplySource(ftype)
+			uni.ApplyDest(cop.Type)
+			if !ftype.IsDefined() {
+				panic("type inference failed: " + u1 + " u " + u2 + " => " + ftype.Signature())
+			}
 			fsig := MakeFSign(call.Name, es.block, ftype.Signature())
 			call.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
-				cop := es.def.Copy()
-				uni, _ := Unify(ftype, cop.Type)
-				uni.ApplyDest(cop.Type)
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
@@ -103,4 +118,9 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 		}
 	}
 	resolveExp(block.Value, ctx)
+}
+
+func resolveDef(exp *ast.Exp, ctx *lctx) {
+	def := exp.Def
+	resolveExp(def.Body, ctx)
 }

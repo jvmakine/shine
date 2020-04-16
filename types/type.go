@@ -25,7 +25,12 @@ func MakeFun(ts ...*TypePtr) *TypePtr {
 	return &TypePtr{&TypeDef{Fn: ts}}
 }
 
-func sign(t *TypePtr, varc *int, varm *map[*TypeDef]string) string {
+type signctx struct {
+	varc int
+	varm map[*TypeDef]string
+}
+
+func sign(t *TypePtr, ctx *signctx) string {
 	if t.IsBase() {
 		return *t.Def.Base
 	}
@@ -33,7 +38,7 @@ func sign(t *TypePtr, varc *int, varm *map[*TypeDef]string) string {
 		var sb strings.Builder
 		sb.WriteString("(")
 		for i, p := range t.Def.Fn {
-			sb.WriteString(p.Signature())
+			sb.WriteString(sign(p, ctx))
 			if i < len(t.Def.Fn)-1 {
 				sb.WriteString(",")
 			}
@@ -41,17 +46,16 @@ func sign(t *TypePtr, varc *int, varm *map[*TypeDef]string) string {
 		sb.WriteString(")")
 		return sb.String()
 	}
-	if (*varm)[t.Def] == "" {
-		*varc = *varc + 1
-		(*varm)[t.Def] = "V" + strconv.Itoa(*varc)
+	if ctx.varm[t.Def] == "" {
+		ctx.varc++
+		ctx.varm[t.Def] = "V" + strconv.Itoa(ctx.varc)
 	}
-	return (*varm)[t.Def]
+	return ctx.varm[t.Def]
 }
 
 func (t *TypePtr) Signature() string {
-	varc := 0
 	varm := map[*TypeDef]string{}
-	return sign(t, &varc, &varm)
+	return sign(t, &signctx{varc: 0, varm: varm})
 }
 
 func (t *TypePtr) Copy() *TypePtr {
@@ -60,12 +64,12 @@ func (t *TypePtr) Copy() *TypePtr {
 	if t.Def != nil {
 		if t.Def.Fn != nil {
 			params = make([]*TypePtr, len(t.Def.Fn))
-			var seen map[*TypePtr]*TypePtr = map[*TypePtr]*TypePtr{}
+			var seen map[*TypeDef]*TypeDef = map[*TypeDef]*TypeDef{}
 			for i, p := range t.Def.Fn {
-				if seen[p] == nil {
-					seen[p] = p.Copy()
+				if seen[p.Def] == nil {
+					seen[p.Def] = p.Copy().Def
 				}
-				params[i] = seen[p]
+				params[i] = &TypePtr{Def: seen[p.Def]}
 			}
 		}
 		def = &TypeDef{
