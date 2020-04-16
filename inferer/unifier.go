@@ -78,7 +78,7 @@ func (u *Unifier) combine(o *Unifier) error {
 					return err
 				}
 			}
-			u.dest.Variables[u.source.Variables[k]] = v
+			u.dest.Variables[us] = v
 			u.source.Variables[k] = v
 		}
 	}
@@ -97,8 +97,8 @@ func (u *Unifier) combine(o *Unifier) error {
 					return err
 				}
 			}
+			u.source.Variables[ud] = v
 			u.dest.Variables[k] = v
-			u.source.Variables[u.dest.Variables[k]] = v
 		}
 	}
 	return nil
