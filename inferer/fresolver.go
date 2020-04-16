@@ -72,7 +72,10 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			sig := es.def.Type.Signature()
 			fsig := MakeFSign(call.Name, es.block, sig)
 			call.Resolved = fsig
-			ctx.global.cat[fsig] = es.def.Def
+			if ctx.global.cat[fsig] == nil {
+				ctx.global.cat[fsig] = es.def.Def
+				resolveExp(es.def, ctx)
+			}
 		} else {
 			ptypes := make([]*types.TypePtr, len(call.Params)+1)
 			for i, p := range call.Params {
