@@ -64,13 +64,17 @@ func doesConflict(x *types.TypeDef, y *types.TypeDef) error {
 
 func (u *Unifier) combine(o *Unifier) error {
 	for k, v := range o.source.Variables {
-		if u.source.Variables[k] == nil {
-			u.source.Variables[k] = v
-		} else if err := doesConflict(u.source.Variables[k], v); err != nil {
+		us := u.source.Variables[k]
+		if err := doesConflict(us, v); err != nil {
 			return err
+		} else if us == nil || (us.Fn == nil && us.Base == nil && v.Base == nil && v.Fn == nil) {
+			u.source.Variables[k] = v
+			if us != nil {
+				u.dest.Variables[us] = k
+			}
 		} else if v.Base != nil {
-			if u.source.Variables[k] != nil {
-				if err := doesConflict(u.dest.Variables[u.source.Variables[k]], v); err != nil {
+			if us != nil {
+				if err := doesConflict(u.dest.Variables[us], v); err != nil {
 					return err
 				}
 			}
@@ -78,13 +82,17 @@ func (u *Unifier) combine(o *Unifier) error {
 		}
 	}
 	for k, v := range o.dest.Variables {
-		if u.dest.Variables[k] == nil {
-			u.dest.Variables[k] = v
-		} else if err := doesConflict(u.dest.Variables[k], v); err != nil {
+		ud := u.dest.Variables[k]
+		if err := doesConflict(ud, v); err != nil {
 			return err
+		} else if ud == nil || (ud.Fn == nil && ud.Base == nil && v.Base == nil && v.Fn == nil) {
+			u.dest.Variables[k] = v
+			if ud != nil {
+				u.source.Variables[ud] = k
+			}
 		} else if v.Base != nil {
 			if u.dest.Variables[k] != nil {
-				if err := doesConflict(u.source.Variables[u.dest.Variables[k]], v); err != nil {
+				if err := doesConflict(u.source.Variables[ud], v); err != nil {
 					return err
 				}
 			}

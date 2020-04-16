@@ -1,4 +1,4 @@
 inv = (x) => { if (x) false else true }
-choose = (b, l, r) => { if (b) l else choose(inv(b), r, 3) }
+choose = (b, l, r) => { if (b) l else r }
 
-choose(inv(true), 1, 10)
+choose(choose(true, true, false), 1, choose(true, 5, 6))

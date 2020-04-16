@@ -67,6 +67,12 @@ func TestUnify(t *testing.T) {
 		right: fun("C", base("int"), "C", "E").v.Type,
 		want:  "",
 		err:   errors.New("can not unify bool with int"),
+	}, {
+		name:  "unify to sets of variables into one",
+		left:  fun("A", "B", "B", "A").v.Type,
+		right: fun("A", "B", "A", "B").v.Type,
+		want:  "(V1,V1,V1,V1)",
+		err:   nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

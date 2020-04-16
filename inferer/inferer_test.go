@@ -86,6 +86,13 @@ func TestInfer(tes *testing.T) {
 		exp:  t.Block(t.Id("a"), t.Assign("a", t.Id("b")), t.Assign("b", t.Id("a"))),
 		typ:  "",
 		err:  errors.New("recursive value: b -> a -> b"),
+	}, {
+		name: "unify one function multiple ways",
+		exp: t.Block(
+			t.Fcall("if", t.Fcall("a", t.BConst(true)), t.Fcall("a", t.IConst(1)), t.IConst(2)),
+			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"))),
+		typ: "int",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
