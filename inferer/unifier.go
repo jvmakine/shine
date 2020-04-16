@@ -130,7 +130,7 @@ func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
 	}
 	if a.IsFunction() && b.IsFunction() {
 		if len(a.Def.Fn) != len(b.Def.Fn) {
-			return nil, errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + "given " + strconv.Itoa(len(b.Def.Fn)) + "required")
+			return nil, errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + " given " + strconv.Itoa(len(b.Def.Fn)) + " required")
 		}
 		unifier := NewUnifier()
 		for i := range a.Def.Fn {

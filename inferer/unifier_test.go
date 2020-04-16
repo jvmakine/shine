@@ -85,6 +85,18 @@ func TestUnify(t *testing.T) {
 		right: fun("A", "B", "A", base("int")).v.Type,
 		want:  "",
 		err:   errors.New("can not unify int with bool"),
+	}, {
+		name:  "fail to unify functions of mismaching number of arguments",
+		left:  fun("A", "A").v.Type,
+		right: fun("A", "A", "A").v.Type,
+		want:  "",
+		err:   errors.New("wrong number of function arguments 2 given 3 required"),
+	}, {
+		name:  "fail to unify functions with values",
+		left:  base("int"),
+		right: fun(base("int")).v.Type,
+		want:  "",
+		err:   errors.New("a function required"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
