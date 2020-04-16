@@ -21,6 +21,10 @@ type TypePtr struct {
 	Def *TypeDef
 }
 
+func MakeFun(ts ...*TypePtr) *TypePtr {
+	return &TypePtr{&TypeDef{Fn: ts}}
+}
+
 func sign(t *TypePtr, varc *int, varm *map[*TypeDef]string) string {
 	if t.IsBase() {
 		return *t.Def.Base
