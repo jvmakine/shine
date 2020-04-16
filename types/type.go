@@ -58,33 +58,53 @@ func (t *TypePtr) Signature() string {
 	return sign(t, &signctx{varc: 0, varm: varm})
 }
 
-type TypeCopyCtx = *map[*TypeDef]*TypeDef
-
-func NewTypeCopyCtx() TypeCopyCtx {
-	return &map[*TypeDef]*TypeDef{}
+type TypeCopyCtx struct {
+	defs map[*TypeDef]*TypeDef
+	ptrs map[*TypePtr]*TypePtr
 }
 
-func (t *TypePtr) Copy(ctx TypeCopyCtx) *TypePtr {
+func NewTypeCopyCtx() *TypeCopyCtx {
+	return &TypeCopyCtx{
+		defs: map[*TypeDef]*TypeDef{},
+		ptrs: map[*TypePtr]*TypePtr{},
+	}
+
+}
+
+func (t *TypePtr) Copy(ctx *TypeCopyCtx) *TypePtr {
 	var params []*TypePtr = nil
 	var def *TypeDef = nil
-	if (*ctx)[t.Def] != nil {
-		return &TypePtr{Def: (*ctx)[t.Def]}
+	if ctx.ptrs[t] != nil {
+		return ctx.ptrs[t]
+	}
+	if ctx.defs[t.Def] != nil {
+		res := &TypePtr{Def: ctx.defs[t.Def]}
+		ctx.ptrs[t] = res
+		return res
 	}
 	if t.Def.Fn != nil {
 		params = make([]*TypePtr, len(t.Def.Fn))
 		for i, p := range t.Def.Fn {
-			if (*ctx)[p.Def] == nil {
-				(*ctx)[p.Def] = p.Copy(ctx).Def
+			if ctx.ptrs[p] != nil {
+				params[i] = ctx.ptrs[p]
+			} else {
+				if ctx.defs[p.Def] == nil {
+					ctx.defs[p.Def] = p.Copy(ctx).Def
+				}
+				res := &TypePtr{Def: ctx.defs[p.Def]}
+				ctx.ptrs[p] = res
+				params[i] = res
 			}
-			params[i] = &TypePtr{Def: (*ctx)[p.Def]}
 		}
 	}
 	def = &TypeDef{
 		Fn:   params,
 		Base: t.Def.Base,
 	}
-	(*ctx)[t.Def] = def
-	return &TypePtr{Def: def}
+	ctx.defs[t.Def] = def
+	res := &TypePtr{Def: def}
+	ctx.ptrs[t] = res
+	return res
 }
 
 func (t *TypePtr) IsFunction() bool {

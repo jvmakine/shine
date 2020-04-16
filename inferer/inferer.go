@@ -170,7 +170,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*types.TypePtr, error)
 	if err != nil {
 		return nil, err
 	}
-	paramTypes[len(def.Params)].Def = def.Body.Type.Def
+	paramTypes[len(def.Params)] = def.Body.Type
 	if name != nil {
 		ctx.stopInference(*name)
 	}

@@ -60,7 +60,7 @@ func (a *Exp) Copy() *Exp {
 	return a.copy(types.NewTypeCopyCtx())
 }
 
-func (a *Exp) copy(ctx types.TypeCopyCtx) *Exp {
+func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 	if a == nil {
 		return nil
 	}
@@ -74,7 +74,7 @@ func (a *Exp) copy(ctx types.TypeCopyCtx) *Exp {
 	}
 }
 
-func (a *Block) copy(ctx types.TypeCopyCtx) *Block {
+func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	if a == nil {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (a *Block) copy(ctx types.TypeCopyCtx) *Block {
 	}
 }
 
-func (a *Assign) copy(ctx types.TypeCopyCtx) *Assign {
+func (a *Assign) copy(ctx *types.TypeCopyCtx) *Assign {
 	if a == nil {
 		return nil
 	}
@@ -98,7 +98,7 @@ func (a *Assign) copy(ctx types.TypeCopyCtx) *Assign {
 	}
 }
 
-func (a *FCall) copy(ctx types.TypeCopyCtx) *FCall {
+func (a *FCall) copy(ctx *types.TypeCopyCtx) *FCall {
 	if a == nil {
 		return nil
 	}
@@ -113,7 +113,7 @@ func (a *FCall) copy(ctx types.TypeCopyCtx) *FCall {
 	}
 }
 
-func (a *FDef) copy(ctx types.TypeCopyCtx) *FDef {
+func (a *FDef) copy(ctx *types.TypeCopyCtx) *FDef {
 	if a == nil {
 		return nil
 	}
@@ -127,7 +127,7 @@ func (a *FDef) copy(ctx types.TypeCopyCtx) *FDef {
 	}
 }
 
-func (a *FParam) copy(ctx types.TypeCopyCtx) *FParam {
+func (a *FParam) copy(ctx *types.TypeCopyCtx) *FParam {
 	if a == nil {
 		return nil
 	}
