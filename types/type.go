@@ -58,26 +58,32 @@ func (t *TypePtr) Signature() string {
 	return sign(t, &signctx{varc: 0, varm: varm})
 }
 
-func (t *TypePtr) Copy() *TypePtr {
+type TypeCopyCtx = *map[*TypeDef]*TypeDef
+
+func NewTypeCopyCtx() TypeCopyCtx {
+	return &map[*TypeDef]*TypeDef{}
+}
+
+func (t *TypePtr) Copy(ctx TypeCopyCtx) *TypePtr {
 	var params []*TypePtr = nil
 	var def *TypeDef = nil
-	if t.Def != nil {
-		if t.Def.Fn != nil {
-			params = make([]*TypePtr, len(t.Def.Fn))
-			var seen map[*TypeDef]*TypeDef = map[*TypeDef]*TypeDef{}
-			for i, p := range t.Def.Fn {
-				if seen[p.Def] == nil {
-					seen[p.Def] = p.Copy().Def
-				}
-				params[i] = &TypePtr{Def: seen[p.Def]}
+	if (*ctx)[t.Def] != nil {
+		return &TypePtr{Def: (*ctx)[t.Def]}
+	}
+	if t.Def.Fn != nil {
+		params = make([]*TypePtr, len(t.Def.Fn))
+		for i, p := range t.Def.Fn {
+			if (*ctx)[p.Def] == nil {
+				(*ctx)[p.Def] = p.Copy(ctx).Def
 			}
-		}
-		def = &TypeDef{
-			Fn:   params,
-			Base: t.Def.Base,
+			params[i] = &TypePtr{Def: (*ctx)[p.Def]}
 		}
 	}
-
+	def = &TypeDef{
+		Fn:   params,
+		Base: t.Def.Base,
+	}
+	(*ctx)[t.Def] = def
 	return &TypePtr{Def: def}
 }
 

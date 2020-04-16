@@ -57,50 +57,54 @@ type Block struct {
 }
 
 func (a *Exp) Copy() *Exp {
+	return a.copy(types.NewTypeCopyCtx())
+}
+
+func (a *Exp) copy(ctx types.TypeCopyCtx) *Exp {
 	if a == nil {
 		return nil
 	}
 	return &Exp{
 		Const: a.Const,
-		Block: a.Block.Copy(),
+		Block: a.Block.copy(ctx),
 		Id:    a.Id,
-		Call:  a.Call.Copy(),
-		Def:   a.Def.Copy(),
-		Type:  a.Type.Copy(),
+		Call:  a.Call.copy(ctx),
+		Def:   a.Def.copy(ctx),
+		Type:  a.Type.Copy(ctx),
 	}
 }
 
-func (a *Block) Copy() *Block {
+func (a *Block) copy(ctx types.TypeCopyCtx) *Block {
 	if a == nil {
 		return nil
 	}
 	ac := make([]*Assign, len(a.Assignments))
 	for i, as := range a.Assignments {
-		ac[i] = as.Copy()
+		ac[i] = as.copy(ctx)
 	}
 	return &Block{
 		Assignments: ac,
-		Value:       a.Value.Copy(),
+		Value:       a.Value.copy(ctx),
 	}
 }
 
-func (a *Assign) Copy() *Assign {
+func (a *Assign) copy(ctx types.TypeCopyCtx) *Assign {
 	if a == nil {
 		return nil
 	}
 	return &Assign{
 		Name:  a.Name,
-		Value: a.Value.Copy(),
+		Value: a.Value.copy(ctx),
 	}
 }
 
-func (a *FCall) Copy() *FCall {
+func (a *FCall) copy(ctx types.TypeCopyCtx) *FCall {
 	if a == nil {
 		return nil
 	}
 	pc := make([]*Exp, len(a.Params))
 	for i, p := range a.Params {
-		pc[i] = p.Copy()
+		pc[i] = p.copy(ctx)
 	}
 	return &FCall{
 		Name:     a.Name,
@@ -109,26 +113,26 @@ func (a *FCall) Copy() *FCall {
 	}
 }
 
-func (a *FDef) Copy() *FDef {
+func (a *FDef) copy(ctx types.TypeCopyCtx) *FDef {
 	if a == nil {
 		return nil
 	}
 	pc := make([]*FParam, len(a.Params))
 	for i, p := range a.Params {
-		pc[i] = p.Copy()
+		pc[i] = p.copy(ctx)
 	}
 	return &FDef{
 		Params: pc,
-		Body:   a.Body.Copy(),
+		Body:   a.Body.copy(ctx),
 	}
 }
 
-func (a *FParam) Copy() *FParam {
+func (a *FParam) copy(ctx types.TypeCopyCtx) *FParam {
 	if a == nil {
 		return nil
 	}
 	return &FParam{
 		Name: a.Name,
-		Type: a.Type.Copy(),
+		Type: a.Type.Copy(ctx),
 	}
 }

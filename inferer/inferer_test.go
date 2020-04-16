@@ -7,44 +7,43 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
-	"github.com/jvmakine/shine/types"
 )
 
 func TestInfer(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		typ  *types.TypePtr
+		typ  string
 		err  error
 	}{{
 		name: "infer constant int correctly",
 		exp:  t.IConst(5),
-		typ:  base(types.Int),
+		typ:  "int",
 		err:  nil,
 	}, {
 		name: "infer constant bool correctly",
 		exp:  t.BConst(false),
-		typ:  base(types.Bool),
+		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer assigments in blocks",
 		exp:  t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
-		typ:  base(types.Int),
+		typ:  "int",
 		err:  nil,
 	}, {
 		name: "infer integer comparisons as boolean",
 		exp:  t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
-		typ:  base(types.Bool),
+		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer if expressions",
 		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
-		typ:  base(types.Int),
+		typ:  "int",
 		err:  nil,
 	}, {
 		name: "fail on mismatching if expression branches",
 		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.BConst(false))),
-		typ:  nil,
+		typ:  "",
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "infer recursive functions",
@@ -54,29 +53,34 @@ func TestInfer(tes *testing.T) {
 				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(true)))),
 				"x",
 			))),
-		typ: base(types.Bool),
+		typ: "bool",
 		err: nil,
 	}, {
 		name: "infer function calls",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
-		typ: base(types.Int),
+		typ: "int",
 		err: nil,
 	}, {
 		name: "infer function parameters",
 		exp: t.Block(
 			t.Fcall("a", t.IConst(1), t.BConst(true)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
-		typ: base(types.Int),
+		typ: "int",
 		err: nil,
 	}, {
 		name: "fail on inferred function parameter mismatch",
 		exp: t.Block(
 			t.Fcall("a", t.BConst(true), t.BConst(true)),
 			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
-		typ: nil,
+		typ: "",
 		err: errors.New("can not unify int with bool"),
+	}, {
+		name: "unify function return values",
+		exp:  t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"),
+		typ:  "(V1,V1)",
+		err:  nil,
 	},
 	}
 	for _, tt := range tests {
@@ -85,10 +89,10 @@ func TestInfer(tes *testing.T) {
 			if !reflect.DeepEqual(err, tt.err) {
 				t.Errorf("Infer() error = %v, want %v", err, tt.err)
 			}
-			if tt.exp.Type == nil && tt.typ != nil {
+			if (tt.exp.Type == nil) && tt.typ != "" {
 				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-			} else if !reflect.DeepEqual(tt.exp.Type, tt.typ) {
-				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type, tt.typ)
+			} else if tt.exp.Type != nil && tt.exp.Type.Signature() != tt.typ {
+				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type.Signature(), tt.typ)
 			}
 		})
 	}

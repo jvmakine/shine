@@ -19,7 +19,8 @@ func apply(t *types.TypePtr, s *Subs, d *Subs) {
 			if fv.Base == nil && fv.Fn == nil {
 				panic("invalid substitution")
 			}
-			t.Def = fv
+			t.Def.Fn = fv.Fn
+			t.Def.Base = fv.Base
 		}
 
 	} else if t.IsFunction() {

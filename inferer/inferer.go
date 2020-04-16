@@ -136,7 +136,7 @@ func inferCall(call *ast.FCall, ctx *context) (*types.TypePtr, error) {
 	if !ft.IsFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
-	params[len(call.Params)] = ft.ReturnType().Copy()
+	params[len(call.Params)] = ft.ReturnType().Copy(types.NewTypeCopyCtx())
 
 	ft2 := function(params...)
 	unifier, err := Unify(ft2, ft)
@@ -170,12 +170,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*types.TypePtr, error)
 	if err != nil {
 		return nil, err
 	}
-	inferred := def.Body.Type
-	unifier, err := Unify(paramTypes[len(def.Params)], inferred)
-	if err != nil {
-		return nil, err
-	}
-	unifier.ApplySource(paramTypes[len(def.Params)])
+	paramTypes[len(def.Params)].Def = def.Body.Type.Def
 	if name != nil {
 		ctx.stopInference(*name)
 	}
@@ -200,7 +195,7 @@ func inferId(id string, ctx *context) (*types.TypePtr, error) {
 			return nil, err
 		}
 	}
-	return def.v.Type.Copy(), nil
+	return def.v.Type.Copy(types.NewTypeCopyCtx()), nil
 }
 
 func inferBlock(block *ast.Block, ctx *context, name *string) (*types.TypePtr, error) {
