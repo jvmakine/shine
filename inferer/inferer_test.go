@@ -81,6 +81,11 @@ func TestInfer(tes *testing.T) {
 		exp:  t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"),
 		typ:  "(V1,V1)",
 		err:  nil,
+	}, {
+		name: "fail on recursive values",
+		exp:  t.Block(t.Id("a"), t.Assign("a", t.Id("b")), t.Assign("b", t.Id("a"))),
+		typ:  "",
+		err:  errors.New("recursive value: a -> b -> a"),
 	},
 	}
 	for _, tt := range tests {
