@@ -10,11 +10,17 @@ type Primitive = string
 const (
 	Int  Primitive = "int"
 	Bool Primitive = "bool"
+	Real Primitive = "real"
 )
 
+type TypeUnion struct {
+	Types []*TypePtr
+}
+
 type TypeDef struct {
-	Base *Primitive
-	Fn   []*TypePtr
+	Base  *Primitive
+	Fn    []*TypePtr
+	Union *TypeUnion
 }
 
 type TypePtr struct {
@@ -41,6 +47,18 @@ func sign(t *TypePtr, ctx *signctx) string {
 			sb.WriteString(sign(p, ctx))
 			if i < len(t.Def.Fn)-1 {
 				sb.WriteString(",")
+			}
+		}
+		sb.WriteString(")")
+		return sb.String()
+	}
+	if t.IsUnion() {
+		var sb strings.Builder
+		sb.WriteString("(")
+		for i, p := range t.Def.Union.Types {
+			sb.WriteString(sign(p, ctx))
+			if i < len(t.Def.Union.Types)-1 {
+				sb.WriteString("|")
 			}
 		}
 		sb.WriteString(")")
@@ -117,6 +135,10 @@ func (t *TypePtr) IsBase() bool {
 
 func (t *TypePtr) IsVariable() bool {
 	return !t.IsBase() && !t.IsFunction()
+}
+
+func (t *TypePtr) IsUnion() bool {
+	return t.Def.Union != nil
 }
 
 func (t *TypePtr) IsDefined() bool {
