@@ -92,20 +92,6 @@ func doesConflict(x *types.TypeDef, y *types.TypeDef) error {
 	return nil
 }
 
-func unionMatch(ad *types.TypeDef, bd *types.TypeDef) bool {
-	as := map[string]bool{}
-	hits := 0
-	for _, p := range ad.Bases {
-		as[*p] = true
-	}
-	for _, p := range bd.Bases {
-		if as[*p] {
-			hits++
-		}
-	}
-	return hits == len(ad.Bases) && hits == len(bd.Bases)
-}
-
 func unifyUnion(ad *types.TypeDef, bd *types.TypeDef) *types.TypeDef {
 	a := ad.Bases
 	b := bd.Bases
@@ -129,6 +115,14 @@ func (u *Unifier) unify(a *types.TypePtr, b *types.TypePtr) error {
 	if err := doesConflict(a.Def, b.Def); err != nil {
 		return err
 	} else if a.IsVariable() && b.IsVariable() {
+		if a.IsUnion() && b.IsUnion() {
+			if err := u.source.replace(a.Def, unifyUnion(a.Def, b.Def), u.dest); err != nil {
+				return err
+			}
+			if err := u.dest.replace(b.Def, unifyUnion(b.Def, a.Def), u.source); err != nil {
+				return err
+			}
+		}
 		if err := u.source.replace(a.Def, b.Def, u.dest); err != nil {
 			return err
 		}
