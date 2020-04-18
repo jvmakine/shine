@@ -19,7 +19,8 @@ type Exp struct {
 }
 
 type Const struct {
-	Int  *int
+	Int  *int64
+	Real *float64
 	Bool *bool
 }
 

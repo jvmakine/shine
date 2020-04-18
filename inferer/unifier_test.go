@@ -121,6 +121,12 @@ func TestUnify(t *testing.T) {
 		right: withVar(union(types.Int, types.Real), func(t *types.TypePtr) *excon { return fun(base("int"), t, t) }).v.Type,
 		want:  "(int,int,int)",
 		err:   nil,
+	}, {
+		name:  "fail to unify conflictingunion variable functions",
+		left:  withVar(union(types.Int, types.Real), func(t *types.TypePtr) *excon { return fun(t, t, base("real")) }).v.Type,
+		right: withVar(union(types.Int, types.Real), func(t *types.TypePtr) *excon { return fun(base("int"), t, t) }).v.Type,
+		want:  "",
+		err:   errors.New("can not unify real with int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

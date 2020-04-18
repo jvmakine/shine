@@ -21,6 +21,7 @@ func Parse(str string) (*Program, error) {
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
+		Real = "0"…"9" { digit } "." "0"…"9" { digit } .
 		Int = "0" | "1"…"9" { digit } .
 		alpha = "a"…"z" | "A"…"Z" | "_" .
 		digit = "0"…"9" .
@@ -149,6 +150,10 @@ func convVal(from *Value) *ast.Exp {
 	} else if from.Int != nil {
 		return &ast.Exp{
 			Const: &ast.Const{Int: from.Int},
+		}
+	} else if from.Real != nil {
+		return &ast.Exp{
+			Const: &ast.Const{Real: from.Real},
 		}
 	} else if from.Bool != nil {
 		value := false

@@ -18,6 +18,10 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "42",
 		want:  t.Block(t.IConst(42)),
 	}, {
+		name:  "parse a real const",
+		input: "0.1",
+		want:  t.Block(t.RConst(0.1)),
+	}, {
 		name:  "parse a bool const",
 		input: "true",
 		want:  t.Block(t.BConst(true)),

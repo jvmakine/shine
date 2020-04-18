@@ -3,6 +3,7 @@ package compiler
 import (
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/inferer"
+	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
@@ -44,23 +45,39 @@ func compileFDefs(fcat *inferer.FCat, ctx *context) {
 	}
 }
 
+func IPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
+	msg := m.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%d\n"))
+	printf := m.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
+	printf.Sig.Variadic = true
+	ptr := b.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
+	return printf, ptr
+}
+
+func FPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
+	msg := m.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%f\n"))
+	printf := m.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
+	printf.Sig.Variadic = true
+	ptr := b.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewFloat(types.I64, 0), constant.NewInt(types.I64, 0))
+	return printf, ptr
+}
+
 func Compile(prg *ast.Exp, fcat *inferer.FCat) *ir.Module {
 	module := ir.NewModule()
 
-	msg := module.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%d\n"))
-	printf := module.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
-	printf.Sig.Variadic = true
-
 	mainfun := module.NewFunc("main", types.I32)
-
 	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun}
 	makeFDefs(fcat, &ctx)
 	compileFDefs(fcat, &ctx)
 
 	v := compileExp(prg, &ctx)
 
-	ptr := ctx.Block.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
-	ctx.Block.NewCall(printf, ptr, v)
+	if prg.Type.AsDefined() == t.Int {
+		printf, ptr := IPrintF(module, ctx.Block)
+		ctx.Block.NewCall(printf, ptr, v)
+	} else if prg.Type.AsDefined() == t.Real {
+		printf, ptr := FPrintF(module, ctx.Block)
+		ctx.Block.NewCall(printf, ptr, v)
+	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
 	return module
 }

@@ -23,7 +23,8 @@ type Block struct {
 }
 
 type Value struct {
-	Int   *int        `@Int`
+	Int   *int64      `@Int`
+	Real  *float64    `| @Real`
 	Bool  *string     `| @("true" | "false")`
 	Call  *FunCall    `| @@`
 	Id    *string     `| @Ident`

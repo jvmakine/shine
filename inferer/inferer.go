@@ -74,7 +74,7 @@ var global map[string]*excon = map[string]*excon{
 	">":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
 	">=": withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
 	"<=": withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
-	"==": withVar(variable(), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	"==": withVar(union(Int, Bool), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
 	"if": withVar(variable(), func(t *TypePtr) *excon { return fun(boolean, t, t, t) }),
 }
 
@@ -99,6 +99,8 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 				exp.Type = base(Int)
 			} else if exp.Const.Bool != nil {
 				exp.Type = base(Bool)
+			} else if exp.Const.Real != nil {
+				exp.Type = base(Real)
 			} else {
 				panic("unknown constant")
 			}

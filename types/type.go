@@ -155,6 +155,13 @@ func (t *TypePtr) IsDefined() bool {
 	return true
 }
 
+func (t *TypePtr) AsDefined() Primitive {
+	if t.Def.Bases == nil || len(t.Def.Bases) > 1 {
+		panic("type not defined")
+	}
+	return *t.Def.Bases[0]
+}
+
 func (t *TypePtr) ReturnType() *TypePtr {
 	return t.Def.Fn[len(t.Def.Fn)-1]
 }

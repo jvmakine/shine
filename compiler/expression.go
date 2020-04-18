@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/ast"
+	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
 	"github.com/llir/llvm/ir/value"
@@ -24,9 +25,11 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 
 func compileConst(from *ast.Const, ctx *context) value.Value {
 	if from.Int != nil {
-		return constant.NewInt(IntType, int64(*from.Int))
+		return constant.NewInt(IntType, *from.Int)
 	} else if from.Bool != nil {
 		return constant.NewBool(*from.Bool)
+	} else if from.Real != nil {
+		return constant.NewFloat(RealType, *from.Real)
 	}
 	panic("invalid constant at compilation")
 }
@@ -74,22 +77,46 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 
 		switch name {
 		case "*":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFMul(params[0], params[1])
+			}
 			return ctx.Block.NewMul(params[0], params[1])
 		case "/":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFDiv(params[0], params[1])
+			}
 			return ctx.Block.NewUDiv(params[0], params[1])
 		case "%":
 			return ctx.Block.NewURem(params[0], params[1])
 		case "+":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFAdd(params[0], params[1])
+			}
 			return ctx.Block.NewAdd(params[0], params[1])
 		case "-":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFSub(params[0], params[1])
+			}
 			return ctx.Block.NewSub(params[0], params[1])
 		case ">":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFCmp(enum.FPredOGT, params[0], params[1])
+			}
 			return ctx.Block.NewICmp(enum.IPredSGT, params[0], params[1])
 		case "<":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFCmp(enum.FPredOLT, params[0], params[1])
+			}
 			return ctx.Block.NewICmp(enum.IPredSLT, params[0], params[1])
 		case ">=":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFCmp(enum.FPredOGE, params[0], params[1])
+			}
 			return ctx.Block.NewICmp(enum.IPredSGE, params[0], params[1])
 		case "<=":
+			if from.Params[0].Type.AsDefined() == t.Real {
+				return ctx.Block.NewFCmp(enum.FPredOLE, params[0], params[1])
+			}
 			return ctx.Block.NewICmp(enum.IPredSLE, params[0], params[1])
 		case "==":
 			return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1])

@@ -8,6 +8,7 @@ import (
 var (
 	IntType  = types.I64
 	BoolType = types.I1
+	RealType = types.FP128
 )
 
 func getType(from interface{}) types.Type {
@@ -21,6 +22,8 @@ func getType(from interface{}) types.Type {
 		rtype = IntType
 	case t.Bool:
 		rtype = BoolType
+	case t.Real:
+		rtype = RealType
 	default:
 		panic("unsupported type at compilation")
 	}
