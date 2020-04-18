@@ -16,11 +16,11 @@ func apply(t *types.TypePtr, s *Subs, d *Subs) {
 		if dv := d.Variables[fv]; dv != nil {
 			t.Def = dv
 		} else {
-			if fv.Base == nil && fv.Fn == nil {
+			if fv.Bases == nil && fv.Fn == nil {
 				panic("invalid substitution")
 			}
 			t.Def.Fn = fv.Fn
-			t.Def.Base = fv.Base
+			t.Def.Bases = fv.Bases
 		}
 
 	} else if t.IsFunction() {
@@ -50,65 +50,89 @@ func NewUnifier() *Unifier {
 	}
 }
 
+func unionConflict(a *types.TypeDef, b *types.TypeDef) bool {
+	return len(unifyUnion(a, b).Bases) == 0
+}
+
 func doesConflict(x *types.TypeDef, y *types.TypeDef) error {
-	if x == nil || y == nil || x.Base == nil || y.Base == nil {
+	if x == nil || y == nil {
 		return nil
+	} else if (x.Fn == nil) != (y.Fn == nil) {
+		return errors.New("a function required")
+	} else if x.Bases != nil && y.Bases != nil {
+		conflicts := unionConflict(x, y)
+		a := x.Signature()
+		b := y.Signature()
+		if conflicts {
+			return errors.New("can not unify " + a + " with " + b)
+		}
 	}
-	a := *(x.Base)
-	b := *(y.Base)
-	if a != b {
-		return errors.New("can not unify " + b + " with " + a)
+	return nil
+}
+
+func combineSub(source Subs, dest Subs, from Subs) error {
+	for k, v := range from.Variables {
+		us := source.Variables[k]
+		if err := doesConflict(us, v); err != nil {
+			return err
+		} else if us == nil || (us.IsVariable() && v.IsVariable()) {
+			source.Variables[k] = v
+			if us != nil {
+				dest.Variables[us] = k
+			}
+		} else if v.IsPrimitive() {
+			if us != nil {
+				if err := doesConflict(dest.Variables[us], v); err != nil {
+					return err
+				}
+			}
+			dest.Variables[us] = v
+			source.Variables[k] = v
+		}
 	}
 	return nil
 }
 
 func (u *Unifier) combine(o *Unifier) error {
-	for k, v := range o.source.Variables {
-		us := u.source.Variables[k]
-		if err := doesConflict(us, v); err != nil {
-			return err
-		} else if us == nil || (us.Fn == nil && us.Base == nil && v.Base == nil && v.Fn == nil) {
-			u.source.Variables[k] = v
-			if us != nil {
-				u.dest.Variables[us] = k
-			}
-		} else if v.Base != nil {
-			if us != nil {
-				if err := doesConflict(u.dest.Variables[us], v); err != nil {
-					return err
-				}
-			}
-			u.dest.Variables[us] = v
-			u.source.Variables[k] = v
+	if err := combineSub(u.source, u.dest, o.source); err != nil {
+		return err
+	}
+	return combineSub(u.dest, u.source, o.dest)
+}
+
+func unifyUnion(ad *types.TypeDef, bd *types.TypeDef) *types.TypeDef {
+	a := ad.Bases
+	b := bd.Bases
+	as := map[string]bool{}
+	for _, p := range a {
+		as[*p] = true
+	}
+	res := []*types.Primitive{}
+	for _, p := range b {
+		if as[*p] {
+			res = append(res, p)
 		}
 	}
-	for k, v := range o.dest.Variables {
-		ud := u.dest.Variables[k]
-		if err := doesConflict(ud, v); err != nil {
-			return err
-		} else if ud == nil || (ud.Fn == nil && ud.Base == nil && v.Base == nil && v.Fn == nil) {
-			u.dest.Variables[k] = v
-			if ud != nil {
-				u.source.Variables[ud] = k
-			}
-		} else if v.Base != nil {
-			if u.dest.Variables[k] != nil {
-				if err := doesConflict(u.source.Variables[ud], v); err != nil {
-					return err
-				}
-			}
-			u.source.Variables[ud] = v
-			u.dest.Variables[k] = v
-		}
+	if len(res) == len(a) {
+		return ad
 	}
-	return nil
+	return &types.TypeDef{Bases: res}
 }
 
 func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
+	err := doesConflict(a.Def, b.Def)
+	if err != nil {
+		return nil, err
+	}
 	if a.IsVariable() && b.IsVariable() {
 		u := NewUnifier()
-		u.source.Variables[a.Def] = b.Def
-		u.dest.Variables[b.Def] = a.Def
+		if a.IsUnion() && b.IsUnion() {
+			u.source.Variables[a.Def] = unifyUnion(b.Def, a.Def)
+			u.dest.Variables[b.Def] = unifyUnion(a.Def, b.Def)
+		} else {
+			u.source.Variables[a.Def] = b.Def
+			u.dest.Variables[b.Def] = a.Def
+		}
 		return u, nil
 	}
 	if a.IsVariable() {
@@ -120,13 +144,6 @@ func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
 		u := NewUnifier()
 		u.dest.Variables[b.Def] = a.Def
 		return u, nil
-	}
-	if a.IsBase() && b.IsBase() {
-		err := doesConflict(a.Def, b.Def)
-		if err != nil {
-			return nil, err
-		}
-		return NewUnifier(), nil
 	}
 	if a.IsFunction() && b.IsFunction() {
 		if len(a.Def.Fn) != len(b.Def.Fn) {
@@ -145,11 +162,5 @@ func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
 		}
 		return unifier, nil
 	}
-	if a.IsFunction() {
-		return nil, errors.New("not a function")
-	}
-	if b.IsFunction() {
-		return nil, errors.New("a function required")
-	}
-	panic("missing unification rule")
+	return NewUnifier(), nil
 }

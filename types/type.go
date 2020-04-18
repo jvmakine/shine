@@ -13,14 +13,9 @@ const (
 	Real Primitive = "real"
 )
 
-type TypeUnion struct {
-	Types []*TypePtr
-}
-
 type TypeDef struct {
-	Base  *Primitive
+	Bases []*Primitive
 	Fn    []*TypePtr
-	Union *TypeUnion
 }
 
 type TypePtr struct {
@@ -38,7 +33,7 @@ type signctx struct {
 
 func sign(t *TypePtr, ctx *signctx) string {
 	if t.IsBase() {
-		return *t.Def.Base
+		return *t.Def.Bases[0]
 	}
 	if t.IsFunction() {
 		var sb strings.Builder
@@ -55,9 +50,9 @@ func sign(t *TypePtr, ctx *signctx) string {
 	if t.IsUnion() {
 		var sb strings.Builder
 		sb.WriteString("(")
-		for i, p := range t.Def.Union.Types {
-			sb.WriteString(sign(p, ctx))
-			if i < len(t.Def.Union.Types)-1 {
+		for i, p := range t.Def.Bases {
+			sb.WriteString(*p)
+			if i < len(t.Def.Bases)-1 {
 				sb.WriteString("|")
 			}
 		}
@@ -74,6 +69,10 @@ func sign(t *TypePtr, ctx *signctx) string {
 func (t *TypePtr) Signature() string {
 	varm := map[*TypeDef]string{}
 	return sign(t, &signctx{varc: 0, varm: varm})
+}
+
+func (t *TypeDef) Signature() string {
+	return (&TypePtr{Def: t}).Signature()
 }
 
 type TypeCopyCtx struct {
@@ -116,8 +115,8 @@ func (t *TypePtr) Copy(ctx *TypeCopyCtx) *TypePtr {
 		}
 	}
 	def = &TypeDef{
-		Fn:   params,
-		Base: t.Def.Base,
+		Fn:    params,
+		Bases: t.Def.Bases,
 	}
 	ctx.defs[t.Def] = def
 	res := &TypePtr{Def: def}
@@ -130,15 +129,15 @@ func (t *TypePtr) IsFunction() bool {
 }
 
 func (t *TypePtr) IsBase() bool {
-	return t.Def.Base != nil
+	return t.Def.Bases != nil && len(t.Def.Bases) == 1
 }
 
 func (t *TypePtr) IsVariable() bool {
-	return !t.IsBase() && !t.IsFunction()
+	return t.Def.IsVariable()
 }
 
 func (t *TypePtr) IsUnion() bool {
-	return t.Def.Union != nil
+	return t.Def.IsUnion()
 }
 
 func (t *TypePtr) IsDefined() bool {
@@ -158,4 +157,16 @@ func (t *TypePtr) IsDefined() bool {
 
 func (t *TypePtr) ReturnType() *TypePtr {
 	return t.Def.Fn[len(t.Def.Fn)-1]
+}
+
+func (t *TypeDef) IsVariable() bool {
+	return (t.Bases == nil || len(t.Bases) > 1) && t.Fn == nil
+}
+
+func (t *TypeDef) IsPrimitive() bool {
+	return t.Bases != nil && len(t.Bases) == 1
+}
+
+func (t *TypeDef) IsUnion() bool {
+	return t.Bases != nil && len(t.Bases) > 1
 }

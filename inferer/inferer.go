@@ -4,27 +4,27 @@ import (
 	"errors"
 
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 )
 
 func fun(ts ...interface{}) *excon {
-	result := make([]*types.TypePtr, len(ts))
-	var variables map[string]*types.TypeDef = map[string]*types.TypeDef{}
+	result := make([]*TypePtr, len(ts))
+	var variables map[string]*TypeDef = map[string]*TypeDef{}
 	for _, t := range ts {
 		switch v := t.(type) {
 		case string:
 			if variables[v] == nil {
-				variables[v] = &types.TypeDef{}
+				variables[v] = &TypeDef{}
 			}
 		}
 	}
 
 	for i, t := range ts {
 		switch v := t.(type) {
-		case *types.TypePtr:
+		case *TypePtr:
 			result[i] = v
 		case string:
-			result[i] = &types.TypePtr{Def: variables[v]}
+			result[i] = &TypePtr{Def: variables[v]}
 		}
 	}
 	return &excon{
@@ -33,30 +33,49 @@ func fun(ts ...interface{}) *excon {
 	}
 }
 
-func base(t types.Primitive) *types.TypePtr {
-	return &types.TypePtr{Def: &types.TypeDef{Base: &t}}
+func base(t Primitive) *TypePtr {
+	return &TypePtr{Def: &TypeDef{Bases: []*Primitive{&t}}}
 }
 
-func function(ts ...*types.TypePtr) *types.TypePtr {
-	return &types.TypePtr{&types.TypeDef{Fn: ts}}
+func union(un ...Primitive) *TypePtr {
+	ptrs := make([]*Primitive, len(un))
+	for i, u := range un {
+		v := u
+		ptrs[i] = &v
+	}
+	return &TypePtr{&TypeDef{Bases: ptrs}}
 }
 
-func variable() *types.TypePtr {
-	return &types.TypePtr{Def: &types.TypeDef{}}
+func function(ts ...*TypePtr) *TypePtr {
+	return &TypePtr{&TypeDef{Fn: ts}}
 }
+
+func variable() *TypePtr {
+	return &TypePtr{Def: &TypeDef{}}
+}
+
+func withVar(v *TypePtr, f func(t *TypePtr) *excon) *excon {
+	return f(v)
+}
+
+var (
+	integer = base(Int)
+	real    = base(Real)
+	boolean = base(Bool)
+)
 
 var global map[string]*excon = map[string]*excon{
-	"+":  fun(base(types.Int), base(types.Int), base(types.Int)),
-	"-":  fun(base(types.Int), base(types.Int), base(types.Int)),
-	"*":  fun(base(types.Int), base(types.Int), base(types.Int)),
-	"%":  fun(base(types.Int), base(types.Int), base(types.Int)),
-	"/":  fun(base(types.Int), base(types.Int), base(types.Int)),
-	"<":  fun(base(types.Int), base(types.Int), base(types.Bool)),
-	">":  fun(base(types.Int), base(types.Int), base(types.Bool)),
-	">=": fun(base(types.Int), base(types.Int), base(types.Bool)),
-	"<=": fun(base(types.Int), base(types.Int), base(types.Bool)),
-	"==": fun("A", "A", base(types.Bool)),
-	"if": fun(base(types.Bool), "A", "A", "A"),
+	"+":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, t) }),
+	"-":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, t) }),
+	"*":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, t) }),
+	"%":  fun(integer, integer, integer),
+	"/":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, t) }),
+	"<":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	">":  withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	">=": withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	"<=": withVar(union(Int, Real), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	"==": withVar(variable(), func(t *TypePtr) *excon { return fun(t, t, boolean) }),
+	"if": withVar(variable(), func(t *TypePtr) *excon { return fun(boolean, t, t, t) }),
 }
 
 func (ctx *context) getId(id string) *excon {
@@ -77,9 +96,9 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 	if exp.Type == nil {
 		if exp.Const != nil {
 			if exp.Const.Int != nil {
-				exp.Type = base(types.Int)
+				exp.Type = base(Int)
 			} else if exp.Const.Bool != nil {
-				exp.Type = base(types.Bool)
+				exp.Type = base(Bool)
 			} else {
 				panic("unknown constant")
 			}
@@ -106,8 +125,8 @@ func inferExp(exp *ast.Exp, ctx *context, name *string) error {
 	return nil
 }
 
-func inferCall(call *ast.FCall, ctx *context) (*types.TypePtr, error) {
-	var params []*types.TypePtr = make([]*types.TypePtr, len(call.Params)+1)
+func inferCall(call *ast.FCall, ctx *context) (*TypePtr, error) {
+	var params []*TypePtr = make([]*TypePtr, len(call.Params)+1)
 	for i, p := range call.Params {
 		err := inferExp(p, ctx, nil)
 		if err != nil {
@@ -117,7 +136,7 @@ func inferCall(call *ast.FCall, ctx *context) (*types.TypePtr, error) {
 	}
 	// Recursive type definition
 	it := ctx.getActiveType(call.Name)
-	var ft *types.TypePtr = nil
+	var ft *TypePtr = nil
 	if it != nil {
 		ft = it
 	} else {
@@ -136,7 +155,7 @@ func inferCall(call *ast.FCall, ctx *context) (*types.TypePtr, error) {
 	if !ft.IsFunction() {
 		return nil, errors.New("not a function: '" + call.Name + "'")
 	}
-	params[len(call.Params)] = ft.ReturnType().Copy(types.NewTypeCopyCtx())
+	params[len(call.Params)] = ft.ReturnType().Copy(NewTypeCopyCtx())
 
 	ft2 := function(params...)
 	unifier, err := Unify(ft2, ft)
@@ -150,8 +169,8 @@ func inferCall(call *ast.FCall, ctx *context) (*types.TypePtr, error) {
 	return ft2.ReturnType(), nil
 }
 
-func inferDef(def *ast.FDef, ctx *context, name *string) (*types.TypePtr, error) {
-	var paramTypes []*types.TypePtr = make([]*types.TypePtr, len(def.Params)+1)
+func inferDef(def *ast.FDef, ctx *context, name *string) (*TypePtr, error) {
+	var paramTypes []*TypePtr = make([]*TypePtr, len(def.Params)+1)
 	for i, p := range def.Params {
 		if ctx.getId(p.Name) != nil {
 			return nil, errors.New("redefinition of '" + p.Name + "'")
@@ -180,7 +199,7 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (*types.TypePtr, error)
 	return ftyp, nil
 }
 
-func inferId(id string, ctx *context) (*types.TypePtr, error) {
+func inferId(id string, ctx *context) (*TypePtr, error) {
 	def := ctx.getId(id)
 	if def == nil {
 		act := ctx.getActiveType(id)
@@ -200,7 +219,7 @@ func inferId(id string, ctx *context) (*types.TypePtr, error) {
 		}
 		(*ctx.activeVals) = (*ctx.activeVals)[:1]
 	}
-	return def.v.Type.Copy(types.NewTypeCopyCtx()), nil
+	return def.v.Type.Copy(NewTypeCopyCtx()), nil
 }
 
 func contains(arr []string, v string) bool {
@@ -220,7 +239,7 @@ func cycleToStr(arr []string, v string) string {
 	return res + v
 }
 
-func inferBlock(block *ast.Block, ctx *context, name *string) (*types.TypePtr, error) {
+func inferBlock(block *ast.Block, ctx *context, name *string) (*TypePtr, error) {
 	for _, a := range block.Assignments {
 		if ctx.getId(a.Name) != nil {
 			return nil, errors.New("redefinition of '" + a.Name + "'")

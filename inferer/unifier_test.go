@@ -30,12 +30,30 @@ func TestUnify(t *testing.T) {
 		left:  base("bool"),
 		right: base("int"),
 		want:  "",
-		err:   errors.New("can not unify int with bool"),
+		err:   errors.New("can not unify bool with int"),
 	}, {
 		name:  "should unify same consts",
 		left:  base("int"),
 		right: base("int"),
 		want:  "int",
+		err:   nil,
+	}, {
+		name:  "should unify union variables with a base type",
+		left:  base("int"),
+		right: union(types.Int, types.Real),
+		want:  "int",
+		err:   nil,
+	}, {
+		name:  "should fail to unify union variables with invalid type",
+		left:  union(types.Int, types.Real),
+		right: base("bool"),
+		want:  "",
+		err:   errors.New("can not unify (int|real) with bool"),
+	}, {
+		name:  "should unify two different unions",
+		left:  union(types.Bool, types.Real),
+		right: union(types.Bool, types.Int),
+		want:  "bool",
 		err:   nil,
 	}, {
 		name:  "should unify simple variables in functions",
@@ -54,7 +72,7 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A").v.Type,
 		right: fun(base("bool"), base("int")).v.Type,
 		want:  "",
-		err:   errors.New("can not unify int with bool"),
+		err:   errors.New("can not unify bool with int"),
 	}, {
 		name:  "should unify two way parameter references",
 		left:  fun("A", "A", "B", "A").v.Type,
@@ -66,7 +84,7 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A", base("bool"), "A").v.Type,
 		right: fun("C", base("int"), "C", "E").v.Type,
 		want:  "",
-		err:   errors.New("can not unify bool with int"),
+		err:   errors.New("can not unify int with bool"),
 	}, {
 		name:  "unify to sets of variables into one",
 		left:  fun("A", "A", "B", "A").v.Type,
@@ -84,7 +102,7 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A", base("bool"), "A").v.Type,
 		right: fun("A", "B", "A", base("int")).v.Type,
 		want:  "",
-		err:   errors.New("can not unify int with bool"),
+		err:   errors.New("can not unify bool with int"),
 	}, {
 		name:  "fail to unify functions of mismaching number of arguments",
 		left:  fun("A", "A").v.Type,
@@ -97,6 +115,12 @@ func TestUnify(t *testing.T) {
 		right: fun(base("int")).v.Type,
 		want:  "",
 		err:   errors.New("a function required"),
+	}, {
+		name:  "unify union variable functions",
+		left:  withVar(union(types.Int, types.Real), func(t *types.TypePtr) *excon { return fun(t, t, t) }).v.Type,
+		right: withVar(union(types.Int, types.Real), func(t *types.TypePtr) *excon { return fun(base("int"), t, t) }).v.Type,
+		want:  "(int,int,int)",
+		err:   nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
