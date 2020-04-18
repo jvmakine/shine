@@ -102,7 +102,7 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A", base("bool"), "A").v.Type,
 		right: fun("A", "B", "A", base("int")).v.Type,
 		want:  "",
-		err:   errors.New("can not unify bool with int"),
+		err:   errors.New("can not unify int with bool"),
 	}, {
 		name:  "fail to unify functions of mismaching number of arguments",
 		left:  fun("A", "A").v.Type,

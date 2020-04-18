@@ -11,6 +11,28 @@ type Subs struct {
 	Variables map[*types.TypeDef]*types.TypeDef
 }
 
+func (s Subs) replace(from *types.TypeDef, to *types.TypeDef, mirror Subs) error {
+	err := doesConflict(s.Variables[from], to)
+	if err != nil {
+		return err
+	}
+	for k, v := range s.Variables {
+		if v == from {
+			s.Variables[k] = to
+		}
+	}
+	if s.Variables[from] != nil {
+		err := doesConflict(to, mirror.Variables[s.Variables[from]])
+		if err != nil {
+			return err
+		}
+	}
+	if s.Variables[from] == nil || !to.IsVariable() {
+		s.Variables[from] = to
+	}
+	return nil
+}
+
 func apply(t *types.TypePtr, s *Subs, d *Subs) {
 	if fv := s.Variables[t.Def]; fv != nil {
 		if dv := d.Variables[fv]; dv != nil {
@@ -70,34 +92,18 @@ func doesConflict(x *types.TypeDef, y *types.TypeDef) error {
 	return nil
 }
 
-func combineSub(source Subs, dest Subs, from Subs) error {
-	for k, v := range from.Variables {
-		us := source.Variables[k]
-		if err := doesConflict(us, v); err != nil {
-			return err
-		} else if us == nil || (us.IsVariable() && v.IsVariable()) {
-			source.Variables[k] = v
-			if us != nil {
-				dest.Variables[us] = k
-			}
-		} else if v.IsPrimitive() {
-			if us != nil {
-				if err := doesConflict(dest.Variables[us], v); err != nil {
-					return err
-				}
-			}
-			dest.Variables[us] = v
-			source.Variables[k] = v
+func unionMatch(ad *types.TypeDef, bd *types.TypeDef) bool {
+	as := map[string]bool{}
+	hits := 0
+	for _, p := range ad.Bases {
+		as[*p] = true
+	}
+	for _, p := range bd.Bases {
+		if as[*p] {
+			hits++
 		}
 	}
-	return nil
-}
-
-func (u *Unifier) combine(o *Unifier) error {
-	if err := combineSub(u.source, u.dest, o.source); err != nil {
-		return err
-	}
-	return combineSub(u.dest, u.source, o.dest)
+	return hits == len(ad.Bases) && hits == len(bd.Bases)
 }
 
 func unifyUnion(ad *types.TypeDef, bd *types.TypeDef) *types.TypeDef {
@@ -119,48 +125,45 @@ func unifyUnion(ad *types.TypeDef, bd *types.TypeDef) *types.TypeDef {
 	return &types.TypeDef{Bases: res}
 }
 
+func (u *Unifier) unify(a *types.TypePtr, b *types.TypePtr) error {
+	if err := doesConflict(a.Def, b.Def); err != nil {
+		return err
+	} else if a.IsVariable() && b.IsVariable() {
+		if err := u.source.replace(a.Def, b.Def, u.dest); err != nil {
+			return err
+		}
+		if err := u.dest.replace(b.Def, a.Def, u.source); err != nil {
+			return err
+		}
+	} else if a.IsVariable() {
+		if err := u.source.replace(a.Def, b.Def, u.dest); err != nil {
+			return err
+		}
+		if err := u.dest.replace(a.Def, b.Def, u.source); err != nil {
+			return err
+		}
+	} else if b.IsVariable() {
+		if err := u.dest.replace(b.Def, a.Def, u.source); err != nil {
+			return err
+		}
+	} else if a.IsFunction() && b.IsFunction() {
+		if len(a.Def.Fn) != len(b.Def.Fn) {
+			return errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + " given " + strconv.Itoa(len(b.Def.Fn)) + " required")
+		}
+		for i := range a.Def.Fn {
+			if err := u.unify(a.Def.Fn[i], b.Def.Fn[i]); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
-	err := doesConflict(a.Def, b.Def)
+	uni := NewUnifier()
+	err := uni.unify(a, b)
 	if err != nil {
 		return nil, err
 	}
-	if a.IsVariable() && b.IsVariable() {
-		u := NewUnifier()
-		if a.IsUnion() && b.IsUnion() {
-			u.source.Variables[a.Def] = unifyUnion(b.Def, a.Def)
-			u.dest.Variables[b.Def] = unifyUnion(a.Def, b.Def)
-		} else {
-			u.source.Variables[a.Def] = b.Def
-			u.dest.Variables[b.Def] = a.Def
-		}
-		return u, nil
-	}
-	if a.IsVariable() {
-		u := NewUnifier()
-		u.source.Variables[a.Def] = b.Def
-		return u, nil
-	}
-	if b.IsVariable() {
-		u := NewUnifier()
-		u.dest.Variables[b.Def] = a.Def
-		return u, nil
-	}
-	if a.IsFunction() && b.IsFunction() {
-		if len(a.Def.Fn) != len(b.Def.Fn) {
-			return nil, errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + " given " + strconv.Itoa(len(b.Def.Fn)) + " required")
-		}
-		unifier := NewUnifier()
-		for i := range a.Def.Fn {
-			u, err := Unify(a.Def.Fn[i], b.Def.Fn[i])
-			if err != nil {
-				return nil, err
-			}
-			err = unifier.combine(u)
-			if err != nil {
-				return nil, err
-			}
-		}
-		return unifier, nil
-	}
-	return NewUnifier(), nil
+	return uni, err
 }
