@@ -54,10 +54,10 @@ func IPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 }
 
 func FPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
-	msg := m.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%f\n"))
+	msg := m.NewGlobalDef("realFormat", constant.NewCharArrayFromString("%f\n"))
 	printf := m.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
 	printf.Sig.Variadic = true
-	ptr := b.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewFloat(types.I64, 0), constant.NewInt(types.I64, 0))
+	ptr := b.NewGetElementPtr(types.NewArray(3, types.I8), msg, constant.NewInt(types.I64, 0), constant.NewInt(types.I64, 0))
 	return printf, ptr
 }
 

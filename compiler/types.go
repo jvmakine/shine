@@ -8,7 +8,7 @@ import (
 var (
 	IntType  = types.I64
 	BoolType = types.I1
-	RealType = types.FP128
+	RealType = types.Double
 )
 
 func getType(from interface{}) types.Type {
