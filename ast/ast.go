@@ -14,8 +14,8 @@ type Exp struct {
 	Id    *string
 	Call  *FCall
 	Def   *FDef
-	// Type may contain data related to the type inference
-	Type *types.TypePtr
+
+	Type types.Type
 }
 
 type Const struct {
@@ -35,7 +35,8 @@ type FCall struct {
 
 type FParam struct {
 	Name string
-	Type *types.TypePtr
+
+	Type types.Type
 }
 
 type FDef struct {

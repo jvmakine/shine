@@ -13,167 +13,141 @@ const (
 	Real Primitive = "real"
 )
 
-type TypeDef struct {
-	Bases []*Primitive
-	Fn    []*TypePtr
+type TVarID = int64
+
+type TypeVar struct {
+	Restrictions []Type
 }
 
-type TypePtr struct {
-	Def *TypeDef
+type Type struct {
+	Function  *[]Type
+	Variable  *TypeVar
+	Primitive *Primitive
 }
 
-func MakeFun(ts ...*TypePtr) *TypePtr {
-	return &TypePtr{&TypeDef{Fn: ts}}
+func MakeFun(ts ...Type) Type {
+	return Type{Function: &ts}
+}
+
+func (t Type) FreeVars() []*TypeVar {
+	if t.Variable != nil {
+		return []*TypeVar{t.Variable}
+	}
+	if t.Function != nil {
+		res := []*TypeVar{}
+		for _, p := range *t.Function {
+			res = append(res, p.FreeVars()...)
+		}
+		return res
+	}
+	return []*TypeVar{}
 }
 
 type signctx struct {
 	varc int
-	varm map[*TypeDef]string
+	varm map[*TypeVar]string
 }
 
-func sign(t *TypePtr, ctx *signctx) string {
-	if t.IsBase() {
-		return *t.Def.Bases[0]
+func sign(t Type, ctx *signctx) string {
+	if t.IsPrimitive() {
+		return *t.Primitive
 	}
 	if t.IsFunction() {
 		var sb strings.Builder
 		sb.WriteString("(")
-		for i, p := range t.Def.Fn {
+		for i, p := range *t.Function {
 			sb.WriteString(sign(p, ctx))
-			if i < len(t.Def.Fn)-1 {
+			if i < len(*t.Function)-1 {
 				sb.WriteString(",")
 			}
 		}
 		sb.WriteString(")")
 		return sb.String()
 	}
-	if t.IsUnion() {
-		var sb strings.Builder
-		sb.WriteString("(")
-		for i, p := range t.Def.Bases {
-			sb.WriteString(*p)
-			if i < len(t.Def.Bases)-1 {
-				sb.WriteString("|")
+	if t.IsVariable() {
+		if ctx.varm[t.Variable] == "" {
+			ctx.varc++
+			ctx.varm[t.Variable] = "V" + strconv.Itoa(ctx.varc)
+			if len(t.Variable.Restrictions) > 0 {
+				var sb strings.Builder
+				sb.WriteString("[")
+				for i, r := range t.Variable.Restrictions {
+					sb.WriteString(sign(r, ctx))
+					if i < len(t.Variable.Restrictions)-1 {
+						sb.WriteString("|")
+					}
+				}
+				sb.WriteString("]")
+				ctx.varm[t.Variable] += sb.String()
 			}
 		}
-		sb.WriteString(")")
-		return sb.String()
+		return ctx.varm[t.Variable]
 	}
-	if ctx.varm[t.Def] == "" {
-		ctx.varc++
-		ctx.varm[t.Def] = "V" + strconv.Itoa(ctx.varc)
-	}
-	return ctx.varm[t.Def]
+	panic("invalid type")
 }
 
-func (t *TypePtr) Signature() string {
-	varm := map[*TypeDef]string{}
+func (t Type) Signature() string {
+	varm := map[*TypeVar]string{}
 	return sign(t, &signctx{varc: 0, varm: varm})
 }
 
-func (t *TypeDef) Signature() string {
-	return (&TypePtr{Def: t}).Signature()
-}
-
 type TypeCopyCtx struct {
-	defs map[*TypeDef]*TypeDef
-	ptrs map[*TypePtr]*TypePtr
+	vars map[*TypeVar]*TypeVar
 }
 
 func NewTypeCopyCtx() *TypeCopyCtx {
 	return &TypeCopyCtx{
-		defs: map[*TypeDef]*TypeDef{},
-		ptrs: map[*TypePtr]*TypePtr{},
+		vars: map[*TypeVar]*TypeVar{},
 	}
 
 }
 
-func (t *TypePtr) Copy(ctx *TypeCopyCtx) *TypePtr {
-	var params []*TypePtr = nil
-	var def *TypeDef = nil
-	if ctx.ptrs[t] != nil {
-		return ctx.ptrs[t]
-	}
-	if ctx.defs[t.Def] != nil {
-		res := &TypePtr{Def: ctx.defs[t.Def]}
-		ctx.ptrs[t] = res
-		return res
-	}
-	if t.Def.Fn != nil {
-		params = make([]*TypePtr, len(t.Def.Fn))
-		for i, p := range t.Def.Fn {
-			if ctx.ptrs[p] != nil {
-				params[i] = ctx.ptrs[p]
-			} else {
-				if ctx.defs[p.Def] == nil {
-					ctx.defs[p.Def] = p.Copy(ctx).Def
-				}
-				res := &TypePtr{Def: ctx.defs[p.Def]}
-				ctx.ptrs[p] = res
-				params[i] = res
-			}
+func (t Type) Copy(ctx *TypeCopyCtx) Type {
+	if t.Variable != nil {
+		if ctx.vars[t.Variable] == nil {
+			ctx.vars[t.Variable] = t.Variable.Copy()
 		}
+		return Type{Variable: ctx.vars[t.Variable]}
 	}
-	def = &TypeDef{
-		Fn:    params,
-		Bases: t.Def.Bases,
-	}
-	ctx.defs[t.Def] = def
-	res := &TypePtr{Def: def}
-	ctx.ptrs[t] = res
-	return res
-}
-
-func (t *TypePtr) IsFunction() bool {
-	return t.Def.Fn != nil
-}
-
-func (t *TypePtr) IsBase() bool {
-	return t.Def.Bases != nil && len(t.Def.Bases) == 1
-}
-
-func (t *TypePtr) IsVariable() bool {
-	return t.Def.IsVariable()
-}
-
-func (t *TypePtr) IsUnion() bool {
-	return t.Def.IsUnion()
-}
-
-func (t *TypePtr) IsDefined() bool {
-	if t.IsVariable() {
-		return false
-	}
-	if t.IsBase() {
-		return true
-	}
-	for _, p := range t.Def.Fn {
-		if !p.IsDefined() {
-			return false
+	if t.Function != nil {
+		ps := make([]Type, len(*t.Function))
+		for i, p := range *t.Function {
+			ps[i] = p.Copy(ctx)
 		}
+		return Type{Function: &ps}
 	}
-	return true
+	return t
 }
 
-func (t *TypePtr) AsDefined() Primitive {
-	if t.Def.Bases == nil || len(t.Def.Bases) > 1 {
-		panic("type not defined")
+func (t *TypeVar) Copy() *TypeVar {
+	return &TypeVar{
+		Restrictions: t.Restrictions,
 	}
-	return *t.Def.Bases[0]
 }
 
-func (t *TypePtr) ReturnType() *TypePtr {
-	return t.Def.Fn[len(t.Def.Fn)-1]
+func (t Type) IsFunction() bool {
+	return t.Function != nil
 }
 
-func (t *TypeDef) IsVariable() bool {
-	return (t.Bases == nil || len(t.Bases) > 1) && t.Fn == nil
+func (t Type) IsPrimitive() bool {
+	return t.Primitive != nil
 }
 
-func (t *TypeDef) IsPrimitive() bool {
-	return t.Bases != nil && len(t.Bases) == 1
+func (t Type) IsVariable() bool {
+	return t.Variable != nil
 }
 
-func (t *TypeDef) IsUnion() bool {
-	return t.Bases != nil && len(t.Bases) > 1
+func (t Type) IsDefined() bool {
+	return len(t.FreeVars()) == 0
+}
+
+func (t Type) AsPrimitive() Primitive {
+	if !t.IsPrimitive() {
+		panic("type not primitive type")
+	}
+	return *t.Primitive
+}
+
+func (t Type) ReturnType() Type {
+	return (*t.Function)[len(*t.Function)-1]
 }

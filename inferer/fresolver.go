@@ -5,6 +5,7 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 )
 
 type FSign = string
@@ -77,7 +78,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				resolveExp(es.def, ctx)
 			}
 		} else {
-			ptypes := make([]*types.TypePtr, len(call.Params)+1)
+			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
 				ptypes[i] = p.Type
 			}
@@ -91,8 +92,8 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			if err != nil {
 				panic(err)
 			}
-			uni.ApplySource(ftype)
-			uni.ApplyDest(cop.Type)
+			uni.Apply(&ftype)
+			uni.Apply(&cop.Type)
 			if !ftype.IsDefined() {
 				panic("type inference failed: " + u1 + " u " + u2 + " => " + ftype.Signature())
 			}

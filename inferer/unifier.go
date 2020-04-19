@@ -4,160 +4,131 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 )
 
 type Subs struct {
-	Variables map[*types.TypeDef]*types.TypeDef
-}
-
-func (s Subs) replace(from *types.TypeDef, to *types.TypeDef, mirror Subs) error {
-	err := doesConflict(s.Variables[from], to)
-	if err != nil {
-		return err
-	}
-	for k, v := range s.Variables {
-		if v == from {
-			s.Variables[k] = to
-		}
-	}
-	if s.Variables[from] != nil {
-		err := doesConflict(to, mirror.Variables[s.Variables[from]])
-		if err != nil {
-			return err
-		}
-	}
-	if s.Variables[from] == nil || !to.IsVariable() {
-		s.Variables[from] = to
-	}
-	return nil
-}
-
-func apply(t *types.TypePtr, s *Subs, d *Subs) {
-	if fv := s.Variables[t.Def]; fv != nil {
-		if dv := d.Variables[fv]; dv != nil {
-			t.Def = dv
-		} else {
-			if fv.Bases == nil && fv.Fn == nil {
-				panic("invalid substitution")
-			}
-			t.Def.Fn = fv.Fn
-			t.Def.Bases = fv.Bases
-		}
-
-	} else if t.IsFunction() {
-		for _, a := range t.Def.Fn {
-			apply(a, s, d)
-		}
-	}
+	Variables map[*TypeVar]Type
 }
 
 type Unifier struct {
-	source Subs
-	dest   Subs
-}
-
-func (u *Unifier) ApplySource(t *types.TypePtr) {
-	apply(t, &u.source, &u.dest)
-}
-
-func (u *Unifier) ApplyDest(t *types.TypePtr) {
-	apply(t, &u.dest, &u.source)
+	graph   map[*TypeVar][]Type
+	replace map[*TypeVar]Type
 }
 
 func NewUnifier() *Unifier {
-	return &Unifier{
-		source: Subs{Variables: map[*types.TypeDef]*types.TypeDef{}},
-		dest:   Subs{Variables: map[*types.TypeDef]*types.TypeDef{}},
-	}
+	return &Unifier{}
 }
 
-func unionConflict(a *types.TypeDef, b *types.TypeDef) bool {
-	return len(unifyUnion(a, b).Bases) == 0
-}
-
-func doesConflict(x *types.TypeDef, y *types.TypeDef) error {
-	if x == nil || y == nil {
-		return nil
-	} else if (x.Fn == nil) != (y.Fn == nil) {
-		return errors.New("a function required")
-	} else if x.Bases != nil && y.Bases != nil {
-		conflicts := unionConflict(x, y)
-		a := x.Signature()
-		b := y.Signature()
-		if conflicts {
-			return errors.New("can not unify " + a + " with " + b)
-		}
+func doesConflict(x Type, y Type) error {
+	if x.IsPrimitive() && y.IsPrimitive() && *x.Primitive != *y.Primitive {
+		return errors.New("can not unify " + *x.Primitive + " with " + *y.Primitive)
 	}
 	return nil
 }
 
-func unifyUnion(ad *types.TypeDef, bd *types.TypeDef) *types.TypeDef {
-	a := ad.Bases
-	b := bd.Bases
-	as := map[string]bool{}
-	for _, p := range a {
-		as[*p] = true
-	}
-	res := []*types.Primitive{}
-	for _, p := range b {
-		if as[*p] {
-			res = append(res, p)
-		}
-	}
-	if len(res) == len(a) {
-		return ad
-	}
-	return &types.TypeDef{Bases: res}
-}
-
-func (u *Unifier) unify(a *types.TypePtr, b *types.TypePtr) error {
-	if err := doesConflict(a.Def, b.Def); err != nil {
+func (u *Unifier) buildGraph(a Type, b Type) error {
+	u.graph = map[*TypeVar][]Type{}
+	if err := u.addToGraph(a, b); err != nil {
 		return err
-	} else if a.IsVariable() && b.IsVariable() {
-		if a.IsUnion() && b.IsUnion() {
-			if err := u.source.replace(a.Def, unifyUnion(a.Def, b.Def), u.dest); err != nil {
-				return err
-			}
-			if err := u.dest.replace(b.Def, unifyUnion(b.Def, a.Def), u.source); err != nil {
-				return err
-			}
-		}
-		if err := u.source.replace(a.Def, b.Def, u.dest); err != nil {
-			return err
-		}
-		if err := u.dest.replace(b.Def, a.Def, u.source); err != nil {
-			return err
-		}
-	} else if a.IsVariable() {
-		if err := u.source.replace(a.Def, b.Def, u.dest); err != nil {
-			return err
-		}
-		if err := u.dest.replace(a.Def, b.Def, u.source); err != nil {
-			return err
-		}
-	} else if b.IsVariable() {
-		if err := u.dest.replace(b.Def, a.Def, u.source); err != nil {
-			return err
-		}
-	} else if a.IsFunction() && b.IsFunction() {
-		if len(a.Def.Fn) != len(b.Def.Fn) {
-			return errors.New("wrong number of function arguments " + strconv.Itoa(len(a.Def.Fn)) + " given " + strconv.Itoa(len(b.Def.Fn)) + " required")
-		}
-		for i := range a.Def.Fn {
-			if err := u.unify(a.Def.Fn[i], b.Def.Fn[i]); err != nil {
-				return err
-			}
-		}
 	}
 	return nil
 }
 
-func Unify(a *types.TypePtr, b *types.TypePtr) (*Unifier, error) {
+func (u *Unifier) addToGraph(a Type, b Type) error {
+	if err := doesConflict(a, b); err != nil {
+		return err
+	}
+	if a.IsVariable() {
+		u.graph[a.Variable] = append(u.graph[a.Variable], b)
+		return nil
+	}
+	if b.IsVariable() {
+		u.graph[b.Variable] = append(u.graph[b.Variable], a)
+		return nil
+	}
+	// TODO: functions to variables unification
+	if a.IsFunction() && b.IsFunction() {
+		al := len(*a.Function)
+		bl := len(*b.Function)
+		if al != bl {
+			return errors.New("wrong number of function arguments: " + strconv.Itoa(al) + " != " + strconv.Itoa(bl))
+		}
+		for i := range *a.Function {
+			err := u.addToGraph((*a.Function)[i], (*b.Function)[i])
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return nil
+}
+
+func (u *Unifier) traverse(a *TypeVar) []Type {
+	todo := []*TypeVar{a}
+	result := []Type{}
+	inResult := map[Type]bool{}
+	visited := map[*TypeVar]bool{}
+	for len(todo) > 0 {
+		next := todo[0]
+		todo = todo[1:]
+		if !visited[next] {
+			visited[next] = true
+			r := Type{Variable: next}
+			if !inResult[r] {
+				result = append(result, r)
+				inResult[r] = true
+			}
+			for _, f := range u.graph[next] {
+				if f.IsVariable() {
+					todo = append(todo, f.Variable)
+				} else {
+					if !inResult[f] {
+						result = append(result, f)
+						inResult[f] = true
+					}
+				}
+			}
+		}
+	}
+	return result
+}
+
+func (u *Unifier) buildReplace() error {
+	u.replace = map[*TypeVar]Type{}
+	visited := map[*TypeVar]bool{}
+	for k := range u.graph {
+		if !visited[k] {
+			visited[k] = true
+			trv := u.traverse(k)
+			for _, t := range trv {
+				if !t.IsVariable() {
+					u.replace[k] = t
+				}
+			}
+		}
+	}
+	// TODO
+	return nil
+}
+
+func (u *Unifier) Apply(a *Type) {
+	if a.IsVariable() && u.replace[a.Variable].IsDefined() {
+		to := u.replace[a.Variable]
+		a.Variable = to.Variable
+		a.Primitive = to.Primitive
+		a.Function = to.Function
+	}
+}
+
+func Unify(a Type, b Type) (*Unifier, error) {
 	uni := NewUnifier()
-	err := uni.unify(a, b)
-	if err != nil {
+	if err := uni.buildGraph(a, b); err != nil {
 		return nil, err
 	}
-	return uni, err
+	if err := uni.buildReplace(); err != nil {
+		return nil, err
+	}
+	return uni, nil
 }

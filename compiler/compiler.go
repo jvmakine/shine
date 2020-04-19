@@ -71,10 +71,10 @@ func Compile(prg *ast.Exp, fcat *inferer.FCat) *ir.Module {
 
 	v := compileExp(prg, &ctx)
 
-	if prg.Type.AsDefined() == t.Int {
+	if prg.Type.AsPrimitive() == t.Int {
 		printf, ptr := IPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
-	} else if prg.Type.AsDefined() == t.Real {
+	} else if prg.Type.AsPrimitive() == t.Real {
 		printf, ptr := FPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
 	}

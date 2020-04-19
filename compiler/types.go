@@ -11,13 +11,12 @@ var (
 	RealType = types.Double
 )
 
-func getType(from interface{}) types.Type {
+func getType(typ t.Type) types.Type {
 	var rtype types.Type = nil
-	typ := from.(*t.TypePtr)
-	if typ == nil || typ.Def.Bases == nil || len(typ.Def.Bases) > 1 {
+	if !typ.IsDefined() {
 		panic("trying to use undefined type at compilation")
 	}
-	switch *(typ.Def.Bases[0]) {
+	switch typ.AsPrimitive() {
 	case t.Int:
 		rtype = IntType
 	case t.Bool:
