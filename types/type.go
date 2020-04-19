@@ -16,7 +16,7 @@ const (
 type TVarID = int64
 
 type TypeVar struct {
-	Restrictions []Type
+	Restrictions []Primitive
 }
 
 type Type struct {
@@ -72,7 +72,7 @@ func sign(t Type, ctx *signctx) string {
 				var sb strings.Builder
 				sb.WriteString("[")
 				for i, r := range t.Variable.Restrictions {
-					sb.WriteString(sign(r, ctx))
+					sb.WriteString(r)
 					if i < len(t.Variable.Restrictions)-1 {
 						sb.WriteString("|")
 					}
@@ -82,6 +82,9 @@ func sign(t Type, ctx *signctx) string {
 			}
 		}
 		return ctx.varm[t.Variable]
+	}
+	if !t.IsDefined() {
+		panic("can not get signature from undefined type")
 	}
 	panic("invalid type")
 }
@@ -138,6 +141,10 @@ func (t Type) IsVariable() bool {
 }
 
 func (t Type) IsDefined() bool {
+	return t.Function != nil || t.Variable != nil || t.Primitive != nil
+}
+
+func (t Type) HasFreeVars() bool {
 	return len(t.FreeVars()) == 0
 }
 

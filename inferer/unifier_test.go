@@ -48,8 +48,8 @@ func TestUnify(t *testing.T) {
 		left:  union(Int, Real),
 		right: base("bool"),
 		want:  "",
-		err:   errors.New("can not unify (int|real) with bool"),
-	}, /*{
+		err:   errors.New("can not unify bool with V1[int|real]"),
+	}, {
 		name:  "should unify two different unions",
 		left:  union(Bool, Real),
 		right: union(Bool, Int),
@@ -72,7 +72,7 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A").v.Type,
 		right: fun(base("bool"), base("int")).v.Type,
 		want:  "",
-		err:   errors.New("can not unify bool with int"),
+		err:   errors.New("can not unify int with bool"),
 	}, {
 		name:  "should unify two way parameter references",
 		left:  fun("A", "A", "B", "A").v.Type,
@@ -84,14 +84,14 @@ func TestUnify(t *testing.T) {
 		left:  fun("A", "A", base("bool"), "A").v.Type,
 		right: fun("C", base("int"), "C", "E").v.Type,
 		want:  "",
-		err:   errors.New("can not unify int with bool"),
+		err:   errors.New("can not unify bool with int"),
 	}, {
 		name:  "unify to sets of variables into one",
 		left:  fun("A", "A", "B", "A").v.Type,
 		right: fun("A", "B", "A", "A").v.Type,
 		want:  "(V1,V1,V1,V1)",
 		err:   nil,
-	}, {
+	}, /*{
 		name:  "unify to sets of variables into one base value",
 		left:  fun("A", "A", "B", "A").v.Type,
 		right: fun("A", "B", "A", base("int")).v.Type,

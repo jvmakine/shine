@@ -38,11 +38,7 @@ func base(t Primitive) Type {
 }
 
 func union(un ...Primitive) Type {
-	ptrs := make([]Type, len(un))
-	for i, u := range un {
-		ptrs[i] = base(u)
-	}
-	return Type{Variable: &TypeVar{Restrictions: ptrs}}
+	return Type{Variable: &TypeVar{Restrictions: un}}
 }
 
 func function(ts ...Type) Type {

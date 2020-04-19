@@ -95,6 +95,53 @@ func (u *Unifier) traverse(a *TypeVar) []Type {
 	return result
 }
 
+func solveRestrictions(ts []Type) (Type, error) {
+	var ps []Primitive = nil
+	for _, t := range ts {
+		if t.IsPrimitive() {
+			if ps == nil || len(ps) == 0 {
+				ps = []Primitive{*t.Primitive}
+			} else {
+				found := false
+				for _, p := range ps {
+					if p == *t.Primitive {
+						found = true
+						break
+					}
+				}
+				if !found {
+					sig := ps[0]
+					if len(ps) > 1 {
+						sig = Type{Variable: &TypeVar{ps}}.Signature()
+					}
+					return Type{}, errors.New("can not unify " + *t.Primitive + " with " + sig)
+				}
+				ps = []Primitive{*t.Primitive}
+			}
+		} else if t.IsVariable() && len(t.Variable.Restrictions) > 0 {
+			if ps == nil || len(ps) == 0 {
+				ps = t.Variable.Restrictions
+			} else {
+				res := []Primitive{}
+				found := map[Primitive]bool{}
+				for _, p := range t.Variable.Restrictions {
+					found[p] = true
+				}
+				for _, p := range ps {
+					if found[p] {
+						res = append(res, p)
+					}
+				}
+				ps = res
+			}
+		}
+	}
+	if len(ps) == 1 {
+		return Type{Primitive: &ps[0]}, nil
+	}
+	return Type{Variable: &TypeVar{ps}}, nil
+}
+
 func (u *Unifier) buildReplace() error {
 	u.replace = map[*TypeVar]Type{}
 	visited := map[*TypeVar]bool{}
@@ -102,9 +149,13 @@ func (u *Unifier) buildReplace() error {
 		if !visited[k] {
 			visited[k] = true
 			trv := u.traverse(k)
+			solved, err := solveRestrictions(trv)
+			if err != nil {
+				return err
+			}
 			for _, t := range trv {
-				if !t.IsVariable() {
-					u.replace[k] = t
+				if t.IsVariable() {
+					u.replace[t.Variable] = solved
 				}
 			}
 		}
@@ -119,6 +170,14 @@ func (u *Unifier) Apply(a *Type) {
 		a.Variable = to.Variable
 		a.Primitive = to.Primitive
 		a.Function = to.Function
+	}
+	if a.IsFunction() {
+		pars := make([]Type, len(*a.Function))
+		for i, p := range *a.Function {
+			u.Apply(&p)
+			pars[i] = p
+		}
+		a.Function = &pars
 	}
 }
 
