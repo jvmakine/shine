@@ -134,8 +134,8 @@ func inferCall(call *ast.FCall, ctx *context) (Type, error) {
 	// Recursive type definition
 	it := ctx.getActiveType(call.Name)
 	var ft Type
-	if it.IsDefined() {
-		ft = it
+	if it != nil {
+		ft = *it
 	} else {
 		ec := ctx.getId(call.Name)
 		if ec == nil {
@@ -160,8 +160,8 @@ func inferCall(call *ast.FCall, ctx *context) (Type, error) {
 		return Type{}, err
 	}
 	unifier.Apply(&ft2)
-	if it.IsDefined() {
-		unifier.Apply(&ft)
+	if it != nil {
+		unifier.Apply(it)
 	}
 	return ft2.ReturnType(), nil
 }
@@ -173,14 +173,14 @@ func inferDef(def *ast.FDef, ctx *context, name *string) (Type, error) {
 			return Type{}, errors.New("redefinition of '" + p.Name + "'")
 		}
 		typ := variable()
-		ctx.setActiveType(p.Name, typ)
+		ctx.setActiveType(p.Name, &typ)
 		paramTypes[i] = typ
 		p.Type = typ
 	}
 	paramTypes[len(def.Params)] = variable()
 	ftyp := function(paramTypes...)
 	if name != nil {
-		ctx.setActiveType(*name, ftyp)
+		ctx.setActiveType(*name, &ftyp)
 	}
 	err := inferExp(def.Body, ctx, nil)
 	if err != nil {
@@ -200,8 +200,8 @@ func inferId(id string, ctx *context) (Type, error) {
 	def := ctx.getId(id)
 	if def == nil {
 		act := ctx.getActiveType(id)
-		if act.IsDefined() {
-			return act, nil
+		if act != nil {
+			return *act, nil
 		}
 		return Type{}, errors.New("undefined id '" + id + "'")
 	}

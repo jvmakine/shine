@@ -44,7 +44,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail on mismatching if expression branches",
 		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.BConst(false))),
 		typ:  "",
-		err:  errors.New("can not unify int with bool"),
+		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "infer recursive functions",
 		exp: t.Block(

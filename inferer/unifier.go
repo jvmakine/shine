@@ -24,6 +24,9 @@ func doesConflict(x Type, y Type) error {
 	if x.IsPrimitive() && y.IsPrimitive() && *x.Primitive != *y.Primitive {
 		return errors.New("can not unify " + *x.Primitive + " with " + *y.Primitive)
 	}
+	if (x.IsFunction() && y.IsPrimitive()) || (y.IsFunction() && x.IsPrimitive()) {
+		return errors.New("a function required")
+	}
 	return nil
 }
 
@@ -41,11 +44,9 @@ func (u *Unifier) addToGraph(a Type, b Type) error {
 	}
 	if a.IsVariable() {
 		u.graph[a.Variable] = append(u.graph[a.Variable], b)
-		return nil
 	}
 	if b.IsVariable() {
 		u.graph[b.Variable] = append(u.graph[b.Variable], a)
-		return nil
 	}
 	// TODO: functions to variables unification
 	if a.IsFunction() && b.IsFunction() {
