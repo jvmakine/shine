@@ -141,7 +141,7 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 	if exp.Block != nil {
 		nctx := ctx.sub()
 		for _, a := range exp.Block.Assignments {
-			ctx.setActiveType(a.Name, &a.Value.Type)
+			nctx.setActiveType(a.Name, &a.Value.Type)
 		}
 		for _, a := range exp.Block.Assignments {
 			if err := inferExp(a.Value, nctx, graph); err != nil {
