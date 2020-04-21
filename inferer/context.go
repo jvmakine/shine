@@ -17,6 +17,10 @@ type context struct {
 	activeVals *[]string
 }
 
+func (c *context) sub() *context {
+	return &context{parent: c, ids: map[string]*excon{}, active: map[string]*Type{}}
+}
+
 func (ctx *context) setActiveType(id string, typ *Type) {
 	if ctx.active == nil {
 		ctx.active = map[string]*Type{}

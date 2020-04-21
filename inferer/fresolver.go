@@ -83,7 +83,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				ptypes[i] = p.Type
 			}
 			ptypes[len(call.Params)] = exp.Type
-			ftype := types.MakeFun(ptypes...)
+			ftype := types.MakeFunction(ptypes...)
 			cop := es.def.Copy()
 			u1 := ftype.Signature()
 			u2 := cop.Type.Signature()

@@ -1,0 +1,35 @@
+package types
+
+type TypeCopyCtx struct {
+	vars map[*TypeVar]*TypeVar
+}
+
+func NewTypeCopyCtx() *TypeCopyCtx {
+	return &TypeCopyCtx{
+		vars: map[*TypeVar]*TypeVar{},
+	}
+
+}
+
+func (t Type) Copy(ctx *TypeCopyCtx) Type {
+	if t.Variable != nil {
+		if ctx.vars[t.Variable] == nil {
+			ctx.vars[t.Variable] = t.Variable.Copy()
+		}
+		return Type{Variable: ctx.vars[t.Variable]}
+	}
+	if t.Function != nil {
+		ps := make([]Type, len(*t.Function))
+		for i, p := range *t.Function {
+			ps[i] = p.Copy(ctx)
+		}
+		return Type{Function: &ps}
+	}
+	return t
+}
+
+func (t *TypeVar) Copy() *TypeVar {
+	return &TypeVar{
+		Restrictions: t.Restrictions,
+	}
+}

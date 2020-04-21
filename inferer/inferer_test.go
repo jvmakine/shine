@@ -98,13 +98,16 @@ func TestInfer(tes *testing.T) {
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
 			err := Infer(tt.exp)
-			if !reflect.DeepEqual(err, tt.err) {
-				t.Errorf("Infer() error = %v, want %v", err, tt.err)
-			}
-			if (!tt.exp.Type.IsDefined()) && tt.typ != "" {
-				t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-			} else if tt.exp.Type.IsDefined() && tt.exp.Type.Signature() != tt.typ {
-				t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type.Signature(), tt.typ)
+			if err != nil {
+				if !reflect.DeepEqual(err, tt.err) {
+					t.Errorf("Infer() error = %v, want %v", err, tt.err)
+				}
+			} else {
+				if (!tt.exp.Type.IsDefined()) && tt.typ != "" {
+					t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
+				} else if tt.exp.Type.IsDefined() && tt.exp.Type.Signature() != tt.typ {
+					t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type.Signature(), tt.typ)
+				}
 			}
 		})
 	}

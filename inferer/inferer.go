@@ -2,6 +2,7 @@ package inferer
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
@@ -83,140 +84,152 @@ func (ctx *context) getId(id string) *excon {
 }
 
 func Infer(exp *ast.Exp) error {
-	parent := &context{ids: global}
-	return inferExp(exp, &context{ids: map[string]*excon{}, parent: parent, activeVals: &[]string{}}, nil)
-}
-
-func inferExp(exp *ast.Exp, ctx *context, name *string) error {
-	if !exp.Type.IsDefined() {
-		if exp.Const != nil {
-			if exp.Const.Int != nil {
-				exp.Type = base(Int)
-			} else if exp.Const.Bool != nil {
-				exp.Type = base(Bool)
-			} else if exp.Const.Real != nil {
-				exp.Type = base(Real)
-			} else {
-				panic("unknown constant")
-			}
-			return nil
-		} else if exp.Id != nil {
-			typ, err := inferId(*exp.Id, ctx)
-			exp.Type = typ
-			return err
-		} else if exp.Call != nil {
-			typ, err := inferCall(exp.Call, ctx)
-			exp.Type = typ
-			return err
-		} else if exp.Def != nil {
-			typ, err := inferDef(exp.Def, &context{parent: ctx, ids: map[string]*excon{}, activeVals: ctx.activeVals}, name)
-			exp.Type = typ
-			return err
-		} else if exp.Block != nil {
-			typ, err := inferBlock(exp.Block, &context{parent: ctx, ids: map[string]*excon{}, activeVals: ctx.activeVals}, name)
-			exp.Type = typ
-			return err
-		}
-		panic("unexpected expression")
+	root := &context{ids: global}
+	initialise(exp, root)
+	graph := TypeGraph{}
+	if err := inferExp(exp, root.sub(), &graph); err != nil {
+		return err
 	}
+	sub, err := graph.Substitutions()
+	if err != nil {
+		return err
+	}
+	sub.Convert(exp)
 	return nil
 }
 
-func inferCall(call *ast.FCall, ctx *context) (Type, error) {
-	var params []Type = make([]Type, len(call.Params)+1)
-	for i, p := range call.Params {
-		err := inferExp(p, ctx, nil)
-		if err != nil {
-			return Type{}, err
+func initialise(exp *ast.Exp, ctx *context) {
+	if exp.Const != nil {
+		if exp.Const.Int != nil {
+			exp.Type = IntP
+		} else if exp.Const.Bool != nil {
+			exp.Type = BoolP
+		} else if exp.Const.Real != nil {
+			exp.Type = RealP
+		} else {
+			panic("invalid const")
 		}
-		params[i] = p.Type
-	}
-	// Recursive type definition
-	it := ctx.getActiveType(call.Name)
-	var ft Type
-	if it != nil {
-		ft = *it
+	} else if exp.Block != nil {
+		for _, a := range exp.Block.Assignments {
+			initialise(a.Value, ctx)
+		}
+		initialise(exp.Block.Value, ctx)
+		exp.Type = exp.Block.Value.Type
+	} else if exp.Call != nil {
+		for i := range exp.Call.Params {
+			initialise(exp.Call.Params[i], ctx)
+		}
+		exp.Type = MakeVariable()
+	} else if exp.Def != nil {
+		initialise(exp.Def.Body, ctx)
+		ftps := make([]Type, len(exp.Def.Params)+1)
+		for i := range exp.Def.Params {
+			v := MakeVariable()
+			exp.Def.Params[i].Type = v
+			ftps[i] = v
+		}
+		ftps[len(exp.Def.Params)] = exp.Def.Body.Type
+		exp.Type = MakeFunction(ftps...)
+	} else if exp.Id != nil {
+		exp.Type = MakeVariable()
 	} else {
-		ec := ctx.getId(call.Name)
-		if ec == nil {
-			return Type{}, errors.New("undefined function: '" + call.Name + "'")
+		panic("invalid expression")
+	}
+}
+
+func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
+	if exp.Block != nil {
+		nctx := ctx.sub()
+		for _, a := range exp.Block.Assignments {
+			ctx.setActiveType(a.Name, &a.Value.Type)
 		}
-		if !ec.v.Type.IsDefined() {
-			err := inferExp(ec.v, ec.c, &call.Name)
-			if err != nil {
-				return Type{}, err
+		for _, a := range exp.Block.Assignments {
+			if err := inferExp(a.Value, nctx, graph); err != nil {
+				return err
 			}
 		}
-		ft = ec.v.Type
-	}
-	if !ft.IsFunction() {
-		return Type{}, errors.New("not a function: '" + call.Name + "'")
-	}
-	params[len(call.Params)] = ft.ReturnType().Copy(NewTypeCopyCtx())
-
-	ft2 := function(params...)
-	unifier, err := Unify(ft2, ft)
-	if err != nil {
-		return Type{}, err
-	}
-	unifier.Apply(&ft2)
-	if it != nil {
-		unifier.Apply(it)
-	}
-	return ft2.ReturnType(), nil
-}
-
-func inferDef(def *ast.FDef, ctx *context, name *string) (Type, error) {
-	var paramTypes []Type = make([]Type, len(def.Params)+1)
-	for i, p := range def.Params {
-		if ctx.getId(p.Name) != nil {
-			return Type{}, errors.New("redefinition of '" + p.Name + "'")
-		}
-		typ := variable()
-		ctx.setActiveType(p.Name, &typ)
-		paramTypes[i] = typ
-		p.Type = typ
-	}
-	paramTypes[len(def.Params)] = variable()
-	ftyp := function(paramTypes...)
-	if name != nil {
-		ctx.setActiveType(*name, &ftyp)
-	}
-	err := inferExp(def.Body, ctx, nil)
-	if err != nil {
-		return Type{}, err
-	}
-	paramTypes[len(def.Params)] = def.Body.Type
-	if name != nil {
-		ctx.stopInference(*name)
-	}
-	for _, p := range def.Params {
-		ctx.stopInference(p.Name)
-	}
-	return ftyp, nil
-}
-
-func inferId(id string, ctx *context) (Type, error) {
-	def := ctx.getId(id)
-	if def == nil {
-		act := ctx.getActiveType(id)
-		if act != nil {
-			return *act, nil
-		}
-		return Type{}, errors.New("undefined id '" + id + "'")
-	}
-	if !def.v.Type.IsDefined() {
-		if contains((*ctx.activeVals), id) {
-			return Type{}, errors.New("recursive value: " + cycleToStr((*ctx.activeVals), id))
-		}
-		(*ctx.activeVals) = append((*ctx.activeVals), id)
-		err := inferExp(def.v, def.c, &id)
+		// Apply substitutions to the assignments before inferring the expression
+		// to avoid the expression affecting the assignment types
+		sub, err := graph.Substitutions()
 		if err != nil {
-			return Type{}, err
+			return err
 		}
-		(*ctx.activeVals) = (*ctx.activeVals)[:1]
+		for _, a := range exp.Block.Assignments {
+			nctx.stopInference(a.Name)
+			sub.Convert(a.Value)
+			nctx.ids[a.Name] = &excon{v: a.Value, c: nctx}
+		}
+		// infer and convert the block expression
+		if err := inferExp(exp.Block.Value, nctx, graph); err != nil {
+			return err
+		}
+		sub, err = graph.Substitutions()
+		if err != nil {
+			return err
+		}
+		sub.Convert(exp)
+	} else if exp.Id != nil {
+		var typ *Type
+		if def := ctx.getActiveType(*exp.Id); def != nil {
+			typ = def
+		} else if at := ctx.getId(*exp.Id); at != nil {
+			typ = &at.v.Type
+		}
+		if typ == nil {
+			return errors.New("undefined id: " + *exp.Id)
+		}
+		if err := graph.Add(*typ, exp.Type); err != nil {
+			return err
+		}
+	} else if exp.Call != nil {
+		name := exp.Call.Name
+		var typ *Type
+
+		if at := ctx.getActiveType(name); at != nil {
+			typ = at
+		} else if def := ctx.getId(name); def != nil {
+			v := def.v.Type.Copy(NewTypeCopyCtx())
+			typ = &v
+		}
+		if typ == nil {
+			return errors.New("undefined function: " + name)
+		}
+		if !typ.IsFunction() {
+			return errors.New("not a function: " + name)
+		}
+		argc := len(*typ.Function) - 1
+		if argc != len(exp.Call.Params) {
+			return errors.New("wrong number of parameter, got " + strconv.Itoa(argc) + " wanted " + strconv.Itoa(len(exp.Call.Params)))
+		}
+		for _, a := range exp.Call.Params {
+			if err := inferExp(a, ctx, graph); err != nil {
+				return err
+			}
+		}
+		for i, t := range (*typ.Function)[:len(*typ.Function)-1] {
+			if err := graph.Add(exp.Call.Params[i].Type, t); err != nil {
+				return err
+			}
+		}
+		if err := graph.Add((*typ.Function)[argc], exp.Type); err != nil {
+			return err
+		}
+	} else if exp.Def != nil {
+		sc := ctx.sub()
+		for _, p := range exp.Def.Params {
+			sc.setActiveType(p.Name, &p.Type)
+		}
+		if err := inferExp(exp.Def.Body, sc, graph); err != nil {
+			return err
+		}
+		for _, p := range exp.Def.Params {
+			sc.stopInference(p.Name)
+		}
+		if err := graph.Add((*exp.Type.Function)[len(*exp.Type.Function)-1], exp.Def.Body.Type); err != nil {
+			return err
+		}
 	}
-	return def.v.Type.Copy(NewTypeCopyCtx()), nil
+	return nil
 }
 
 func contains(arr []string, v string) bool {
@@ -234,27 +247,4 @@ func cycleToStr(arr []string, v string) string {
 		res = res + a + " -> "
 	}
 	return res + v
-}
-
-func inferBlock(block *ast.Block, ctx *context, name *string) (Type, error) {
-	for _, a := range block.Assignments {
-		if ctx.getId(a.Name) != nil {
-			return Type{}, errors.New("redefinition of '" + a.Name + "'")
-		}
-		ctx.ids[a.Name] = &excon{v: a.Value, c: ctx}
-	}
-	for _, a := range block.Assignments {
-		if !a.Value.Type.IsDefined() {
-			err := inferExp(a.Value, ctx, &a.Name)
-			if err != nil {
-				return Type{}, err
-			}
-		}
-	}
-
-	err := inferExp(block.Value, ctx, name)
-	if err != nil {
-		return Type{}, err
-	}
-	return block.Value.Type, nil
 }
