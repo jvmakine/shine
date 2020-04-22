@@ -15,11 +15,12 @@ func (f Function) sign(ctx *signctx) string {
 	sb.WriteString("(")
 	for i, p := range f {
 		sb.WriteString(sign(p, ctx))
-		if i < len(f)-1 {
+		if i < len(f)-2 {
 			sb.WriteString(",")
+		} else if i < len(f)-1 {
+			sb.WriteString(")=>")
 		}
 	}
-	sb.WriteString(")")
 	return sb.String()
 }
 
@@ -43,7 +44,7 @@ func sign(t Type, ctx *signctx) string {
 				sb.WriteString("]")
 				ctx.varm[t.Variable] += sb.String()
 			} else if t.IsFunction() {
-				ctx.varm[t.Variable] += t.Variable.Function.sign(ctx)
+				ctx.varm[t.Variable] += "[" + t.Variable.Function.sign(ctx) + "]"
 			}
 		}
 		return ctx.varm[t.Variable]

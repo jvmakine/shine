@@ -79,7 +79,7 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "unify function return values",
 		exp:  t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"),
-		typ:  "V1(V2,V2)",
+		typ:  "V1[(V2)=>V2]",
 		err:  nil,
 	}, {
 		name: "fail on recursive values",
@@ -98,7 +98,7 @@ func TestInfer(tes *testing.T) {
 		exp: t.Block(
 			t.Fdef(t.Fcall("if", t.BConst(true), t.Block(t.Id("x")), t.IConst(2)), "x"),
 		),
-		typ: "(int,int)",
+		typ: "(int)=>int",
 		err: nil,
 	},
 	}
