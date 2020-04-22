@@ -38,6 +38,10 @@ func MakeFunction(ts ...Type) Type {
 	return Type{Function: &ts}
 }
 
+func MakeRestricted(ps ...Primitive) Type {
+	return Type{Variable: &TypeVar{ps}}
+}
+
 func (t Type) FreeVars() []*TypeVar {
 	if t.Variable != nil {
 		return []*TypeVar{t.Variable}
