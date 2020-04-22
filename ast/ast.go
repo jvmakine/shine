@@ -3,6 +3,8 @@
 package ast
 
 import (
+	"errors"
+
 	"github.com/jvmakine/shine/types"
 )
 
@@ -137,4 +139,63 @@ func (a *FParam) copy(ctx *types.TypeCopyCtx) *FParam {
 		Name: a.Name,
 		Type: a.Type.Copy(ctx),
 	}
+}
+
+func (b *Block) CheckValueCycles() error {
+	names := map[string]*Exp{}
+	verified := map[string]bool{}
+	for _, a := range b.Assignments {
+		names[a.Name] = a.Value
+	}
+	for _, a := range b.Assignments {
+		if !verified[a.Name] {
+			todo := a.Value.collectIds()
+			visited := []string{a.Name}
+			visitedb := map[string]bool{a.Name: true}
+			verified[a.Name] = true
+			for len(todo) > 0 {
+				i := todo[0]
+				todo = todo[1:]
+				if names[i] != nil && names[i].Def == nil {
+					if visitedb[i] {
+						return errors.New("recursive value: " + cycleToStr(visited, i))
+					}
+					verified[i] = true
+					visitedb[i] = true
+					visited = append(visited, i)
+					todo = append(todo, names[i].collectIds()...)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (exp *Exp) collectIds() []string {
+	if exp.Id != nil {
+		return []string{*exp.Id}
+	} else if exp.Call != nil {
+		result := []string{}
+		for _, p := range exp.Call.Params {
+			result = append(result, p.collectIds()...)
+		}
+		return result
+	} else if exp.Def != nil {
+		return exp.Def.Body.collectIds()
+	} else if exp.Block != nil {
+		result := exp.Block.Value.collectIds()
+		for _, a := range exp.Block.Assignments {
+			result = append(result, a.Value.collectIds()...)
+		}
+		return result
+	}
+	return []string{}
+}
+
+func cycleToStr(arr []string, v string) string {
+	res := ""
+	for _, a := range arr {
+		res = res + a + " -> "
+	}
+	return res + v
 }

@@ -139,6 +139,9 @@ func initialise(exp *ast.Exp, ctx *context) {
 
 func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 	if exp.Block != nil {
+		if err := exp.Block.CheckValueCycles(); err != nil {
+			return err
+		}
 		nctx := ctx.sub()
 		for _, a := range exp.Block.Assignments {
 			nctx.setActiveType(a.Name, &a.Value.Type)
@@ -156,7 +159,7 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		}
 		for _, a := range exp.Block.Assignments {
 			nctx.stopInference(a.Name)
-			sub.Convert(a.Value)
+			sub.ConvertAssignment(a)
 			nctx.ids[a.Name] = &excon{v: a.Value, c: nctx}
 		}
 		// infer and convert the block expression
@@ -230,21 +233,4 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		}
 	}
 	return nil
-}
-
-func contains(arr []string, v string) bool {
-	for _, a := range arr {
-		if a == v {
-			return true
-		}
-	}
-	return false
-}
-
-func cycleToStr(arr []string, v string) string {
-	res := ""
-	for _, a := range arr {
-		res = res + a + " -> "
-	}
-	return res + v
 }

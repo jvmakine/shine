@@ -21,9 +21,6 @@ func (s Substitutions) Apply(t *Type) {
 func (s Substitutions) Convert(exp *ast.Exp) {
 	s.Apply(&exp.Type)
 	if exp.Block != nil {
-		for _, a := range exp.Block.Assignments {
-			s.Convert(a.Value)
-		}
 		s.Convert(exp.Block.Value)
 	} else if exp.Call != nil {
 		for _, p := range exp.Call.Params {
@@ -35,4 +32,8 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 		}
 		s.Convert(exp.Def.Body)
 	}
+}
+
+func (s Substitutions) ConvertAssignment(ass *ast.Assign) {
+	s.Convert(ass.Value)
 }

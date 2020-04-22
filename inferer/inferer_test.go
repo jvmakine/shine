@@ -85,7 +85,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail on recursive values",
 		exp:  t.Block(t.Id("a"), t.Assign("a", t.Id("b")), t.Assign("b", t.Id("a"))),
 		typ:  "",
-		err:  errors.New("recursive value: b -> a -> b"),
+		err:  errors.New("recursive value: a -> b -> a"),
 	}, {
 		name: "unify one function multiple ways",
 		exp: t.Block(
