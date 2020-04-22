@@ -55,6 +55,30 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeRestricted("int", "bool"),
 		want: Type{},
 		err:  errors.New("can not unify real with V1[int|bool]"),
+	}, {
+		name: "unifies identical functions",
+		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		b:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		want: MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		err:  nil,
+	}, {
+		name: "fails to unify mismatching functions",
+		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		b:    MakeFunction(MakePrimitive("real"), MakePrimitive("int")),
+		want: Type{},
+		err:  errors.New("can not unify int with real"),
+	}, {
+		name: "unifies variable functions with variables",
+		a:    MakeVariable(),
+		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),
+		want: MakeFunction(MakeVariable(), MakePrimitive("real")),
+		err:  nil,
+	}, {
+		name: "unifies variables within functions",
+		a:    MakeFunction(MakePrimitive("int"), MakeVariable()),
+		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),
+		want: MakeFunction(MakePrimitive("int"), MakePrimitive("real")),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

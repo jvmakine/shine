@@ -19,15 +19,16 @@ func (g TypeGraph) Add(a Type, b Type) error {
 	if b.IsVariable() {
 		g[b.Variable] = append(g[b.Variable], a)
 	}
-	// TODO: functions to variables unification
 	if a.IsFunction() && b.IsFunction() {
-		al := len(*a.Function)
-		bl := len(*b.Function)
+		ap := a.FunctTypes()
+		bp := b.FunctTypes()
+		al := len(ap)
+		bl := len(bp)
 		if al != bl {
 			return errors.New("wrong number of function arguments: " + strconv.Itoa(al) + " != " + strconv.Itoa(bl))
 		}
-		for i := range *a.Function {
-			err := g.Add((*a.Function)[i], (*b.Function)[i])
+		for i := range ap {
+			err := g.Add(ap[i], bp[i])
 			if err != nil {
 				return err
 			}

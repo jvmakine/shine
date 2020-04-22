@@ -10,27 +10,28 @@ type signctx struct {
 	varm map[*TypeVar]string
 }
 
+func (f Function) sign(ctx *signctx) string {
+	var sb strings.Builder
+	sb.WriteString("(")
+	for i, p := range f {
+		sb.WriteString(sign(p, ctx))
+		if i < len(f)-1 {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString(")")
+	return sb.String()
+}
+
 func sign(t Type, ctx *signctx) string {
 	if t.IsPrimitive() {
 		return *t.Primitive
-	}
-	if t.IsFunction() {
-		var sb strings.Builder
-		sb.WriteString("(")
-		for i, p := range *t.Function {
-			sb.WriteString(sign(p, ctx))
-			if i < len(*t.Function)-1 {
-				sb.WriteString(",")
-			}
-		}
-		sb.WriteString(")")
-		return sb.String()
 	}
 	if t.IsVariable() {
 		if ctx.varm[t.Variable] == "" {
 			ctx.varc++
 			ctx.varm[t.Variable] = "V" + strconv.Itoa(ctx.varc)
-			if len(t.Variable.Restrictions) > 0 {
+			if t.IsRestrictedVariable() {
 				var sb strings.Builder
 				sb.WriteString("[")
 				for i, r := range t.Variable.Restrictions {
@@ -41,9 +42,14 @@ func sign(t Type, ctx *signctx) string {
 				}
 				sb.WriteString("]")
 				ctx.varm[t.Variable] += sb.String()
+			} else if t.IsFunction() {
+				ctx.varm[t.Variable] += t.Variable.Function.sign(ctx)
 			}
 		}
 		return ctx.varm[t.Variable]
+	}
+	if t.IsFunction() {
+		return t.Function.sign(ctx)
 	}
 	if !t.IsDefined() {
 		panic("can not get signature from undefined type")

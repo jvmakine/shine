@@ -14,14 +14,15 @@ var (
 	RealP = MakePrimitive(Real)
 )
 
-type TVarID = int64
+type Function []Type
 
 type TypeVar struct {
 	Restrictions Restrictions
+	Function     *Function
 }
 
 type Type struct {
-	Function  *[]Type
+	Function  *Function
 	Variable  *TypeVar
 	Primitive *Primitive
 }
@@ -35,11 +36,22 @@ func MakePrimitive(p string) Type {
 }
 
 func MakeFunction(ts ...Type) Type {
-	return Type{Function: &ts}
+	isvar := false
+	for _, t := range ts {
+		if t.IsVariable() {
+			isvar = true
+			break
+		}
+	}
+	var f Function = ts
+	if isvar {
+		return Type{Variable: &TypeVar{Function: &f}}
+	}
+	return Type{Function: &f}
 }
 
 func MakeRestricted(ps ...Primitive) Type {
-	return Type{Variable: &TypeVar{ps}}
+	return Type{Variable: &TypeVar{Restrictions: ps}}
 }
 
 func (t Type) FreeVars() []*TypeVar {
@@ -57,7 +69,43 @@ func (t Type) FreeVars() []*TypeVar {
 }
 
 func (t Type) IsFunction() bool {
-	return t.Function != nil
+	return t.Function != nil || (t.Variable != nil && t.Variable.Function != nil)
+}
+
+func (t Type) FunctTypes() []Type {
+	if !t.IsFunction() {
+		panic("can not get params from a non-function")
+	}
+	f := t.Function
+	if f == nil {
+		f = t.Variable.Function
+	}
+	return *f
+}
+
+func (t Type) FunctTypesPtr() []*Type {
+	if !t.IsFunction() {
+		panic("can not get params from a non-function")
+	}
+	f := t.Function
+	if f == nil {
+		f = t.Variable.Function
+	}
+	ptrs := make([]*Type, len(*f))
+	for i, t := range *f {
+		ptrs[i] = &t
+	}
+	return ptrs
+}
+
+func (t Type) FunctParams() []Type {
+	typs := t.FunctTypes()
+	return typs[:len(typs)-1]
+}
+
+func (t Type) FunctReturn() Type {
+	typs := t.FunctTypes()
+	return typs[len(typs)-1]
 }
 
 func (t Type) IsPrimitive() bool {
@@ -85,10 +133,6 @@ func (t Type) AsPrimitive() Primitive {
 		panic("type not primitive type")
 	}
 	return *t.Primitive
-}
-
-func (t Type) ReturnType() Type {
-	return (*t.Function)[len(*t.Function)-1]
 }
 
 func (t *Type) AssignFrom(o Type) {

@@ -16,8 +16,8 @@ func (r Restrictions) Resolve(o Restrictions) (Restrictions, error) {
 		}
 	}
 	if len(res) == 0 {
-		s1 := (Type{Variable: &TypeVar{r}}).Signature()
-		s2 := (Type{Variable: &TypeVar{o}}).Signature()
+		s1 := MakeRestricted(r...).Signature()
+		s2 := MakeRestricted(o...).Signature()
 		return nil, errors.New("can not unify " + s1 + " with " + s2)
 	}
 	return res, nil
@@ -29,6 +29,6 @@ func (r Restrictions) Unifies(o Primitive) error {
 			return nil
 		}
 	}
-	sig := (Type{Variable: &TypeVar{r}}).Signature()
+	sig := MakeRestricted(r...).Signature()
 	return errors.New("can not unify " + o + " with " + sig)
 }

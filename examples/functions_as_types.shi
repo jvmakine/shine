@@ -1,0 +1,4 @@
+operate = (x, y, f) => { f(x, y) }
+add = (x, y) => { x + y }
+
+operate(1, 2, add) + operate(5, 2, (x, y) => { x - y })

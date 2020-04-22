@@ -2,7 +2,6 @@ package inferer
 
 import (
 	"errors"
-	"strconv"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
@@ -43,7 +42,7 @@ func union(un ...Primitive) Type {
 }
 
 func function(ts ...Type) Type {
-	return Type{Function: &ts}
+	return MakeFunction(ts...)
 }
 
 func variable() Type {
@@ -217,24 +216,18 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		if typ == nil {
 			return errors.New("undefined function: " + name)
 		}
-		if !typ.IsFunction() {
+		if !typ.IsFunction() && !typ.IsVariable() {
 			return errors.New("not a function: " + name)
 		}
-		argc := len(*typ.Function) - 1
-		if argc != len(exp.Call.Params) {
-			return errors.New("wrong number of parameter, got " + strconv.Itoa(argc) + " wanted " + strconv.Itoa(len(exp.Call.Params)))
-		}
-		for _, a := range exp.Call.Params {
+		args := make([]Type, len(exp.Call.Params)+1)
+		for i, a := range exp.Call.Params {
 			if err := inferExp(a, ctx, graph); err != nil {
 				return err
 			}
+			args[i] = a.Type
 		}
-		for i, t := range (*typ.Function)[:len(*typ.Function)-1] {
-			if err := graph.Add(exp.Call.Params[i].Type, t); err != nil {
-				return err
-			}
-		}
-		if err := graph.Add((*typ.Function)[argc], exp.Type); err != nil {
+		args[len(exp.Call.Params)] = exp.Type
+		if err := graph.Add(MakeFunction(args...), *typ); err != nil {
 			return err
 		}
 	} else if exp.Def != nil {
@@ -247,9 +240,6 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		}
 		for _, p := range exp.Def.Params {
 			sc.stopInference(p.Name)
-		}
-		if err := graph.Add((*exp.Type.Function)[len(*exp.Type.Function)-1], exp.Def.Body.Type); err != nil {
-			return err
 		}
 	}
 	return nil

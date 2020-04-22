@@ -7,19 +7,22 @@ import (
 
 type Substitutions map[*TypeVar]Type
 
-func (s Substitutions) Apply(t *Type) {
-	if t.IsVariable() && s[t.Variable].IsDefined() {
-		t.AssignFrom(s[t.Variable])
+func (s Substitutions) Apply(t Type) Type {
+	target := s[t.Variable]
+	if t.IsVariable() && target.IsDefined() && !t.IsFunction() {
+		return target
 	} else if t.IsFunction() {
-		for i, v := range *t.Function {
-			s.Apply(&v)
-			(*t.Function)[i] = v
+		ntyps := make([]Type, len(t.FunctTypes()))
+		for i, v := range t.FunctTypes() {
+			ntyps[i] = s.Apply(v)
 		}
+		return MakeFunction(ntyps...)
 	}
+	return t
 }
 
 func (s Substitutions) Convert(exp *ast.Exp) {
-	s.Apply(&exp.Type)
+	exp.Type = s.Apply(exp.Type)
 	if exp.Block != nil {
 		s.Convert(exp.Block.Value)
 	} else if exp.Call != nil {
@@ -28,7 +31,7 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 		}
 	} else if exp.Def != nil {
 		for _, p := range exp.Def.Params {
-			s.Apply(&p.Type)
+			p.Type = s.Apply(p.Type)
 		}
 		s.Convert(exp.Def.Body)
 	}

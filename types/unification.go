@@ -19,7 +19,24 @@ func (t Type) Unify(o Type) (Type, error) {
 			if len(resolv) == 1 {
 				return MakePrimitive(resolv[0]), err
 			}
-			return Type{Variable: &TypeVar{resolv}}, err
+			return MakeRestricted(resolv...), err
+		} else if t.IsFunction() && !o.IsFunction() {
+			return o.Unify(t)
+		} else if t.IsRestrictedVariable() && o.IsFunction() {
+			return o, errors.New("can not unify " + t.Signature() + " with " + o.Signature())
+		} else if o.IsFunction() && !t.IsFunction() {
+			return o, nil
+		} else if t.IsFunction() && o.IsFunction() {
+			ot := o.FunctTypes()
+			unified := make([]Type, len(ot))
+			for i, p := range t.FunctTypes() {
+				u, err := p.Unify(ot[i])
+				if err != nil {
+					return o, err
+				}
+				unified[i] = u
+			}
+			return MakeFunction(unified...), nil
 		}
 		return t, nil
 	}
@@ -27,7 +44,15 @@ func (t Type) Unify(o Type) (Type, error) {
 		return o.Unify(t)
 	}
 	if o.IsFunction() && t.IsFunction() {
-		panic("functions as parameters not upported yet")
+		op := o.FunctTypes()
+		tp := t.FunctTypes()
+		for i, p := range op {
+			_, err := p.Unify(tp[i])
+			if err != nil {
+				return o, err
+			}
+		}
+		return o, nil
 	}
 	if o.IsPrimitive() {
 		if t.IsRestrictedVariable() {
