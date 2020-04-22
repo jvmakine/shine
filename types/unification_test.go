@@ -26,10 +26,16 @@ func TestType_Unify(t *testing.T) {
 		want: Type{},
 		err:  errors.New("can not unify bool with int"),
 	}, {
-		name: "unifies restricted primitives to subsets",
+		name: "unifies union variables to subsets",
 		a:    MakeRestricted("int", "bool", "real"),
 		b:    MakeRestricted("bool", "real", "foo"),
 		want: MakeRestricted("bool", "real"),
+		err:  nil,
+	}, {
+		name: "unifies union variables to primitives",
+		a:    MakeRestricted("int", "bool"),
+		b:    MakeRestricted("bool", "real"),
+		want: MakePrimitive("bool"),
 		err:  nil,
 	}, {
 		name: "fails to unify disjoint restricted primitives",

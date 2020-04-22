@@ -16,6 +16,9 @@ func (t Type) Unify(o Type) (Type, error) {
 			return o.Unify(t)
 		} else if t.IsRestrictedVariable() && o.IsRestrictedVariable() {
 			resolv, err := t.Variable.Restrictions.Resolve(o.Variable.Restrictions)
+			if len(resolv) == 1 {
+				return MakePrimitive(resolv[0]), err
+			}
 			return Type{Variable: &TypeVar{resolv}}, err
 		}
 		return t, nil
