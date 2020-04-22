@@ -130,7 +130,7 @@ func (t Type) HasFreeVars() bool {
 
 func (t Type) AsPrimitive() Primitive {
 	if !t.IsPrimitive() {
-		panic("type not primitive type")
+		panic("type not primitive: " + t.Signature())
 	}
 	return *t.Primitive
 }
