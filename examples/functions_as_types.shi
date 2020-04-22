@@ -1,5 +1,5 @@
 operate = (x, y, f) => { f(x, y) }
 add = (x, y) => { x + y }
-sub = (x, y, z) => { x - y }
+sub = (x, y) => { x - y }
 
 operate(1, 2, add) + operate(5, 2, sub)
