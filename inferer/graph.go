@@ -9,12 +9,6 @@ import (
 
 type TypeGraph map[*TypeVar][]Type
 
-func (g TypeGraph) Combine(other TypeGraph) {
-	for k, v := range other {
-		g[k] = append(g[k], v...)
-	}
-}
-
 func (g TypeGraph) Add(a Type, b Type) error {
 	if _, err := a.Unify(b); err != nil {
 		return err

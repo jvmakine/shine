@@ -1,3 +1,0 @@
-add = (x, y, b) => { if (b) x + y else x }
-
-add(6.0, 2.0, true)
