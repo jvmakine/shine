@@ -28,7 +28,7 @@ func sign(t Type, ctx *signctx) string {
 	if t.IsPrimitive() {
 		return *t.Primitive
 	}
-	if t.IsVariable() {
+	if t.IsVariable() && !t.IsFunction() {
 		if ctx.varm[t.Variable] == "" {
 			ctx.varc++
 			ctx.varm[t.Variable] = "V" + strconv.Itoa(ctx.varc)
@@ -43,13 +43,14 @@ func sign(t Type, ctx *signctx) string {
 				}
 				sb.WriteString("]")
 				ctx.varm[t.Variable] += sb.String()
-			} else if t.IsFunction() {
-				ctx.varm[t.Variable] += "[" + t.Variable.Function.sign(ctx) + "]"
 			}
 		}
 		return ctx.varm[t.Variable]
 	}
 	if t.IsFunction() {
+		if t.IsVariable() {
+			return t.Variable.Function.sign(ctx)
+		}
 		return t.Function.sign(ctx)
 	}
 	if !t.IsDefined() {

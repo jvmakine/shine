@@ -10,6 +10,9 @@ type Substitutions map[*TypeVar]Type
 func (s Substitutions) Apply(t Type) Type {
 	target := s[t.Variable]
 	if t.IsVariable() && target.IsDefined() && !t.IsFunction() {
+		if target.IsFunction() {
+			return s.Apply(target)
+		}
 		return target
 	} else if t.IsFunction() {
 		ntyps := make([]Type, len(t.FunctTypes()))
