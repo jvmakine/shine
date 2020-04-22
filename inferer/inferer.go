@@ -98,6 +98,25 @@ func Infer(exp *ast.Exp) error {
 	return nil
 }
 
+func UnifyCall(def *ast.Exp, call *ast.Exp) error {
+	graph := TypeGraph{}
+	for i, p := range call.Call.Params {
+		if err := graph.Add(p.Type, def.Def.Params[i].Type); err != nil {
+			return err
+		}
+	}
+	if err := graph.Add(def.Type, call.Type); err != nil {
+		return err
+	}
+	sub, err := graph.Substitutions()
+	if err != nil {
+		return err
+	}
+	sub.Convert(def)
+	sub.Convert(call)
+	return nil
+}
+
 func initialise(exp *ast.Exp, ctx *context) {
 	if exp.Const != nil {
 		if exp.Const.Int != nil {

@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/types"
 	. "github.com/jvmakine/shine/types"
 )
 
@@ -69,7 +68,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
-		if es.def.Type.IsDefined() {
+		if !es.def.Type.HasFreeVars() {
 			sig := es.def.Type.Signature()
 			fsig := MakeFSign(call.Name, es.block, sig)
 			call.Resolved = fsig
@@ -83,21 +82,17 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				ptypes[i] = p.Type
 			}
 			ptypes[len(call.Params)] = exp.Type
-			ftype := types.MakeFunction(ptypes...)
 			cop := es.def.Copy()
-			u1 := ftype.Signature()
+			u1 := exp.Type.Signature()
 			u2 := cop.Type.Signature()
 
-			uni, err := Unify(ftype, cop.Type)
-			if err != nil {
+			if err := UnifyCall(cop, exp); err != nil {
 				panic(err)
 			}
-			uni.Apply(&ftype)
-			uni.Apply(&cop.Type)
-			if !ftype.IsDefined() {
-				panic("type inference failed: " + u1 + " u " + u2 + " => " + ftype.Signature())
+			if exp.Type.HasFreeVars() {
+				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type.Signature())
 			}
-			fsig := MakeFSign(call.Name, es.block, ftype.Signature())
+			fsig := MakeFSign(call.Name, es.block, exp.Type.Signature())
 			call.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def

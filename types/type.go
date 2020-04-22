@@ -73,7 +73,7 @@ func (t Type) IsDefined() bool {
 }
 
 func (t Type) HasFreeVars() bool {
-	return len(t.FreeVars()) == 0
+	return len(t.FreeVars()) > 0
 }
 
 func (t Type) AsPrimitive() Primitive {
