@@ -28,8 +28,12 @@ func (t Type) Unify(o Type) (Type, error) {
 			return o, nil
 		} else if t.IsFunction() && o.IsFunction() {
 			ot := o.FunctTypes()
+			tt := t.FunctTypes()
+			if len(ot) != len(tt) {
+				return o, errors.New("can not unify " + t.Signature() + " with " + o.Signature())
+			}
 			unified := make([]Type, len(ot))
-			for i, p := range t.FunctTypes() {
+			for i, p := range tt {
 				u, err := p.Unify(ot[i])
 				if err != nil {
 					return o, err

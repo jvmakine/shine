@@ -107,6 +107,15 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "((bool,int)=>int)=>int",
 		err: nil,
+	}, {
+		name: "fail to unify functions with wrong number of arguments",
+		exp: t.Block(
+			t.Fcall("a", t.Id("b")),
+			t.Assign("a", t.Fdef(t.Fcall("x", t.IConst(2), t.IConst(2)), "x")),
+			t.Assign("b", t.Fdef(t.Id("x"), "x")),
+		),
+		typ: "",
+		err: errors.New("can not unify (V1)=>V1 with (int,int)=>V1"),
 	},
 	}
 	for _, tt := range tests {
