@@ -74,6 +74,14 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "2 <= 3",
 		want:  t.Block(t.Fcall("<=", t.IConst(2), t.IConst(3))),
 	}, {
+		name:  "parse || operator",
+		input: "true || false",
+		want:  t.Block(t.Fcall("||", t.BConst(true), t.BConst(false))),
+	}, {
+		name:  "parse && operator",
+		input: "true && false",
+		want:  t.Block(t.Fcall("&&", t.BConst(true), t.BConst(false))),
+	}, {
 		name:  "parse if expression",
 		input: "if(2 > 3) 1 else 2",
 		want:  t.Block(t.Fcall("if", t.Fcall(">", t.IConst(2), t.IConst(3)), t.IConst(1), t.IConst(2))),

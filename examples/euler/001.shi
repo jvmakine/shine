@@ -1,0 +1,13 @@
+sums = (n) => {
+    agg = (x, to, sum) => {
+        if (x >= to) sum else {
+            if (x % 3 == 0 || x % 5 == 0) 
+                agg(x + 1, to, sum + x)
+            else
+                agg(x + 1, to, sum)
+        }
+    }
+    agg(1, n, 0)
+}
+
+sums(1000)

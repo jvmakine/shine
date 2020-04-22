@@ -70,6 +70,8 @@ var global map[string]*excon = map[string]*excon{
 	">":  withVar(union(Int, Real), func(t Type) *excon { return fun(t, t, boolean) }),
 	">=": withVar(union(Int, Real), func(t Type) *excon { return fun(t, t, boolean) }),
 	"<=": withVar(union(Int, Real), func(t Type) *excon { return fun(t, t, boolean) }),
+	"||": fun(boolean, boolean, boolean),
+	"&&": fun(boolean, boolean, boolean),
 	"==": withVar(union(Int, Bool), func(t Type) *excon { return fun(t, t, boolean) }),
 	"if": withVar(variable(), func(t Type) *excon { return fun(boolean, t, t, t) }),
 }
@@ -189,7 +191,6 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		if err != nil {
 			return err
 		}
-		sub.Convert(exp)
 	} else if exp.Id != nil {
 		var typ *Type
 		if def := ctx.getActiveType(*exp.Id); def != nil {

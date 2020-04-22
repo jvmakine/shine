@@ -25,16 +25,17 @@ type context struct {
 	Block  *ir.Block
 	parent *context
 	ids    map[string]interface{}
-	labels int
 }
 
 func (c *context) subContext() *context {
 	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func}
 }
 
+var labels = 0
+
 func (c *context) newLabel() string {
-	count := c.labels
-	c.labels = c.labels + 1
+	count := labels
+	labels++
 	return "label_" + strconv.Itoa(count)
 }
 

@@ -18,7 +18,7 @@ func Parse(str string) (*Program, error) {
 		Comma = "," .
 		Brackets = "(" | ")" | "{" | "}" .
 		COp = ">=" | "<=" .
-		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" .
+		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "||" | "&&" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
 		Real = "0"…"9" { digit } "." "0"…"9" { digit } .
@@ -70,8 +70,8 @@ func convExp(from *Expression) *ast.Exp {
 		}
 	} else if from.If != nil {
 		return convIf(from.If)
-	} else if from.Term != nil {
-		return convOpTerm(convTerm(from.Term.Left), from.Term.Right)
+	} else if from.Comp != nil {
+		return convOpComp(convComp(from.Comp.Left), from.Comp.Right)
 	}
 	panic("invalid expression")
 }
@@ -100,6 +100,23 @@ func convFParam(from *FunParam) *ast.FParam {
 	return &ast.FParam{
 		Name: *from.Name,
 	}
+}
+
+func convOpComp(left *ast.Exp, right []*OpComp) *ast.Exp {
+	if right == nil || len(right) == 0 {
+		return left
+	}
+	res := &ast.Exp{
+		Call: &ast.FCall{
+			Name:   *right[0].Operation,
+			Params: []*ast.Exp{left, convComp(right[0].Right)},
+		},
+	}
+	return convOpComp(res, right[1:])
+}
+
+func convComp(from *Comp) *ast.Exp {
+	return convOpTerm(convTerm(from.Left), from.Right)
 }
 
 func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {

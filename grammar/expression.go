@@ -3,7 +3,7 @@ package grammar
 type Expression struct {
 	Fun  *FunDef         `@@`
 	If   *IfExpression   `| @@`
-	Term *TermExpression `| @@`
+	Comp *CompExpression `| @@`
 }
 
 type IfExpression struct {
@@ -12,9 +12,39 @@ type IfExpression struct {
 	False *Expression `"else" @@`
 }
 
+type CompExpression struct {
+	Left  *Comp     `@@`
+	Right []*OpComp `@@*`
+}
+
+type OpComp struct {
+	Operation *string `@( "||" | "&&" )`
+	Right     *Comp   `@@*`
+}
+
+type Comp struct {
+	Left  *Term     `@@`
+	Right []*OpTerm `@@*`
+}
+
 type TermExpression struct {
 	Left  *Term     `@@`
 	Right []*OpTerm `@@*`
+}
+
+type OpTerm struct {
+	Operation *string `@("+" | "-" | ">" | "<" | "<=" | ">=" | "==" )`
+	Right     *Term   `@@*`
+}
+
+type Term struct {
+	Left  *Value      `@@`
+	Right []*OpFactor `@@*`
+}
+
+type OpFactor struct {
+	Operation *string `@("*" | "/" | "%")`
+	Right     *Value  `@@`
 }
 
 type Block struct {
@@ -49,19 +79,4 @@ type FunDef struct {
 type FunCall struct {
 	Name   *string       `@Ident`
 	Params []*Expression `"(" (@@ ("," @@)*)? ")"`
-}
-
-type OpFactor struct {
-	Operation *string `@("*" | "/" | "%")`
-	Right     *Value  `@@`
-}
-
-type Term struct {
-	Left  *Value      `@@`
-	Right []*OpFactor `@@*`
-}
-
-type OpTerm struct {
-	Operation *string `@("+" | "-" | ">" | "<" | "<=" | ">=" | "==" )`
-	Right     *Term   `@@*`
 }

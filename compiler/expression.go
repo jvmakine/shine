@@ -45,7 +45,6 @@ func compileID(name string, ctx *context) value.Value {
 func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
 	trueB := ctx.Func.NewBlock(ctx.newLabel())
 	falseB := ctx.Func.NewBlock(ctx.newLabel())
-	continueB := ctx.Func.NewBlock(ctx.newLabel())
 	typ := getType(t.Type)
 	resV := ctx.Block.NewAlloca(typ)
 
@@ -53,12 +52,18 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
 	ctx.Block.NewCondBr(cond, trueB, falseB)
 
 	ctx.Block = trueB
-	ctx.Block.NewStore(compileExp(t, ctx), resV)
-	ctx.Block.NewBr(continueB)
+	v := compileExp(t, ctx)
+	trueB = ctx.Block
+	trueB.NewStore(v, resV)
 
 	ctx.Block = falseB
-	ctx.Block.NewStore(compileExp(f, ctx), resV)
-	ctx.Block.NewBr(continueB)
+	v = compileExp(f, ctx)
+	falseB = ctx.Block
+	falseB.NewStore(v, resV)
+
+	continueB := ctx.Func.NewBlock(ctx.newLabel())
+	trueB.NewBr(continueB)
+	falseB.NewBr(continueB)
 
 	ctx.Block = continueB
 	return continueB.NewLoad(typ, resV)
@@ -120,6 +125,10 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 			return ctx.Block.NewICmp(enum.IPredSLE, params[0], params[1])
 		case "==":
 			return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1])
+		case "||":
+			return ctx.Block.NewOr(params[0], params[1])
+		case "&&":
+			return ctx.Block.NewAnd(params[0], params[1])
 		default:
 			comp := ctx.resolveFun(from.Resolved)
 			return ctx.Block.NewCall(comp.Fun, params...)
