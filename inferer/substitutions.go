@@ -9,22 +9,17 @@ type Substitutions map[*TypeVar]Type
 
 func (s Substitutions) Apply(t Type) Type {
 	target := s[t.Variable]
-	if t.IsVariable() && target.IsDefined() && !t.IsFunction() {
-		if t.Variable == target.Variable {
-			return target
-		}
-		if target.IsFunction() {
-			return s.Apply(target)
-		}
-		return target
-	} else if t.IsFunction() {
-		ntyps := make([]Type, len(t.FunctTypes()))
-		for i, v := range t.FunctTypes() {
+	if !target.IsDefined() {
+		target = t
+	}
+	if target.IsFunction() {
+		ntyps := make([]Type, len(target.FunctTypes()))
+		for i, v := range target.FunctTypes() {
 			ntyps[i] = s.Apply(v)
 		}
 		return MakeFunction(ntyps...)
 	}
-	return t
+	return target
 }
 
 func (s Substitutions) Convert(exp *ast.Exp) {

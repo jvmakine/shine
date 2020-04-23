@@ -42,7 +42,7 @@ func TestType_Unify(t *testing.T) {
 		a:    MakeRestricted("int", "bool"),
 		b:    MakeRestricted("bar", "foo"),
 		want: Type{},
-		err:  errors.New("can not unify V1[int|bool] with V1[bar|foo]"),
+		err:  errors.New("can not unify V1[bar|foo] with V1[int|bool]"),
 	}, {
 		name: "unifies restricted variables with primitives",
 		a:    MakePrimitive("bool"),

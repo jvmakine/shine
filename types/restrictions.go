@@ -16,9 +16,7 @@ func (r Restrictions) Resolve(o Restrictions) (Restrictions, error) {
 		}
 	}
 	if len(res) == 0 {
-		s1 := MakeRestricted(r...).Signature()
-		s2 := MakeRestricted(o...).Signature()
-		return nil, errors.New("can not unify " + s1 + " with " + s2)
+		return nil, UnificationError(MakeRestricted(r...), MakeRestricted(o...))
 	}
 	return res, nil
 }

@@ -2,14 +2,19 @@ package types
 
 import "errors"
 
+func UnificationError(a Type, b Type) error {
+	sa := a.Signature()
+	sb := b.Signature()
+	if sa < sb {
+		return errors.New("can not unify " + sa + " with " + sb)
+	} else {
+		return errors.New("can not unify " + sb + " with " + sa)
+	}
+}
+
 func (t Type) Unify(o Type) (Type, error) {
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
-		op := *o.Primitive
-		tp := *t.Primitive
-		if op < tp {
-			return t, errors.New("can not unify " + op + " with " + tp)
-		}
-		return t, errors.New("can not unify " + tp + " with " + op)
+		return t, UnificationError(o, t)
 	}
 	if t.IsVariable() && o.IsVariable() {
 		if t.IsRestrictedVariable() && !o.IsRestrictedVariable() {
@@ -23,14 +28,14 @@ func (t Type) Unify(o Type) (Type, error) {
 		} else if t.IsFunction() && !o.IsFunction() {
 			return o.Unify(t)
 		} else if t.IsRestrictedVariable() && o.IsFunction() {
-			return o, errors.New("can not unify " + t.Signature() + " with " + o.Signature())
+			return o, UnificationError(t, o)
 		} else if o.IsFunction() && !t.IsFunction() {
 			return o, nil
 		} else if t.IsFunction() && o.IsFunction() {
 			ot := o.FunctTypes()
 			tt := t.FunctTypes()
 			if len(ot) != len(tt) {
-				return o, errors.New("can not unify " + t.Signature() + " with " + o.Signature())
+				return o, UnificationError(o, t)
 			}
 			unified := make([]Type, len(ot))
 			for i, p := range tt {

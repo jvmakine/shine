@@ -116,6 +116,16 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "",
 		err: errors.New("can not unify (V1)=>V1 with (int,int)=>V1"),
+	}, {
+		name: "infer multiple function arguments",
+		exp: t.Block(
+			t.Fcall("+", t.Fcall("op", t.Id("a")), t.Fcall("op", t.Id("b"))),
+			t.Assign("a", t.Fdef(t.Fcall("+", t.Id("x"), t.Id("y")), "x", "y")),
+			t.Assign("b", t.Fdef(t.Fcall("-", t.Id("x"), t.Id("y")), "x", "y")),
+			t.Assign("op", t.Fdef(t.Fcall("x", t.IConst(1), t.IConst(2)), "x")),
+		),
+		typ: "int",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
