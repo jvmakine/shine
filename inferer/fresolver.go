@@ -136,7 +136,8 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			if cop.Type.HasFreeVars() {
 				panic("could not unify")
 			}
-			fsig = cop.Type.Signature()
+			sig := cop.Type.Signature()
+			fsig = MakeFSign(id.Name, f.block, sig)
 			id.Resolved = fsig
 
 			if ctx.global.cat[fsig] == nil {
@@ -145,7 +146,7 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			}
 		} else {
 			fsig := MakeFSign(id.Name, f.block, f.def.Type.Signature())
-			id.Resolved = fsig
+			id.Resolved = MakeFSign(id.Name, f.block, fsig)
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = f.def.Def
 				resolveExp(f.def, ctx)
