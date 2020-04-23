@@ -7,21 +7,55 @@ import (
 	. "github.com/jvmakine/shine/types"
 )
 
-type TypeGraph map[*TypeVar][]Type
+type TypeGraph struct {
+	graph map[*TypeVar][]Type
+}
+
+func MakeTypeGraph() TypeGraph {
+	return TypeGraph{map[*TypeVar][]Type{}}
+}
+
+func (g TypeGraph) findFunct(v *TypeVar) Type {
+	if vs := g.graph[v]; vs != nil {
+		for _, v := range vs {
+			if v.IsFunction() {
+				return v
+			}
+		}
+	}
+	return Type{}
+}
 
 func (g TypeGraph) Add(a Type, b Type) error {
 	if _, err := a.Unify(b); err != nil {
 		return err
 	}
 	if a.IsVariable() {
-		g[a.Variable] = append(g[a.Variable], b)
+		g.graph[a.Variable] = append(g.graph[a.Variable], b)
 	}
 	if b.IsVariable() {
-		g[b.Variable] = append(g[b.Variable], a)
+		g.graph[b.Variable] = append(g.graph[b.Variable], a)
 	}
-	if a.IsFunction() && b.IsFunction() {
-		ap := a.FunctTypes()
-		bp := b.FunctTypes()
+	var fun1, fun2 Type
+	if a.IsFunction() {
+		fun1 = a
+		if b.IsFunction() {
+			fun2 = b
+		} else if b.IsVariable() {
+			fun2 = g.findFunct(b.Variable)
+		}
+	} else if b.IsFunction() {
+		fun1 = b
+		if a.IsFunction() {
+			fun2 = a
+		} else if a.IsVariable() {
+			fun2 = g.findFunct(a.Variable)
+		}
+	}
+
+	if fun1.IsFunction() && fun2.IsFunction() {
+		ap := fun1.FunctTypes()
+		bp := fun2.FunctTypes()
 		al := len(ap)
 		bl := len(bp)
 		if al != bl {
@@ -53,7 +87,7 @@ func (g TypeGraph) traverse(a *TypeVar) []Type {
 				result = append(result, r)
 				inResult[r] = true
 			}
-			for _, f := range g[next] {
+			for _, f := range g.graph[next] {
 				if f.IsVariable() {
 					todo = append(todo, f.Variable)
 				} else {
@@ -71,7 +105,7 @@ func (g TypeGraph) traverse(a *TypeVar) []Type {
 func (g TypeGraph) Substitutions() (Substitutions, error) {
 	result := Substitutions{}
 	done := map[*TypeVar]bool{}
-	for k := range g {
+	for k := range g.graph {
 		ts := g.traverse(k)
 		vars := []*TypeVar{}
 		ires := MakeVariable()

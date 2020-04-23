@@ -87,7 +87,7 @@ func (ctx *context) getId(id string) *excon {
 func Infer(exp *ast.Exp) error {
 	root := &context{ids: global}
 	initialise(exp, root)
-	graph := TypeGraph{}
+	graph := MakeTypeGraph()
 	if err := inferExp(exp, root.sub(), &graph); err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func Infer(exp *ast.Exp) error {
 }
 
 func UnifyCall(def *ast.Exp, call *ast.Exp) error {
-	graph := TypeGraph{}
+	graph := MakeTypeGraph()
 	for i, p := range call.Call.Params {
 		if err := graph.Add(p.Type, def.Def.Params[i].Type); err != nil {
 			return err

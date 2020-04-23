@@ -120,7 +120,7 @@ func TestInfer(tes *testing.T) {
 			t.Assign("b", t.Fdef(t.Id("x"), "x")),
 		),
 		typ: "",
-		err: errors.New("can not unify (V1)=>V1 with (int,int)=>V1"),
+		err: errors.New("wrong number of function arguments: 3 != 2"),
 	}, {
 		name: "infer multiple function arguments",
 		exp: t.Block(

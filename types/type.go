@@ -35,6 +35,10 @@ func MakePrimitive(p string) Type {
 	return Type{Primitive: &p}
 }
 
+func WithType(t Type, f func(t Type) Type) Type {
+	return f(t)
+}
+
 func MakeFunction(ts ...Type) Type {
 	isvar := false
 	for _, t := range ts {
