@@ -12,7 +12,7 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 	if from.Const != nil {
 		return compileConst(from.Const, ctx)
 	} else if from.Id != nil {
-		return compileID(from.Id.Name, ctx)
+		return compileID(from.Id, ctx)
 	} else if from.Call != nil {
 		return compileCall(from.Call, ctx)
 	} else if from.Def != nil {
@@ -34,12 +34,16 @@ func compileConst(from *ast.Const, ctx *context) value.Value {
 	panic("invalid constant at compilation")
 }
 
-func compileID(name string, ctx *context) value.Value {
-	id, err := ctx.resolveVal(name)
-	if err != nil {
-		panic(err)
+func compileID(from *ast.Id, ctx *context) value.Value {
+	if from.Resolved == "" {
+		id, err := ctx.resolveVal(from.Name)
+		if err != nil {
+			panic(err)
+		}
+		return id
 	}
-	return id
+	f := ctx.resolveFun(from.Resolved)
+	return f.Fun
 }
 
 func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
@@ -130,8 +134,15 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		case "&&":
 			return ctx.Block.NewAnd(params[0], params[1])
 		default:
-			comp := ctx.resolveFun(from.Resolved)
-			return ctx.Block.NewCall(comp.Fun, params...)
+			if from.Resolved != "" {
+				comp := ctx.resolveFun(from.Resolved)
+				return ctx.Block.NewCall(comp.Fun, params...)
+			}
+			id, err := ctx.resolveId(from.Name)
+			if err != nil {
+				panic(err)
+			}
+			return ctx.Block.NewCall(id.(val).Value, params...)
 		}
 	}
 }

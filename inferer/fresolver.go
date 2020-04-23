@@ -137,6 +137,7 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 				panic("could not unify")
 			}
 			fsig = cop.Type.Signature()
+			id.Resolved = fsig
 
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
