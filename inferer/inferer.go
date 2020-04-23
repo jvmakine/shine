@@ -118,6 +118,14 @@ func UnifyCall(def *ast.Exp, call *ast.Exp) error {
 	return nil
 }
 
+func Unify(a Type, b Type) (Substitutions, error) {
+	graph := MakeTypeGraph()
+	if err := graph.Add(a, b); err != nil {
+		return nil, err
+	}
+	return graph.Substitutions()
+}
+
 func initialise(exp *ast.Exp, ctx *context) {
 	if exp.Const != nil {
 		if exp.Const.Int != nil {

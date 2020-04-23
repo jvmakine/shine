@@ -58,6 +58,8 @@ func resolveExp(exp *ast.Exp, ctx *lctx) {
 		resolveCall(exp, ctx)
 	} else if exp.Def != nil {
 		resolveDef(exp, ctx)
+	} else if exp.Id != nil {
+		resolveId(exp, ctx)
 	}
 }
 
@@ -117,4 +119,36 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 func resolveDef(exp *ast.Exp, ctx *lctx) {
 	def := exp.Def
 	resolveExp(def.Body, ctx)
+}
+
+func resolveId(exp *ast.Exp, ctx *lctx) {
+	id := exp.Id
+	if exp.Type.IsFunction() {
+		f := ctx.resolve(id.Name)
+		var fsig string
+		if f.def.Type.HasFreeVars() {
+			cop := f.def.Copy()
+			subs, err := Unify(cop.Type, exp.Type)
+			if err != nil {
+				panic(err)
+			}
+			subs.Convert(cop)
+			if cop.Type.HasFreeVars() {
+				panic("could not unify")
+			}
+			fsig = cop.Type.Signature()
+
+			if ctx.global.cat[fsig] == nil {
+				ctx.global.cat[fsig] = cop.Def
+				resolveExp(cop, ctx)
+			}
+		} else {
+			fsig := MakeFSign(id.Name, f.block, f.def.Type.Signature())
+			id.Resolved = fsig
+			if ctx.global.cat[fsig] == nil {
+				ctx.global.cat[fsig] = f.def.Def
+				resolveExp(f.def, ctx)
+			}
+		}
+	}
 }

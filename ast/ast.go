@@ -22,6 +22,9 @@ type Exp struct {
 
 type Id struct {
 	Name string
+
+	// If the id refers to a function, its full signature will be resolved here
+	Resolved string
 }
 
 type Const struct {
@@ -48,8 +51,6 @@ type FParam struct {
 type FDef struct {
 	Params []*FParam
 	Body   *Exp
-
-	Resolved string
 }
 
 // Blocks
