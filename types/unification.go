@@ -17,7 +17,7 @@ func (t Type) Unify(o Type) (Type, error) {
 		return t, UnificationError(o, t)
 	}
 	if t.IsVariable() && o.IsVariable() {
-		if t.IsRestrictedVariable() && !o.IsRestrictedVariable() {
+		if o.IsRestrictedVariable() && !t.IsRestrictedVariable() {
 			return o.Unify(t)
 		} else if t.IsRestrictedVariable() && o.IsRestrictedVariable() {
 			resolv, err := t.Variable.Restrictions.Resolve(o.Variable.Restrictions)

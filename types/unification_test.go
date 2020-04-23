@@ -79,6 +79,12 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),
 		want: MakeFunction(MakePrimitive("int"), MakePrimitive("real")),
 		err:  nil,
+	}, {
+		name: "unifies variables with restricted variables",
+		a:    MakeVariable(),
+		b:    MakeRestricted("int", "real"),
+		want: MakeRestricted("int", "real"),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

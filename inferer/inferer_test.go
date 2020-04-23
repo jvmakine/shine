@@ -46,6 +46,11 @@ func TestInfer(tes *testing.T) {
 		typ:  "",
 		err:  errors.New("can not unify bool with int"),
 	}, {
+		name: "fail when adding booleans together",
+		exp:  t.Fcall("+", t.BConst(true), t.BConst(false)),
+		typ:  "",
+		err:  errors.New("can not unify bool with V1[int|real]"),
+	}, {
 		name: "infer recursive functions",
 		exp: t.Block(
 			t.Fcall("a", t.BConst(false)),
