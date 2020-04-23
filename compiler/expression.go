@@ -12,7 +12,7 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 	if from.Const != nil {
 		return compileConst(from.Const, ctx)
 	} else if from.Id != nil {
-		return compileID(*from.Id, ctx)
+		return compileID(from.Id.Name, ctx)
 	} else if from.Call != nil {
 		return compileCall(from.Call, ctx)
 	} else if from.Def != nil {

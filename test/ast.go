@@ -22,7 +22,7 @@ func BConst(v bool) *ast.Exp {
 
 func Id(name string) *ast.Exp {
 	return &ast.Exp{
-		Id: &name,
+		Id: &ast.Id{Name: name},
 	}
 }
 

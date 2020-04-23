@@ -13,11 +13,15 @@ import (
 type Exp struct {
 	Const *Const
 	Block *Block
-	Id    *string
+	Id    *Id
 	Call  *FCall
 	Def   *FDef
 
 	Type types.Type
+}
+
+type Id struct {
+	Name string
 }
 
 type Const struct {
@@ -173,7 +177,7 @@ func (b *Block) CheckValueCycles() error {
 
 func (exp *Exp) collectIds() []string {
 	if exp.Id != nil {
-		return []string{*exp.Id}
+		return []string{exp.Id.Name}
 	} else if exp.Call != nil {
 		result := []string{}
 		for _, p := range exp.Call.Params {

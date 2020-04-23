@@ -192,13 +192,13 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		}
 	} else if exp.Id != nil {
 		var typ *Type
-		if def := ctx.getActiveType(*exp.Id); def != nil {
+		if def := ctx.getActiveType(exp.Id.Name); def != nil {
 			typ = def
-		} else if at := ctx.getId(*exp.Id); at != nil {
+		} else if at := ctx.getId(exp.Id.Name); at != nil {
 			typ = &at.v.Type
 		}
 		if typ == nil {
-			return errors.New("undefined id: " + *exp.Id)
+			return errors.New("undefined id: " + exp.Id.Name)
 		}
 		if err := graph.Add(*typ, exp.Type); err != nil {
 			return err

@@ -162,7 +162,7 @@ func convVal(from *Value) *ast.Exp {
 		return convExp(from.Sub)
 	} else if from.Id != nil {
 		return &ast.Exp{
-			Id: from.Id,
+			Id: &ast.Id{Name: *from.Id},
 		}
 	} else if from.Int != nil {
 		return &ast.Exp{
