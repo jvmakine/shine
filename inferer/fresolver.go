@@ -117,6 +117,8 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 	for _, a := range block.Assignments {
 		if a.Value.Def != nil {
 			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value}
+		} else {
+			resolveExp(a.Value, pctx)
 		}
 	}
 	resolveExp(block.Value, ctx)

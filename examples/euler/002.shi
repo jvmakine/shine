@@ -1,0 +1,12 @@
+sum_even_fib = (upto) => {
+    agg = (p2, p1, u, sum) => {
+        cur = p1 + p2
+        if (cur > u) sum else {
+            nsum = if (cur % 2 == 0) sum + cur else sum
+            agg(p1, cur, u, nsum)
+        }
+    }
+    agg(1, 2, upto, 2)
+}
+
+sum_even_fib(4000000)
