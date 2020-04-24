@@ -93,11 +93,13 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			if err != nil {
 				panic(err)
 			}
+
 			s.Convert(cop)
 			s.Convert(exp)
-			if cop.Type.HasFreeVars() {
+			if cop.Type.HasFreeVars() || exp.Type.HasFreeVars() {
 				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type.Signature())
 			}
+
 			fsig := MakeFSign(call.Name, es.block, exp.Type.Signature())
 			call.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
@@ -143,14 +145,13 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			sig := cop.Type.Signature()
 			fsig = MakeFSign(id.Name, f.block, sig)
 			id.Resolved = fsig
-
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
 		} else {
 			fsig := MakeFSign(id.Name, f.block, f.def.Type.Signature())
-			id.Resolved = MakeFSign(id.Name, f.block, fsig)
+			id.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = f.def.Def
 				resolveExp(f.def, ctx)

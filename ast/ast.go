@@ -76,7 +76,7 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 	return &Exp{
 		Const: a.Const,
 		Block: a.Block.copy(ctx),
-		Id:    a.Id,
+		Id:    a.Id.copy(ctx),
 		Call:  a.Call.copy(ctx),
 		Def:   a.Def.copy(ctx),
 		Type:  a.Type.Copy(ctx),
@@ -143,6 +143,16 @@ func (a *FParam) copy(ctx *types.TypeCopyCtx) *FParam {
 	return &FParam{
 		Name: a.Name,
 		Type: a.Type.Copy(ctx),
+	}
+}
+
+func (a *Id) copy(ctx *types.TypeCopyCtx) *Id {
+	if a == nil {
+		return nil
+	}
+	return &Id{
+		Name:     a.Name,
+		Resolved: a.Resolved,
 	}
 }
 
