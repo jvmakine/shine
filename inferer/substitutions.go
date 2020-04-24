@@ -32,10 +32,15 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 			s.Convert(p)
 		}
 	} else if exp.Def != nil {
-		for _, p := range exp.Def.Params {
+		f := make([]Type, len(exp.Def.Params)+1)
+		for i, p := range exp.Def.Params {
 			p.Type = s.Apply(p.Type)
+			f[i] = p.Type
 		}
 		s.Convert(exp.Def.Body)
+		f[len(exp.Def.Params)] = exp.Def.Body.Type
+		// TODO: Why is this needed?
+		exp.Type = MakeFunction(f...)
 	}
 }
 

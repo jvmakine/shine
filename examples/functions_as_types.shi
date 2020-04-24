@@ -3,4 +3,4 @@ add = (x, y) => { x + y }
 sub = (x, y) => { x - y }
 pick = (b) => { if (b) sub else add }
 
-operate(1, 2, pick(true)) + operate(5, 2, pick(false))
+operate(3, 1, pick(true)) + operate(5, 1, pick(false))
