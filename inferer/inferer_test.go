@@ -131,6 +131,17 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "int",
 		err: nil,
+	}, {
+		name: "infer functions as return values",
+		exp: t.Block(
+			t.Fcall("r", t.Fcall("sw", t.BConst(true))),
+			t.Assign("a", t.Fdef(t.Fcall("+", t.Id("x"), t.Id("y")), "x", "y")),
+			t.Assign("b", t.Fdef(t.Fcall("-", t.Id("x"), t.Id("y")), "x", "y")),
+			t.Assign("sw", t.Fdef(t.Fcall("if", t.Id("x"), t.Id("a"), t.Id("b")), "x")),
+			t.Assign("r", t.Fdef(t.Fcall("f", t.RConst(1.0), t.RConst(2.0)), "f")),
+		),
+		typ: "real",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
