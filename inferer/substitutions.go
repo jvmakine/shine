@@ -26,9 +26,7 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 	exp.Type = s.Apply(exp.Type)
 	if exp.Block != nil {
 		s.Convert(exp.Block.Value)
-		for _, a := range exp.Block.Assignments {
-			s.Convert(a.Value)
-		}
+		// assignments have been converted while constructing the graph
 	} else if exp.Call != nil {
 		for _, p := range exp.Call.Params {
 			s.Convert(p)
