@@ -1,0 +1,17 @@
+largest_prime_factor = (n) => {
+    agg = (x, div) => {
+        if (div >= x) {
+            x
+        } else {
+            if (x % div == 0) {
+                agg(x / div, div)
+            } else {
+                agg(x, div + 1)
+            }
+        }
+    }
+
+    agg(n, 2)
+}
+
+largest_prime_factor(600851475143)
