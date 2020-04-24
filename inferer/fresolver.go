@@ -85,13 +85,17 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			}
 			ptypes[len(call.Params)] = exp.Type
 			cop := es.def.Copy()
+			fun := MakeFunction(ptypes...)
 			u1 := exp.Type.Signature()
 			u2 := cop.Type.Signature()
 
-			if err := UnifyCall(cop, exp); err != nil {
+			s, err := Unify(fun, cop.Type)
+			if err != nil {
 				panic(err)
 			}
-			if exp.Type.HasFreeVars() {
+			s.Convert(cop)
+			s.Convert(exp)
+			if cop.Type.HasFreeVars() {
 				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type.Signature())
 			}
 			fsig := MakeFSign(call.Name, es.block, exp.Type.Signature())
