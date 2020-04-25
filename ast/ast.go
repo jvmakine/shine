@@ -16,13 +16,12 @@ type Exp struct {
 	Id    *Id
 	Call  *FCall
 	Def   *FDef
-
-	Type types.Type
 }
 
 type Id struct {
 	Name string
 
+	Type types.Type
 	// If the id refers to a function, its full signature will be resolved here
 	Resolved string
 }
@@ -31,6 +30,8 @@ type Const struct {
 	Int  *int64
 	Real *float64
 	Bool *bool
+
+	Type types.Type
 }
 
 // Functions
@@ -39,6 +40,7 @@ type FCall struct {
 	Name   string
 	Params []*Exp
 
+	Type     types.Type
 	Resolved string
 }
 
@@ -79,7 +81,6 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 		Id:    a.Id.copy(ctx),
 		Call:  a.Call.copy(ctx),
 		Def:   a.Def.copy(ctx),
-		Type:  a.Type.Copy(ctx),
 	}
 }
 
@@ -119,6 +120,7 @@ func (a *FCall) copy(ctx *types.TypeCopyCtx) *FCall {
 		Name:     a.Name,
 		Params:   pc,
 		Resolved: a.Resolved,
+		Type:     a.Type.Copy(ctx),
 	}
 }
 
@@ -153,6 +155,7 @@ func (a *Id) copy(ctx *types.TypeCopyCtx) *Id {
 	return &Id{
 		Name:     a.Name,
 		Resolved: a.Resolved,
+		Type:     a.Type.Copy(ctx),
 	}
 }
 
@@ -213,4 +216,24 @@ func cycleToStr(arr []string, v string) string {
 		res = res + a + " -> "
 	}
 	return res + v
+}
+
+func (exp *Exp) Type() types.Type {
+	if exp.Block != nil {
+		return exp.Block.Value.Type()
+	} else if exp.Call != nil {
+		return exp.Call.Type
+	} else if exp.Const != nil {
+		return exp.Const.Type
+	} else if exp.Def != nil {
+		ts := make([]types.Type, len(exp.Def.Params)+1)
+		for i, p := range exp.Def.Params {
+			ts[i] = p.Type
+		}
+		ts[len(exp.Def.Params)] = exp.Def.Body.Type()
+		return types.MakeFunction(ts...)
+	} else if exp.Id != nil {
+		return exp.Id.Type
+	}
+	panic("invalid exp")
 }

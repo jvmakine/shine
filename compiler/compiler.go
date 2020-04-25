@@ -18,7 +18,7 @@ func makeFDefs(fcat *inferer.FCat, ctx *context) {
 			params = append(params, param)
 		}
 
-		rtype := getType(fun.Body.Type)
+		rtype := getType(fun.Body.Type())
 		compiled := ctx.Module.NewFunc(name, rtype, params...)
 		compiled.Linkage = enum.LinkageInternal
 
@@ -71,10 +71,10 @@ func Compile(prg *ast.Exp, fcat *inferer.FCat) *ir.Module {
 
 	v := compileExp(prg, &ctx)
 
-	if prg.Type.AsPrimitive() == t.Int {
+	if prg.Type().AsPrimitive() == t.Int {
 		printf, ptr := IPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
-	} else if prg.Type.AsPrimitive() == t.Real {
+	} else if prg.Type().AsPrimitive() == t.Real {
 		printf, ptr := FPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
 	}

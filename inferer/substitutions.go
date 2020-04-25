@@ -23,7 +23,6 @@ func (s Substitutions) Apply(t Type) Type {
 }
 
 func (s Substitutions) Convert(exp *ast.Exp) {
-	exp.Type = s.Apply(exp.Type)
 	if exp.Block != nil {
 		s.Convert(exp.Block.Value)
 		for _, a := range exp.Block.Assignments {
@@ -33,16 +32,14 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 		for _, p := range exp.Call.Params {
 			s.Convert(p)
 		}
+		exp.Call.Type = s.Apply(exp.Call.Type)
 	} else if exp.Def != nil {
-		f := make([]Type, len(exp.Def.Params)+1)
-		for i, p := range exp.Def.Params {
+		for _, p := range exp.Def.Params {
 			p.Type = s.Apply(p.Type)
-			f[i] = p.Type
 		}
 		s.Convert(exp.Def.Body)
-		f[len(exp.Def.Params)] = exp.Def.Body.Type
-		// TODO: Why is this needed?
-		exp.Type = MakeFunction(f...)
+	} else if exp.Id != nil {
+		exp.Id.Type = s.Apply(exp.Id.Type)
 	}
 }
 

@@ -70,8 +70,9 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
-		if !es.def.Type.HasFreeVars() {
-			sig := es.def.Type.Signature()
+		typ := es.def.Type()
+		if !typ.HasFreeVars() {
+			sig := typ.Signature()
 			fsig := MakeFSign(call.Name, es.block, sig)
 			call.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
@@ -81,26 +82,26 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 		} else {
 			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
-				ptypes[i] = p.Type
+				ptypes[i] = p.Type()
 			}
-			ptypes[len(call.Params)] = exp.Type
+			ptypes[len(call.Params)] = exp.Type()
 			cop := es.def.Copy()
 			fun := MakeFunction(ptypes...)
-			u1 := exp.Type.Signature()
-			u2 := cop.Type.Signature()
+			u1 := exp.Type().Signature()
+			u2 := cop.Type().Signature()
 
-			s, err := Unify(fun, cop.Type)
+			s, err := Unify(fun, cop.Type())
 			if err != nil {
 				panic(err)
 			}
 
 			s.Convert(cop)
 			s.Convert(exp)
-			if cop.Type.HasFreeVars() || exp.Type.HasFreeVars() {
-				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type.Signature())
+			if cop.Type().HasFreeVars() || exp.Type().HasFreeVars() {
+				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type().Signature())
 			}
 
-			fsig := MakeFSign(call.Name, es.block, exp.Type.Signature())
+			fsig := MakeFSign(call.Name, es.block, exp.Type().Signature())
 			call.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
@@ -131,20 +132,21 @@ func resolveDef(exp *ast.Exp, ctx *lctx) {
 
 func resolveId(exp *ast.Exp, ctx *lctx) {
 	id := exp.Id
-	if exp.Type.IsFunction() {
+	typ := exp.Type()
+	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
 		var fsig string
-		if f.def.Type.HasFreeVars() {
+		if f.def.Type().HasFreeVars() {
 			cop := f.def.Copy()
-			subs, err := Unify(cop.Type, exp.Type)
+			subs, err := Unify(cop.Type(), typ)
 			if err != nil {
 				panic(err)
 			}
 			subs.Convert(cop)
-			if cop.Type.HasFreeVars() {
+			if cop.Type().HasFreeVars() {
 				panic("could not unify")
 			}
-			sig := cop.Type.Signature()
+			sig := cop.Type().Signature()
 			fsig = MakeFSign(id.Name, f.block, sig)
 			id.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
@@ -152,7 +154,7 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 				resolveExp(cop, ctx)
 			}
 		} else {
-			fsig := MakeFSign(id.Name, f.block, f.def.Type.Signature())
+			fsig := MakeFSign(id.Name, f.block, f.def.Type().Signature())
 			id.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = f.def.Def

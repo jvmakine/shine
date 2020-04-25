@@ -28,7 +28,7 @@ func fun(ts ...interface{}) *excon {
 		}
 	}
 	return &excon{
-		&ast.Exp{Type: function(result...)},
+		&ast.Exp{Id: &ast.Id{Type: function(result...)}},
 		&context{},
 	}
 }
@@ -110,11 +110,11 @@ func Unify(a Type, b Type) (Substitutions, error) {
 func initialise(exp *ast.Exp, ctx *context) {
 	if exp.Const != nil {
 		if exp.Const.Int != nil {
-			exp.Type = IntP
+			exp.Const.Type = IntP
 		} else if exp.Const.Bool != nil {
-			exp.Type = BoolP
+			exp.Const.Type = BoolP
 		} else if exp.Const.Real != nil {
-			exp.Type = RealP
+			exp.Const.Type = RealP
 		} else {
 			panic("invalid const")
 		}
@@ -123,24 +123,18 @@ func initialise(exp *ast.Exp, ctx *context) {
 			initialise(a.Value, ctx)
 		}
 		initialise(exp.Block.Value, ctx)
-		exp.Type = exp.Block.Value.Type
 	} else if exp.Call != nil {
 		for i := range exp.Call.Params {
 			initialise(exp.Call.Params[i], ctx)
 		}
-		exp.Type = MakeVariable()
+		exp.Call.Type = MakeVariable()
 	} else if exp.Def != nil {
 		initialise(exp.Def.Body, ctx)
-		ftps := make([]Type, len(exp.Def.Params)+1)
 		for i := range exp.Def.Params {
-			v := MakeVariable()
-			exp.Def.Params[i].Type = v
-			ftps[i] = v
+			exp.Def.Params[i].Type = MakeVariable()
 		}
-		ftps[len(exp.Def.Params)] = exp.Def.Body.Type
-		exp.Type = MakeFunction(ftps...)
 	} else if exp.Id != nil {
-		exp.Type = MakeVariable()
+		exp.Id.Type = MakeVariable()
 	} else {
 		panic("invalid expression")
 	}
@@ -153,7 +147,8 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		}
 		nctx := ctx.sub()
 		for _, a := range exp.Block.Assignments {
-			nctx.setActiveType(a.Name, &a.Value.Type)
+			typ := a.Value.Type()
+			nctx.setActiveType(a.Name, &typ)
 		}
 		for _, a := range exp.Block.Assignments {
 			if err := inferExp(a.Value, nctx, graph); err != nil {
@@ -184,12 +179,13 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		if def := ctx.getActiveType(exp.Id.Name); def != nil {
 			typ = def
 		} else if at := ctx.getId(exp.Id.Name); at != nil {
-			typ = &at.v.Type
+			t := at.v.Type()
+			typ = &t
 		}
 		if typ == nil {
 			return errors.New("undefined id: " + exp.Id.Name)
 		}
-		if err := graph.Add(*typ, exp.Type); err != nil {
+		if err := graph.Add(*typ, exp.Type()); err != nil {
 			return err
 		}
 	} else if exp.Call != nil {
@@ -199,7 +195,7 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 		if at := ctx.getActiveType(name); at != nil {
 			typ = at
 		} else if def := ctx.getId(name); def != nil {
-			v := def.v.Type.Copy(NewTypeCopyCtx())
+			v := def.v.Type().Copy(NewTypeCopyCtx())
 			typ = &v
 		}
 		if typ == nil {
@@ -213,9 +209,9 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 			if err := inferExp(a, ctx, graph); err != nil {
 				return err
 			}
-			args[i] = a.Type
+			args[i] = a.Type()
 		}
-		args[len(exp.Call.Params)] = exp.Type
+		args[len(exp.Call.Params)] = exp.Type()
 		if err := graph.Add(MakeFunction(args...), *typ); err != nil {
 			return err
 		}

@@ -152,10 +152,10 @@ func TestInfer(tes *testing.T) {
 					t.Errorf("Infer() error = %v, want %v", err, tt.err)
 				}
 			} else {
-				if (!tt.exp.Type.IsDefined()) && tt.typ != "" {
+				if (!tt.exp.Type().IsDefined()) && tt.typ != "" {
 					t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-				} else if tt.exp.Type.IsDefined() && tt.exp.Type.Signature() != tt.typ {
-					t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type.Signature(), tt.typ)
+				} else if tt.exp.Type().IsDefined() && tt.exp.Type().Signature() != tt.typ {
+					t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type().Signature(), tt.typ)
 				}
 			}
 		})
