@@ -74,7 +74,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 		if !typ.HasFreeVars() {
 			sig := typ.Signature()
 			fsig := MakeFSign(call.Name, es.block, sig)
-			call.Resolved = fsig
+			exp.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = es.def.Def
 				resolveExp(es.def, ctx)
@@ -102,7 +102,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			}
 
 			fsig := MakeFSign(call.Name, es.block, exp.Type().Signature())
-			call.Resolved = fsig
+			exp.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
@@ -148,14 +148,14 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			}
 			sig := cop.Type().Signature()
 			fsig = MakeFSign(id.Name, f.block, sig)
-			id.Resolved = fsig
+			exp.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
 		} else {
 			fsig := MakeFSign(id.Name, f.block, f.def.Type().Signature())
-			id.Resolved = fsig
+			exp.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = f.def.Def
 				resolveExp(f.def, ctx)

@@ -12,9 +12,9 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 	if from.Const != nil {
 		return compileConst(from.Const, ctx)
 	} else if from.Id != nil {
-		return compileID(from.Id, ctx)
+		return compileID(from, ctx)
 	} else if from.Call != nil {
-		return compileCall(from.Call, ctx)
+		return compileCall(from, ctx)
 	} else if from.Def != nil {
 		panic("can not return function as a value yet")
 	} else if from.Block != nil {
@@ -34,15 +34,16 @@ func compileConst(from *ast.Const, ctx *context) value.Value {
 	panic("invalid constant at compilation")
 }
 
-func compileID(from *ast.Id, ctx *context) value.Value {
-	if from.Resolved == "" {
+func compileID(exp *ast.Exp, ctx *context) value.Value {
+	from := exp.Id
+	if exp.Resolved == "" {
 		id, err := ctx.resolveVal(from.Name)
 		if err != nil {
 			panic(err)
 		}
 		return id
 	}
-	f := ctx.resolveFun(from.Resolved)
+	f := ctx.resolveFun(exp.Resolved)
 	return f.Fun
 }
 
@@ -73,7 +74,8 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
 	return continueB.NewLoad(typ, resV)
 }
 
-func compileCall(from *ast.FCall, ctx *context) value.Value {
+func compileCall(exp *ast.Exp, ctx *context) value.Value {
+	from := exp.Call
 	name := from.Name
 	if name == "if" { // Need to evaluate if parameters lazily
 		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx)
@@ -134,8 +136,8 @@ func compileCall(from *ast.FCall, ctx *context) value.Value {
 		case "&&":
 			return ctx.Block.NewAnd(params[0], params[1])
 		default:
-			if from.Resolved != "" {
-				comp := ctx.resolveFun(from.Resolved)
+			if exp.Resolved != "" {
+				comp := ctx.resolveFun(exp.Resolved)
 				return ctx.Block.NewCall(comp.Fun, params...)
 			}
 			id, err := ctx.resolveId(from.Name)

@@ -16,14 +16,15 @@ type Exp struct {
 	Id    *Id
 	Call  *FCall
 	Def   *FDef
+
+	// for function expressions. reference to the compiled function
+	Resolved string
 }
 
 type Id struct {
 	Name string
 
 	Type types.Type
-	// If the id refers to a function, its full signature will be resolved here
-	Resolved string
 }
 
 type Const struct {
@@ -40,8 +41,7 @@ type FCall struct {
 	Name   string
 	Params []*Exp
 
-	Type     types.Type
-	Resolved string
+	Type types.Type
 }
 
 type FParam struct {
@@ -76,11 +76,12 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 		return nil
 	}
 	return &Exp{
-		Const: a.Const,
-		Block: a.Block.copy(ctx),
-		Id:    a.Id.copy(ctx),
-		Call:  a.Call.copy(ctx),
-		Def:   a.Def.copy(ctx),
+		Const:    a.Const,
+		Block:    a.Block.copy(ctx),
+		Id:       a.Id.copy(ctx),
+		Call:     a.Call.copy(ctx),
+		Def:      a.Def.copy(ctx),
+		Resolved: a.Resolved,
 	}
 }
 
@@ -117,10 +118,9 @@ func (a *FCall) copy(ctx *types.TypeCopyCtx) *FCall {
 		pc[i] = p.copy(ctx)
 	}
 	return &FCall{
-		Name:     a.Name,
-		Params:   pc,
-		Resolved: a.Resolved,
-		Type:     a.Type.Copy(ctx),
+		Name:   a.Name,
+		Params: pc,
+		Type:   a.Type.Copy(ctx),
 	}
 }
 
@@ -153,9 +153,8 @@ func (a *Id) copy(ctx *types.TypeCopyCtx) *Id {
 		return nil
 	}
 	return &Id{
-		Name:     a.Name,
-		Resolved: a.Resolved,
-		Type:     a.Type.Copy(ctx),
+		Name: a.Name,
+		Type: a.Type.Copy(ctx),
 	}
 }
 
