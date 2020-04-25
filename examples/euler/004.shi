@@ -24,4 +24,4 @@ findLargestProd = (start, stop, cond) => {
     agg(start, stop, start, start, 0, cond)
 }
 
-findLargestProd(10, 99)
+findLargestProd(10, 99, isPal)
