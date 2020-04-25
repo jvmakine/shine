@@ -147,6 +147,9 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 	typ := exp.Type()
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
+		if f == nil {
+			panic("failed to resolve " + id.Name)
+		}
 		var fsig string
 		if f.def.Type().HasFreeVars() {
 			cop := f.def.Copy()
