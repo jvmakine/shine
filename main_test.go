@@ -13,13 +13,13 @@ func TestCompile(t *testing.T) {
 	}{{
 		name: "compiles functions as variables program without errors",
 		program: `
-				operate = (x, y, f) => { f(x, y) }
-				add = (x, y) => { x + y }
-				sub = (x, y) => { x - y }
-				pick = (b) => { if (b) sub else add }
-
-				operate(1, 2, pick(true)) + operate(5, 2, pick(false))
-			`,
+			operate = (x, y, f) => { f(x, y) }
+			add = (x, y) => { x + y }
+			sub = (x, y) => { x - y }
+			pick = (b) => { if (b) sub else add }
+			
+			operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
+		`,
 		err: nil,
 	}, {
 		name: "compile euler2 without errors",
