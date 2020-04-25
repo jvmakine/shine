@@ -38,6 +38,27 @@ func TestCompile(t *testing.T) {
 			sum_even_fib(100)
 		`,
 		err: nil,
+	}, {
+		name: "compile nested function args without errors",
+		program: `
+			findLargestProd = (start, stop, cond) => {
+				agg = (b, e, le, ri, max, c) => {
+					if (le > e) {
+						agg(b, e, b, ri + 1, max, c)
+					} else if (ri > e) {
+						max
+					} else if (le * ri > max && c(le * ri)) {
+						agg(b, e, le + 1, ri, le * ri, c)
+					} else {
+						agg(b, e, le + 1, ri, max, c)
+					}
+				}
+				agg(start, stop, start, start, 0, cond)
+			}
+			
+			findLargestProd(10, 99, (x) => { x % 2 == 0 })
+		`,
+		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

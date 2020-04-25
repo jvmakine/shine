@@ -1,0 +1,27 @@
+reverse = (n) => {
+    agg = (x, t) => {
+        if (x == 0) t else {
+            agg(x / 10, t * 10 + x % 10)
+        }
+    }
+    agg(n, 0)
+}
+
+isPal = (n) => { n == reverse(n) }
+
+findLargestProd = (start, stop, cond) => {
+    agg = (b, e, le, ri, max, c) => {
+        if (le > e) {
+            agg(b, e, b, ri + 1, max, c)
+        } else if (ri > e) {
+            max
+        } else if (le * ri > max && c(le * ri)) {
+            agg(b, e, le + 1, ri, le * ri, c)
+        } else {
+            agg(b, e, le + 1, ri, max, c)
+        }
+    }
+    agg(start, stop, start, start, 0, cond)
+}
+
+findLargestProd(10, 99, isPal)
