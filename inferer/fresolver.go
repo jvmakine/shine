@@ -26,13 +26,14 @@ type gctx struct {
 }
 
 type lctx struct {
-	global *gctx
-	parent *lctx
-	defs   map[string]*FDef
+	blockID int
+	global  *gctx
+	parent  *lctx
+	defs    map[string]*FDef
 }
 
-func (l *lctx) sub() *lctx {
-	return &lctx{global: l.global, parent: l, defs: map[string]*FDef{}}
+func (l *lctx) sub(id int) *lctx {
+	return &lctx{global: l.global, parent: l, defs: map[string]*FDef{}, blockID: id}
 }
 
 func (l *lctx) resolve(name string) *FDef {
@@ -107,12 +108,23 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
+
+			for _, p := range call.Params {
+				if p.Def != nil { // anonymous function
+					fsig := MakeFSign("<anon>", ctx.blockID, p.Type().Signature())
+					p.Resolved = fsig
+					if ctx.global.cat[fsig] == nil {
+						ctx.global.cat[fsig] = p.Def
+						resolveExp(p, ctx)
+					}
+				}
+			}
 		}
 	}
 }
 
 func resolveBlock(exp *ast.Exp, pctx *lctx) {
-	ctx := pctx.sub()
+	ctx := pctx.sub(pctx.global.blockCount + 1)
 	ctx.global.blockCount++
 	block := exp.Block
 	for _, a := range block.Assignments {

@@ -16,7 +16,10 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 	} else if from.Call != nil {
 		return compileCall(from, ctx)
 	} else if from.Def != nil {
-		panic("can not return function as a value yet")
+		if from.Resolved == "" {
+			panic("non resolved anonymous function")
+		}
+		return ctx.resolveFun(from.Resolved).Fun
 	} else if from.Block != nil {
 		return compileBlock(from.Block, ctx)
 	}
