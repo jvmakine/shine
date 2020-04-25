@@ -64,6 +64,19 @@ func resolveExp(exp *ast.Exp, ctx *lctx) {
 	}
 }
 
+func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) {
+	for _, p := range call.Params {
+		if p.Def != nil { // anonymous function
+			fsig := MakeFSign("<anon>", ctx.blockID, p.Type().Signature())
+			p.Resolved = fsig
+			if ctx.global.cat[fsig] == nil {
+				ctx.global.cat[fsig] = p.Def
+				resolveExp(p, ctx)
+			}
+		}
+	}
+}
+
 func resolveCall(exp *ast.Exp, ctx *lctx) {
 	call := exp.Call
 	for _, p := range call.Params {
@@ -80,6 +93,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				ctx.global.cat[fsig] = es.def.Def
 				resolveExp(es.def, ctx)
 			}
+			resolveAnonFuncParams(call, ctx)
 		} else {
 			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
@@ -108,17 +122,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
-
-			for _, p := range call.Params {
-				if p.Def != nil { // anonymous function
-					fsig := MakeFSign("<anon>", ctx.blockID, p.Type().Signature())
-					p.Resolved = fsig
-					if ctx.global.cat[fsig] == nil {
-						ctx.global.cat[fsig] = p.Def
-						resolveExp(p, ctx)
-					}
-				}
-			}
+			resolveAnonFuncParams(call, ctx)
 		}
 	}
 }
@@ -148,7 +152,8 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
 		if f == nil {
-			panic("failed to resolve " + id.Name)
+			// function argument has been already resolved
+			return
 		}
 		var fsig string
 		if f.def.Type().HasFreeVars() {

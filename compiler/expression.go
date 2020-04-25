@@ -17,7 +17,7 @@ func compileExp(from *ast.Exp, ctx *context) value.Value {
 		return compileCall(from, ctx)
 	} else if from.Def != nil {
 		if from.Resolved == "" {
-			panic("non resolved anonymous function")
+			panic("non resolved anonymous function: " + from.Type().Signature())
 		}
 		return ctx.resolveFun(from.Resolved).Fun
 	} else if from.Block != nil {
