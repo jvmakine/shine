@@ -55,6 +55,9 @@ func (t Type) Unify(o Type) (Type, error) {
 	if o.IsFunction() && t.IsFunction() {
 		op := o.FunctTypes()
 		tp := t.FunctTypes()
+		if len(op) != len(tp) {
+			return o, UnificationError(o, t)
+		}
 		for i, p := range op {
 			_, err := p.Unify(tp[i])
 			if err != nil {
