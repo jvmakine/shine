@@ -31,6 +31,13 @@ func TestResolveSignatureGeneration(tes *testing.T) {
 			Assign("b", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
 		),
 		want: []string{"a%%1%%((int,int)=>int)=>int", "b%%1%%(int,int)=>int"},
+	}, {
+		name: "resolves anonymous functions",
+		exp: Block(
+			Fcall("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+			Assign("a", Fdef(Fcall("f", IConst(1), IConst(2)), "f")),
+		),
+		want: []string{"a%%1%%((int,int)=>int)=>int", "<anon>%%1%%(int,int)=>int"},
 	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
