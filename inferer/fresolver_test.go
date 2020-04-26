@@ -22,7 +22,15 @@ func TestResolveSignatureGeneration(tes *testing.T) {
 				IConst(7)),
 			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
 		),
-		want: []string{"a%%1%%bool", "a%%1%%int"},
+		want: []string{"a%%1%%(bool,bool,bool)=>bool", "a%%1%%(bool,int,int)=>int"},
+	}, {
+		name: "resolves functions as arguments",
+		exp: Block(
+			Fcall("a", Id("b")),
+			Assign("a", Fdef(Fcall("f", IConst(1), IConst(2)), "f")),
+			Assign("b", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+		),
+		want: []string{"a%%1%%((int,int)=>int)=>int", "b%%1%%(int,int)=>int"},
 	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
