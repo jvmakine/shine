@@ -40,8 +40,10 @@ func compileFDefs(fcat *inferer.FCat, ctx *context) {
 			}
 			params = append(params, param)
 		}
-		result := compileExp(f.From.Body, subCtx)
-		subCtx.Block.NewRet(result)
+		result := compileExp(f.From.Body, subCtx, true)
+		if result != nil { // result can be nil if it has already been returned from the function
+			subCtx.Block.NewRet(result)
+		}
 	}
 }
 
@@ -69,7 +71,7 @@ func Compile(prg *ast.Exp, fcat *inferer.FCat) *ir.Module {
 	makeFDefs(fcat, &ctx)
 	compileFDefs(fcat, &ctx)
 
-	v := compileExp(prg, &ctx)
+	v := compileExp(prg, &ctx, false)
 
 	if prg.Type().AsPrimitive() == t.Int {
 		printf, ptr := IPrintF(module, ctx.Block)

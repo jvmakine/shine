@@ -3,25 +3,26 @@ package compiler
 import (
 	"github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/types"
+	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
 	"github.com/llir/llvm/ir/value"
 )
 
-func compileExp(from *ast.Exp, ctx *context) value.Value {
+func compileExp(from *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	if from.Const != nil {
 		return compileConst(from.Const, ctx)
 	} else if from.Id != nil {
 		return compileID(from, ctx)
 	} else if from.Call != nil {
-		return compileCall(from, ctx)
+		return compileCall(from, ctx, funcRoot)
 	} else if from.Def != nil {
 		if from.Resolved == "" {
 			panic("non resolved anonymous function: " + from.Type().Signature())
 		}
 		return ctx.resolveFun(from.Resolved).Fun
 	} else if from.Block != nil {
-		return compileBlock(from.Block, ctx)
+		return compileBlock(from.Block, ctx, funcRoot)
 	}
 	panic("invalid empty expression")
 }
@@ -50,42 +51,55 @@ func compileID(exp *ast.Exp, ctx *context) value.Value {
 	return f.Fun
 }
 
-func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context) value.Value {
+func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	trueB := ctx.Func.NewBlock(ctx.newLabel())
 	falseB := ctx.Func.NewBlock(ctx.newLabel())
 	typ := getType(t.Type())
-	resV := ctx.Block.NewAlloca(typ)
 
-	cond := compileExp(c, ctx)
+	cond := compileExp(c, ctx, funcRoot)
 	ctx.Block.NewCondBr(cond, trueB, falseB)
+	var resV *ir.InstAlloca
+	if !funcRoot {
+		resV = ctx.Block.NewAlloca(typ)
+	}
 
 	ctx.Block = trueB
-	v := compileExp(t, ctx)
+	truev := compileExp(t, ctx, funcRoot)
 	trueB = ctx.Block
-	trueB.NewStore(v, resV)
 
 	ctx.Block = falseB
-	v = compileExp(f, ctx)
+	falsev := compileExp(f, ctx, funcRoot)
 	falseB = ctx.Block
-	falseB.NewStore(v, resV)
+	if !funcRoot {
+		trueB.NewStore(truev, resV)
+		falseB.NewStore(falsev, resV)
 
-	continueB := ctx.Func.NewBlock(ctx.newLabel())
-	trueB.NewBr(continueB)
-	falseB.NewBr(continueB)
+		continueB := ctx.Func.NewBlock(ctx.newLabel())
+		trueB.NewBr(continueB)
+		falseB.NewBr(continueB)
 
-	ctx.Block = continueB
-	return continueB.NewLoad(typ, resV)
+		ctx.Block = continueB
+		return continueB.NewLoad(typ, resV)
+	} else { // optimise root ifs at functions for tail recursion elimination
+		if truev != nil {
+			trueB.NewRet(truev)
+		}
+		if falsev != nil {
+			falseB.NewRet(falsev)
+		}
+		return nil
+	}
 }
 
-func compileCall(exp *ast.Exp, ctx *context) value.Value {
+func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	from := exp.Call
 	name := from.Name
 	if name == "if" { // Need to evaluate if parameters lazily
-		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx)
+		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
 	} else {
 		var params []value.Value
 		for _, p := range from.Params {
-			v := compileExp(p, ctx)
+			v := compileExp(p, ctx, false)
 			params = append(params, v)
 		}
 
@@ -152,18 +166,18 @@ func compileCall(exp *ast.Exp, ctx *context) value.Value {
 	}
 }
 
-func compileBlock(from *ast.Block, ctx *context) value.Value {
+func compileBlock(from *ast.Block, ctx *context, funcRoot bool) value.Value {
 	sub := ctx.subContext()
 	for _, c := range from.Assignments {
 		if c.Value.Def == nil {
-			v := compileExp(c.Value, sub)
+			v := compileExp(c.Value, sub, false)
 			_, err := sub.addId(c.Name, val{v})
 			if err != nil {
 				panic(err)
 			}
 		}
 	}
-	res := compileExp(from.Value, sub)
+	res := compileExp(from.Value, sub, funcRoot)
 	ctx.Block = sub.Block
 	return res
 }
