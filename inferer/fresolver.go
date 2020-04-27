@@ -26,10 +26,11 @@ type gctx struct {
 }
 
 type lctx struct {
-	blockID int
-	global  *gctx
-	parent  *lctx
-	defs    map[string]*FDef
+	blockID   int
+	anonCount int
+	global    *gctx
+	parent    *lctx
+	defs      map[string]*FDef
 }
 
 func (l *lctx) sub(id int) *lctx {
@@ -67,7 +68,9 @@ func resolveExp(exp *ast.Exp, ctx *lctx) {
 func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) {
 	for _, p := range call.Params {
 		if p.Def != nil { // anonymous function
-			fsig := MakeFSign("<anon>", ctx.blockID, p.Type().Signature())
+			ctx.anonCount++
+			anonc := strconv.Itoa(ctx.anonCount)
+			fsig := MakeFSign("<anon"+anonc+">", ctx.blockID, p.Type().Signature())
 			p.Resolved = fsig
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = p.Def
