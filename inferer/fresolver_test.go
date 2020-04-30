@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/resolved"
+	. "github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/test"
 )
 
-func TestResolveSignatureGeneration(tes *testing.T) {
+func TestResolveFunctionCall(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
@@ -46,7 +48,7 @@ func TestResolveSignatureGeneration(tes *testing.T) {
 				panic(err)
 			}
 			Resolve(tt.exp)
-			result := collectResolved(tt.exp)
+			result := collectResolvedCalls(tt.exp)
 			if !reflect.DeepEqual(result, tt.want) {
 				t.Errorf("Resolve() = %v, want %v", result, tt.want)
 			}
@@ -54,24 +56,63 @@ func TestResolveSignatureGeneration(tes *testing.T) {
 	}
 }
 
-func collectResolved(exp *ast.Exp) []string {
+func TestResolveFunctionDef(tes *testing.T) {
+	tests := []struct {
+		name string
+		exp  *ast.Exp
+		want []resolved.Clojure
+	}{{
+		name: "resolves empty clojure for function without clojure",
+		exp: Block(
+			Fcall("a", BConst(true), BConst(true), BConst(false)),
+			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
+		),
+		want: []Clojure{Clojure{}},
+	},
+	}
+	for _, tt := range tests {
+		tes.Run(tt.name, func(t *testing.T) {
+			err := Infer(tt.exp)
+			if err != nil {
+				panic(err)
+			}
+			fcat := Resolve(tt.exp)
+			result := collectResolvedDefs(fcat)
+			if !reflect.DeepEqual(result, tt.want) {
+				t.Errorf("Resolve() = %v, want %v", result, tt.want)
+			}
+		})
+	}
+}
+
+func collectResolvedCalls(exp *ast.Exp) []string {
 	res := []string{}
 	if exp.Resolved != nil {
 		res = []string{exp.Resolved.ID}
 	}
 	if exp.Block != nil {
 		for _, a := range exp.Block.Assignments {
-			res = append(res, collectResolved(a.Value)...)
+			res = append(res, collectResolvedCalls(a.Value)...)
 		}
-		res = append(res, collectResolved(exp.Block.Value)...)
+		res = append(res, collectResolvedCalls(exp.Block.Value)...)
 	}
 	if exp.Call != nil {
 		for _, p := range exp.Call.Params {
-			res = append(res, collectResolved(p)...)
+			res = append(res, collectResolvedCalls(p)...)
 		}
 	}
 	if exp.Def != nil {
-		res = append(res, collectResolved(exp.Def.Body)...)
+		res = append(res, collectResolvedCalls(exp.Def.Body)...)
+	}
+	return res
+}
+
+func collectResolvedDefs(cat *FCat) []Clojure {
+	res := []Clojure{}
+	for _, v := range *cat {
+		if v.Resolved != nil {
+			res = append(res, v.Resolved.Clojure)
+		}
 	}
 	return res
 }

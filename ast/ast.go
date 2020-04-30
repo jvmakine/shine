@@ -54,6 +54,8 @@ type FParam struct {
 type FDef struct {
 	Params []*FParam
 	Body   *Exp
+
+	Resolved *resolved.ResolvedFnDef
 }
 
 // Blocks
@@ -134,8 +136,9 @@ func (a *FDef) copy(ctx *types.TypeCopyCtx) *FDef {
 		pc[i] = p.copy(ctx)
 	}
 	return &FDef{
-		Params: pc,
-		Body:   a.Body.copy(ctx),
+		Params:   pc,
+		Body:     a.Body.copy(ctx),
+		Resolved: a.Resolved,
 	}
 }
 

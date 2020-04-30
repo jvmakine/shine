@@ -148,6 +148,7 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 
 func resolveDef(exp *ast.Exp, ctx *lctx) {
 	def := exp.Def
+	exp.Def.Resolved = &resolved.ResolvedFnDef{Clojure: resolved.Clojure{}}
 	resolveExp(def.Body, ctx)
 }
 
