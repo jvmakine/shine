@@ -56,8 +56,8 @@ func TestResolveSignatureGeneration(tes *testing.T) {
 
 func collectResolved(exp *ast.Exp) []string {
 	res := []string{}
-	if exp.Resolved != "" {
-		res = []string{exp.Resolved}
+	if exp.Resolved != nil {
+		res = []string{exp.Resolved.ID}
 	}
 	if exp.Block != nil {
 		for _, a := range exp.Block.Assignments {

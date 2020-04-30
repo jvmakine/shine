@@ -10,17 +10,17 @@ reverse = (n) => {
 isPal = (n) => { n == reverse(n) }
 
 findLargestProd = (start, stop, cond) => {
-    agg = (b, e, le, ri, max, c) => {
-        if (ri > e) {
+    agg = (le, ri, max) => {
+        if (ri > stop) {
             max
         } else {
-            nle = if (le > e) b else { le + 1 }
-            nri = if (le > e) { ri + 1 } else ri
-            nmax = if (le * ri > max && c(le * ri)) le * ri else max
-            agg(b, e, nle, nri, nmax, c)
+            nle = if (le > stop) start else { le + 1 }
+            nri = if (le > stop) { ri + 1 } else ri
+            nmax = if (le * ri > max && cond(le * ri)) le * ri else max
+            agg(nle, nri, nmax)
         }
     }
-    agg(start, stop, start, start, 0, cond)
+    agg(start, start, 0)
 }
 
 findLargestProd(100, 999, isPal)
