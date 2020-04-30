@@ -19,7 +19,7 @@ type Exp struct {
 	Def   *FDef
 
 	// for function value expressions. reference to the compiled function
-	Resolved *resolved.ResolvedFn
+	Resolved *resolved.ResolvedFnCall
 }
 
 type Id struct {

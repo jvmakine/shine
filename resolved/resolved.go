@@ -9,7 +9,10 @@ type ClojureParam struct {
 
 type Clojure []ClojureParam
 
-type ResolvedFn struct {
-	ID      string
+type ResolvedFnCall struct {
+	ID string
+}
+
+type ResolvedFnDef struct {
 	Clojure Clojure
 }
