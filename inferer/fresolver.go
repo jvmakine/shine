@@ -3,6 +3,8 @@ package inferer
 import (
 	"strconv"
 
+	"github.com/jvmakine/shine/resolved"
+
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
 )
@@ -71,7 +73,7 @@ func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) {
 			ctx.anonCount++
 			anonc := strconv.Itoa(ctx.anonCount)
 			fsig := MakeFSign("<anon"+anonc+">", ctx.blockID, p.Type().Signature())
-			p.Resolved = fsig
+			p.Resolved = &resolved.ResolvedFn{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = p.Def
 				resolveExp(p, ctx)
@@ -91,7 +93,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 		if !typ.HasFreeVars() {
 			sig := typ.Signature()
 			fsig := MakeFSign(call.Name, es.block, sig)
-			exp.Resolved = fsig
+			exp.Resolved = &resolved.ResolvedFn{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = es.def.Def
 				resolveExp(es.def, ctx)
@@ -120,7 +122,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			}
 
 			fsig := MakeFSign(call.Name, es.block, cop.Type().Signature())
-			exp.Resolved = fsig
+			exp.Resolved = &resolved.ResolvedFn{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
@@ -171,14 +173,14 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			}
 			sig := cop.Type().Signature()
 			fsig = MakeFSign(id.Name, f.block, sig)
-			exp.Resolved = fsig
+			exp.Resolved = &resolved.ResolvedFn{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
 				resolveExp(cop, ctx)
 			}
 		} else {
 			fsig := MakeFSign(id.Name, f.block, f.def.Type().Signature())
-			exp.Resolved = fsig
+			exp.Resolved = &resolved.ResolvedFn{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = f.def.Def
 				resolveExp(f.def, ctx)

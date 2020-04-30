@@ -5,6 +5,7 @@ package ast
 import (
 	"errors"
 
+	"github.com/jvmakine/shine/resolved"
 	"github.com/jvmakine/shine/types"
 )
 
@@ -17,8 +18,8 @@ type Exp struct {
 	Call  *FCall
 	Def   *FDef
 
-	// for function expressions. reference to the compiled function
-	Resolved string
+	// for function value expressions. reference to the compiled function
+	Resolved *resolved.ResolvedFn
 }
 
 type Id struct {
