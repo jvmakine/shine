@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
-	t "github.com/jvmakine/shine/test"
+	. "github.com/jvmakine/shine/test"
 )
 
 func TestInfer(tes *testing.T) {
@@ -17,130 +17,141 @@ func TestInfer(tes *testing.T) {
 		err  error
 	}{{
 		name: "infer constant int correctly",
-		exp:  t.IConst(5),
+		exp:  IConst(5),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "infer constant bool correctly",
-		exp:  t.BConst(false),
+		exp:  BConst(false),
 		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer assigments in blocks",
-		exp:  t.Block(t.Id("a"), t.Assign("a", t.IConst(5))),
+		exp:  Block(Id("a"), Assign("a", IConst(5))),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "infer integer comparisons as boolean",
-		exp:  t.Block(t.Fcall(">", t.IConst(1), t.IConst(2))),
+		exp:  Block(Fcall(">", IConst(1), IConst(2))),
 		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer if expressions",
-		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.IConst(2))),
+		exp:  Block(Fcall("if", BConst(true), IConst(1), IConst(2))),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "fail on mismatching if expression branches",
-		exp:  t.Block(t.Fcall("if", t.BConst(true), t.IConst(1), t.BConst(false))),
+		exp:  Block(Fcall("if", BConst(true), IConst(1), BConst(false))),
 		typ:  "",
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "fail when adding booleans together",
-		exp:  t.Fcall("+", t.BConst(true), t.BConst(false)),
+		exp:  Fcall("+", BConst(true), BConst(false)),
 		typ:  "",
 		err:  errors.New("can not unify bool with V1[int|real]"),
 	}, {
 		name: "infer recursive functions",
-		exp: t.Block(
-			t.Fcall("a", t.BConst(false)),
-			t.Assign("a", t.Fdef(t.Block(
-				t.Fcall("if", t.BConst(false), t.Id("x"), t.Fcall("a", t.BConst(true)))),
+		exp: Block(
+			Fcall("a", BConst(false)),
+			Assign("a", Fdef(Block(
+				Fcall("if", BConst(false), Id("x"), Fcall("a", BConst(true)))),
 				"x",
 			))),
 		typ: "bool",
 		err: nil,
 	}, {
 		name: "infer function calls",
-		exp: t.Block(
-			t.Fcall("a", t.IConst(1)),
-			t.Assign("a", t.Fdef(t.Block(t.Fcall("+", t.IConst(1), t.Id("x"))), "x"))),
+		exp: Block(
+			Fcall("a", IConst(1)),
+			Assign("a", Fdef(Block(Fcall("+", IConst(1), Id("x"))), "x"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer function parameters",
-		exp: t.Block(
-			t.Fcall("a", t.IConst(1), t.BConst(true)),
-			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
+		exp: Block(
+			Fcall("a", IConst(1), BConst(true)),
+			Assign("a", Fdef(Block(Fcall("if", Id("b"), Id("x"), IConst(0))), "x", "b"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "fail on inferred function parameter mismatch",
-		exp: t.Block(
-			t.Fcall("a", t.BConst(true), t.BConst(true)),
-			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.Id("b"), t.Id("x"), t.IConst(0))), "x", "b"))),
+		exp: Block(
+			Fcall("a", BConst(true), BConst(true)),
+			Assign("a", Fdef(Block(Fcall("if", Id("b"), Id("x"), IConst(0))), "x", "b"))),
 		typ: "",
 		err: errors.New("can not unify bool with int"),
 	}, {
 		name: "unify function return values",
-		exp:  t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"),
+		exp:  Fdef(Block(Fcall("if", BConst(true), Id("x"), Id("x"))), "x"),
 		typ:  "(V1)=>V1",
 		err:  nil,
 	}, {
 		name: "fail on recursive values",
-		exp:  t.Block(t.Id("a"), t.Assign("a", t.Id("b")), t.Assign("b", t.Id("a"))),
+		exp:  Block(Id("a"), Assign("a", Id("b")), Assign("b", Id("a"))),
 		typ:  "",
 		err:  errors.New("recursive value: a -> b -> a"),
 	}, {
 		name: "unify one function multiple ways",
-		exp: t.Block(
-			t.Fcall("if", t.Fcall("a", t.BConst(true)), t.Fcall("a", t.IConst(1)), t.IConst(2)),
-			t.Assign("a", t.Fdef(t.Block(t.Fcall("if", t.BConst(true), t.Id("x"), t.Id("x"))), "x"))),
+		exp: Block(
+			Fcall("if", Fcall("a", BConst(true)), Fcall("a", IConst(1)), IConst(2)),
+			Assign("a", Fdef(Block(Fcall("if", BConst(true), Id("x"), Id("x"))), "x"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer parameters in block values",
-		exp: t.Block(
-			t.Fdef(t.Fcall("if", t.BConst(true), t.Block(t.Id("x")), t.IConst(2)), "x"),
+		exp: Block(
+			Fdef(Fcall("if", BConst(true), Block(Id("x")), IConst(2)), "x"),
 		),
 		typ: "(int)=>int",
 		err: nil,
 	}, {
 		name: "infer functions as arguments",
-		exp: t.Block(
-			t.Fdef(t.Fcall("+", t.Fcall("x", t.BConst(true), t.IConst(2)), t.IConst(1)), "x"),
+		exp: Block(
+			Fdef(Fcall("+", Fcall("x", BConst(true), IConst(2)), IConst(1)), "x"),
 		),
 		typ: "((bool,int)=>int)=>int",
 		err: nil,
 	}, {
 		name: "fail to unify functions with wrong number of arguments",
-		exp: t.Block(
-			t.Fcall("a", t.Id("b")),
-			t.Assign("a", t.Fdef(t.Fcall("x", t.IConst(2), t.IConst(2)), "x")),
-			t.Assign("b", t.Fdef(t.Id("x"), "x")),
+		exp: Block(
+			Fcall("a", Id("b")),
+			Assign("a", Fdef(Fcall("x", IConst(2), IConst(2)), "x")),
+			Assign("b", Fdef(Id("x"), "x")),
 		),
 		typ: "",
 		err: errors.New("wrong number of function arguments: 3 != 2"),
 	}, {
 		name: "infer multiple function arguments",
-		exp: t.Block(
-			t.Fcall("+", t.Fcall("op", t.Id("a")), t.Fcall("op", t.Id("b"))),
-			t.Assign("a", t.Fdef(t.Fcall("+", t.Id("x"), t.Id("y")), "x", "y")),
-			t.Assign("b", t.Fdef(t.Fcall("-", t.Id("x"), t.Id("y")), "x", "y")),
-			t.Assign("op", t.Fdef(t.Fcall("x", t.IConst(1), t.IConst(2)), "x")),
+		exp: Block(
+			Fcall("+", Fcall("op", Id("a")), Fcall("op", Id("b"))),
+			Assign("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+			Assign("b", Fdef(Fcall("-", Id("x"), Id("y")), "x", "y")),
+			Assign("op", Fdef(Fcall("x", IConst(1), IConst(2)), "x")),
 		),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer functions as return values",
-		exp: t.Block(
-			t.Fcall("r", t.Fcall("sw", t.BConst(true))),
-			t.Assign("a", t.Fdef(t.Fcall("+", t.Id("x"), t.Id("y")), "x", "y")),
-			t.Assign("b", t.Fdef(t.Fcall("-", t.Id("x"), t.Id("y")), "x", "y")),
-			t.Assign("sw", t.Fdef(t.Fcall("if", t.Id("x"), t.Id("a"), t.Id("b")), "x")),
-			t.Assign("r", t.Fdef(t.Fcall("f", t.RConst(1.0), t.RConst(2.0)), "f")),
+		exp: Block(
+			Fcall("r", Fcall("sw", BConst(true))),
+			Assign("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+			Assign("b", Fdef(Fcall("-", Id("x"), Id("y")), "x", "y")),
+			Assign("sw", Fdef(Fcall("if", Id("x"), Id("a"), Id("b")), "x")),
+			Assign("r", Fdef(Fcall("f", RConst(1.0), RConst(2.0)), "f")),
 		),
 		typ: "real",
+		err: nil,
+	}, {
+		name: "infer return values based on clojure",
+		exp: Block(
+			Fcall("a", IConst(1)),
+			Assign("a", Fdef(Block(
+				Fcall("b", BConst(true)),
+				Assign("b", Fdef(Fcall("if", Id("b"), Id("x"), IConst(2)), "b")),
+			), "x")),
+		),
+		typ: "int",
 		err: nil,
 	},
 	}

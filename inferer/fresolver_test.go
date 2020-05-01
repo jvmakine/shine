@@ -8,6 +8,7 @@ import (
 	"github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/test"
+	"github.com/jvmakine/shine/types"
 )
 
 func TestResolveFunctionCall(tes *testing.T) {
@@ -68,6 +69,16 @@ func TestResolveFunctionDef(tes *testing.T) {
 			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
 		),
 		want: []Clojure{Clojure{}},
+	}, {
+		name: "resolve clojure parameters for function referring to outer ids",
+		exp: Block(
+			Fcall("a", IConst(1)),
+			Assign("a", Fdef(Block(
+				Fcall("b", BConst(true)),
+				Assign("b", Fdef(Fcall("if", Id("b"), Id("x"), IConst(2)), "b")),
+			), "x")),
+		),
+		want: []Clojure{Clojure{}, Clojure{ClojureParam{Name: "x", Type: types.IntP}}},
 	},
 	}
 	for _, tt := range tests {

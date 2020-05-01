@@ -4,7 +4,7 @@ import "github.com/jvmakine/shine/types"
 
 type ClojureParam struct {
 	Name string
-	Type types.Primitive
+	Type types.Type
 }
 
 type Clojure []ClojureParam

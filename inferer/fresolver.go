@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/jvmakine/shine/resolved"
+	. "github.com/jvmakine/shine/resolved"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
@@ -55,19 +56,21 @@ func Resolve(exp *ast.Exp) *FCat {
 	return &(ctx.global.cat)
 }
 
-func resolveExp(exp *ast.Exp, ctx *lctx) {
+func resolveExp(exp *ast.Exp, ctx *lctx) Clojure {
 	if exp.Block != nil {
-		resolveBlock(exp, ctx)
+		return resolveBlock(exp, ctx)
 	} else if exp.Call != nil {
-		resolveCall(exp, ctx)
+		return resolveCall(exp, ctx)
 	} else if exp.Def != nil {
-		resolveDef(exp, ctx)
+		return resolveDef(exp, ctx)
 	} else if exp.Id != nil {
-		resolveId(exp, ctx)
+		return resolveId(exp, ctx)
 	}
+	return Clojure{}
 }
 
-func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) {
+func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) Clojure {
+	cjs := Clojure{}
 	for _, p := range call.Params {
 		if p.Def != nil { // anonymous function
 			ctx.anonCount++
@@ -76,16 +79,18 @@ func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) {
 			p.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = p.Def
-				resolveExp(p, ctx)
+				cjs = append(cjs, resolveExp(p, ctx)...)
 			}
 		}
 	}
+	return cjs
 }
 
-func resolveCall(exp *ast.Exp, ctx *lctx) {
+func resolveCall(exp *ast.Exp, ctx *lctx) Clojure {
 	call := exp.Call
+	cjs := Clojure{}
 	for _, p := range call.Params {
-		resolveExp(p, ctx)
+		cjs = append(cjs, resolveExp(p, ctx)...)
 	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
@@ -96,9 +101,9 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = es.def.Def
-				resolveExp(es.def, ctx)
+				cjs = append(cjs, resolveExp(es.def, ctx)...)
 			}
-			resolveAnonFuncParams(call, ctx)
+			cjs = append(cjs, resolveAnonFuncParams(call, ctx)...)
 		} else {
 			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
@@ -125,41 +130,63 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			if ctx.global.cat[fsig] == nil {
 				ctx.global.cat[fsig] = cop.Def
-				resolveExp(cop, ctx)
+				cjs = append(cjs, resolveExp(cop, ctx)...)
 			}
-			resolveAnonFuncParams(call, ctx)
+			cjs = append(cjs, resolveAnonFuncParams(call, ctx)...)
 		}
 	}
+	return cjs
 }
 
-func resolveBlock(exp *ast.Exp, pctx *lctx) {
+func resolveBlock(exp *ast.Exp, pctx *lctx) Clojure {
+	cjs := Clojure{}
 	ctx := pctx.sub(pctx.global.blockCount + 1)
 	ctx.global.blockCount++
 	block := exp.Block
+	assigns := map[string]bool{}
 	for _, a := range block.Assignments {
+		assigns[a.Name] = true
 		if a.Value.Def != nil {
 			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value}
 		} else {
-			resolveExp(a.Value, pctx)
+			cjs = append(cjs, resolveExp(a.Value, pctx)...)
 		}
 	}
-	resolveExp(block.Value, ctx)
+	cjs = append(cjs, resolveExp(block.Value, ctx)...)
+	result := Clojure{}
+	for _, i := range cjs {
+		if !assigns[i.Name] {
+			result = append(result, i)
+		}
+	}
+	return result
 }
 
-func resolveDef(exp *ast.Exp, ctx *lctx) {
+func resolveDef(exp *ast.Exp, ctx *lctx) Clojure {
 	def := exp.Def
-	exp.Def.Resolved = &resolved.ResolvedFnDef{Clojure: resolved.Clojure{}}
-	resolveExp(def.Body, ctx)
+	cjs := resolveExp(def.Body, ctx)
+	params := map[string]bool{}
+	for _, p := range def.Params {
+		params[p.Name] = true
+	}
+	clojureIds := Clojure{}
+	for _, i := range cjs {
+		if !params[i.Name] {
+			clojureIds = append(clojureIds, i)
+		}
+	}
+	exp.Def.Resolved = &resolved.ResolvedFnDef{Clojure: clojureIds}
+	return clojureIds
 }
 
-func resolveId(exp *ast.Exp, ctx *lctx) {
+func resolveId(exp *ast.Exp, ctx *lctx) Clojure {
 	id := exp.Id
 	typ := exp.Type()
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
 		if f == nil {
 			// function argument has been already resolved
-			return
+			return Clojure{{Name: id.Name, Type: exp.Type()}}
 		}
 		var fsig string
 		if f.def.Type().HasFreeVars() {
@@ -188,4 +215,5 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			}
 		}
 	}
+	return Clojure{{Name: id.Name, Type: exp.Type()}}
 }
