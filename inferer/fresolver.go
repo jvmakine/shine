@@ -16,9 +16,17 @@ func MakeFSign(name string, blockId int, sign string) FSign {
 	return name + "%%" + strconv.Itoa(blockId) + "%%" + sign
 }
 
+type Source int
+
+const (
+	Assignment Source = iota
+	Parameter         = iota
+)
+
 type FDef struct {
-	block int
-	def   *ast.Exp
+	block  int
+	def    *ast.Exp
+	source Source
 }
 
 type FCat = map[FSign]*ast.FDef
@@ -147,7 +155,7 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
 	for _, a := range block.Assignments {
 		assigns[a.Name] = true
 		if a.Value.Def != nil {
-			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value}
+			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value, Assignment}
 		} else {
 			cjs = append(cjs, resolveExp(a.Value, pctx)...)
 		}
@@ -214,6 +222,8 @@ func resolveId(exp *ast.Exp, ctx *lctx) Closure {
 				resolveExp(f.def, ctx)
 			}
 		}
+		// Do not place assignment functions to the clojure.
+		return Closure{}
 	}
 	return Closure{{Name: id.Name, Type: exp.Type()}}
 }

@@ -63,22 +63,31 @@ func TestResolveFunctionDef(tes *testing.T) {
 		exp  *ast.Exp
 		want []resolved.Closure
 	}{{
-		name: "resolves empty Closure for function without Closure",
+		name: "resolves empty Closure for function without closure",
 		exp: Block(
 			Fcall("a", BConst(true), BConst(true), BConst(false)),
 			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
 		),
 		want: []Closure{Closure{}},
 	}, {
-		name: "resolve Closure parameters for function referring to outer ids",
+		name: "resolve closure parameters for function referring to outer ids",
 		exp: Block(
 			Fcall("a", IConst(1)),
 			Assign("a", Fdef(Block(
 				Fcall("b", BConst(true)),
-				Assign("b", Fdef(Fcall("if", Id("b"), Id("x"), IConst(2)), "b")),
+				Assign("b", Fdef(Fcall("if", Id("bo"), Id("x"), IConst(2)), "bo")),
 			), "x")),
 		),
 		want: []Closure{Closure{}, Closure{ClosureParam{Name: "x", Type: types.IntP}}},
+	}, {
+		name: "not include static function references in the closure",
+		exp: Block(
+			Fcall("a", IConst(1)),
+			Assign("a", Fdef(Fcall("b", Id("x"), Id("s")), "x")),
+			Assign("b", Fdef(Fcall("+", Fcall("f", Id("y")), IConst(2)), "y", "f")),
+			Assign("s", Fdef(Fcall("+", Id("y"), IConst(3)), "y")),
+		),
+		want: []Closure{Closure{}, Closure{}, Closure{}},
 	},
 	}
 	for _, tt := range tests {

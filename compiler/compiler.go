@@ -12,13 +12,19 @@ import (
 
 func makeFDefs(fcat *inferer.FCat, ctx *context) {
 	for name, fun := range *fcat {
+		rtype := getType(fun.Body.Type())
 		var params []*ir.Param
 		for _, p := range fun.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
 			params = append(params, param)
 		}
 
-		rtype := getType(fun.Body.Type())
+		if len(fun.Resolved.Closure) > 0 {
+			param := ir.NewParam("%%closure", types.I8Ptr)
+			param.Attrs = append(param.Attrs, ir.AttrString("nest"))
+			params = append(params, param)
+		}
+
 		compiled := ctx.Module.NewFunc(name, rtype, params...)
 		compiled.Linkage = enum.LinkageInternal
 
