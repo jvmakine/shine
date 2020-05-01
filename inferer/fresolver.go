@@ -193,7 +193,8 @@ func resolveId(exp *ast.Exp, ctx *lctx) Closure {
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
 		if f == nil {
-			// function argument has been already resolved
+			// function argument has been already resolved.
+			// these should always be in the clojure.
 			return Closure{{Name: id.Name, Type: exp.Type()}}
 		}
 		var fsig string

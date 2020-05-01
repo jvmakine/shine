@@ -155,7 +155,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		default:
 			if exp.Resolved != nil {
 				comp := ctx.resolveFun(exp.Resolved.ID)
-				return ctx.Block.NewCall(comp.Fun, params...)
+				return ctx.Block.NewCall(comp.Call, params...)
 			}
 			id, err := ctx.resolveId(from.Name)
 			if err != nil {

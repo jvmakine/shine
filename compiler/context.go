@@ -13,6 +13,7 @@ import (
 type function struct {
 	From *ast.FDef
 	Fun  *ir.Func
+	Call value.Value
 }
 
 type val struct {

@@ -28,7 +28,7 @@ func makeFDefs(fcat *inferer.FCat, ctx *context) {
 		compiled := ctx.Module.NewFunc(name, rtype, params...)
 		compiled.Linkage = enum.LinkageInternal
 
-		ctx.addId(name, function{fun, compiled})
+		ctx.addId(name, function{fun, compiled, compiled})
 	}
 }
 
