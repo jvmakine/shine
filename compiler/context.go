@@ -11,8 +11,11 @@ import (
 )
 
 type function struct {
+	// Source AST
 	From *ast.FDef
-	Fun  *ir.Func
+	// Compiled IR function
+	Fun *ir.Func
+	// Value used to call the function
 	Call value.Value
 }
 
