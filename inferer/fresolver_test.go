@@ -61,16 +61,16 @@ func TestResolveFunctionDef(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		want []resolved.Clojure
+		want []resolved.Closure
 	}{{
-		name: "resolves empty clojure for function without clojure",
+		name: "resolves empty Closure for function without Closure",
 		exp: Block(
 			Fcall("a", BConst(true), BConst(true), BConst(false)),
 			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
 		),
-		want: []Clojure{Clojure{}},
+		want: []Closure{Closure{}},
 	}, {
-		name: "resolve clojure parameters for function referring to outer ids",
+		name: "resolve Closure parameters for function referring to outer ids",
 		exp: Block(
 			Fcall("a", IConst(1)),
 			Assign("a", Fdef(Block(
@@ -78,7 +78,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 				Assign("b", Fdef(Fcall("if", Id("b"), Id("x"), IConst(2)), "b")),
 			), "x")),
 		),
-		want: []Clojure{Clojure{}, Clojure{ClojureParam{Name: "x", Type: types.IntP}}},
+		want: []Closure{Closure{}, Closure{ClosureParam{Name: "x", Type: types.IntP}}},
 	},
 	}
 	for _, tt := range tests {
@@ -118,11 +118,11 @@ func collectResolvedCalls(exp *ast.Exp) []string {
 	return res
 }
 
-func collectResolvedDefs(cat *FCat) []Clojure {
-	res := []Clojure{}
+func collectResolvedDefs(cat *FCat) []Closure {
+	res := []Closure{}
 	for _, v := range *cat {
 		if v.Resolved != nil {
-			res = append(res, v.Resolved.Clojure)
+			res = append(res, v.Resolved.Closure)
 		}
 	}
 	return res

@@ -2,17 +2,17 @@ package resolved
 
 import "github.com/jvmakine/shine/types"
 
-type ClojureParam struct {
+type ClosureParam struct {
 	Name string
 	Type types.Type
 }
 
-type Clojure []ClojureParam
+type Closure []ClosureParam
 
 type ResolvedFnCall struct {
 	ID string
 }
 
 type ResolvedFnDef struct {
-	Clojure Clojure
+	Closure Closure
 }

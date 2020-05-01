@@ -143,7 +143,7 @@ func TestInfer(tes *testing.T) {
 		typ: "real",
 		err: nil,
 	}, {
-		name: "infer return values based on clojure",
+		name: "infer return values based on Closure",
 		exp: Block(
 			Fcall("a", IConst(1)),
 			Assign("a", Fdef(Block(

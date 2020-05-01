@@ -56,7 +56,7 @@ func Resolve(exp *ast.Exp) *FCat {
 	return &(ctx.global.cat)
 }
 
-func resolveExp(exp *ast.Exp, ctx *lctx) Clojure {
+func resolveExp(exp *ast.Exp, ctx *lctx) Closure {
 	if exp.Block != nil {
 		return resolveBlock(exp, ctx)
 	} else if exp.Call != nil {
@@ -66,11 +66,11 @@ func resolveExp(exp *ast.Exp, ctx *lctx) Clojure {
 	} else if exp.Id != nil {
 		return resolveId(exp, ctx)
 	}
-	return Clojure{}
+	return Closure{}
 }
 
-func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) Clojure {
-	cjs := Clojure{}
+func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) Closure {
+	cjs := Closure{}
 	for _, p := range call.Params {
 		if p.Def != nil { // anonymous function
 			ctx.anonCount++
@@ -86,9 +86,9 @@ func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) Clojure {
 	return cjs
 }
 
-func resolveCall(exp *ast.Exp, ctx *lctx) Clojure {
+func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 	call := exp.Call
-	cjs := Clojure{}
+	cjs := Closure{}
 	for _, p := range call.Params {
 		cjs = append(cjs, resolveExp(p, ctx)...)
 	}
@@ -138,8 +138,8 @@ func resolveCall(exp *ast.Exp, ctx *lctx) Clojure {
 	return cjs
 }
 
-func resolveBlock(exp *ast.Exp, pctx *lctx) Clojure {
-	cjs := Clojure{}
+func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
+	cjs := Closure{}
 	ctx := pctx.sub(pctx.global.blockCount + 1)
 	ctx.global.blockCount++
 	block := exp.Block
@@ -153,7 +153,7 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) Clojure {
 		}
 	}
 	cjs = append(cjs, resolveExp(block.Value, ctx)...)
-	result := Clojure{}
+	result := Closure{}
 	for _, i := range cjs {
 		if !assigns[i.Name] {
 			result = append(result, i)
@@ -162,31 +162,31 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) Clojure {
 	return result
 }
 
-func resolveDef(exp *ast.Exp, ctx *lctx) Clojure {
+func resolveDef(exp *ast.Exp, ctx *lctx) Closure {
 	def := exp.Def
 	cjs := resolveExp(def.Body, ctx)
 	params := map[string]bool{}
 	for _, p := range def.Params {
 		params[p.Name] = true
 	}
-	clojureIds := Clojure{}
+	ClosureIds := Closure{}
 	for _, i := range cjs {
 		if !params[i.Name] {
-			clojureIds = append(clojureIds, i)
+			ClosureIds = append(ClosureIds, i)
 		}
 	}
-	exp.Def.Resolved = &resolved.ResolvedFnDef{Clojure: clojureIds}
-	return clojureIds
+	exp.Def.Resolved = &resolved.ResolvedFnDef{Closure: ClosureIds}
+	return ClosureIds
 }
 
-func resolveId(exp *ast.Exp, ctx *lctx) Clojure {
+func resolveId(exp *ast.Exp, ctx *lctx) Closure {
 	id := exp.Id
 	typ := exp.Type()
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
 		if f == nil {
 			// function argument has been already resolved
-			return Clojure{{Name: id.Name, Type: exp.Type()}}
+			return Closure{{Name: id.Name, Type: exp.Type()}}
 		}
 		var fsig string
 		if f.def.Type().HasFreeVars() {
@@ -215,5 +215,5 @@ func resolveId(exp *ast.Exp, ctx *lctx) Clojure {
 			}
 		}
 	}
-	return Clojure{{Name: id.Name, Type: exp.Type()}}
+	return Closure{{Name: id.Name, Type: exp.Type()}}
 }
