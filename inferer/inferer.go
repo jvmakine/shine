@@ -7,6 +7,8 @@ import (
 	. "github.com/jvmakine/shine/types"
 )
 
+var blockCount = 0
+
 func fun(ts ...interface{}) *excon {
 	result := make([]Type, len(ts))
 	var variables map[string]*TypeVar = map[string]*TypeVar{}
@@ -85,10 +87,11 @@ func (ctx *context) getId(id string) *excon {
 }
 
 func Infer(exp *ast.Exp) error {
+	blockCount = 0 // TODO: Remove global var
 	root := &context{ids: global}
 	initialise(exp, root)
 	graph := MakeTypeGraph()
-	if err := inferExp(exp, root.sub(), &graph); err != nil {
+	if err := inferExp(exp, root, &graph); err != nil {
 		return err
 	}
 	sub, err := graph.Substitutions()
@@ -141,11 +144,14 @@ func initialise(exp *ast.Exp, ctx *context) {
 }
 
 func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
+	exp.BlockID = ctx.blockID
 	if exp.Block != nil {
+		blockCount++
+		exp.Block.ID = blockCount
 		if err := exp.Block.CheckValueCycles(); err != nil {
 			return err
 		}
-		nctx := ctx.sub()
+		nctx := ctx.sub(exp.Block.ID)
 		for _, a := range exp.Block.Assignments {
 			typ := a.Value.Type()
 			nctx.setActiveType(a.Name, &typ)
@@ -216,7 +222,8 @@ func inferExp(exp *ast.Exp, ctx *context, graph *TypeGraph) error {
 			return err
 		}
 	} else if exp.Def != nil {
-		sc := ctx.sub()
+		blockCount++
+		sc := ctx.sub(blockCount)
 		for _, p := range exp.Def.Params {
 			sc.setActiveType(p.Name, &p.Type)
 		}

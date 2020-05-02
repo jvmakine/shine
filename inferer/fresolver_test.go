@@ -33,7 +33,7 @@ func TestResolveFunctionCall(tes *testing.T) {
 			Assign("a", Fdef(Fcall("f", IConst(1), IConst(2)), "f")),
 			Assign("b", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
 		),
-		want: []string{"a%%1%%((int,int)=>int)=>int", "b%%1%%(int,int)=>int"},
+		want: []string{"b%%1%%(int,int)=>int", "a%%1%%((int,int)=>int)=>int", "b%%1%%(int,int)=>int"},
 	}, {
 		name: "resolves anonymous functions",
 		exp: Block(
@@ -78,7 +78,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 				Assign("b", Fdef(Fcall("if", Id("bo"), Id("x"), IConst(2)), "bo")),
 			), "x")),
 		),
-		want: []Closure{Closure{}, Closure{ClosureParam{Name: "x", Type: types.IntP}}},
+		want: []Closure{Closure{ClosureParam{Name: "x", Type: types.IntP}}, Closure{}},
 	}, {
 		name: "not include static function references in the closure",
 		exp: Block(

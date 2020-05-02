@@ -24,7 +24,6 @@ const (
 )
 
 type FDef struct {
-	block  int
 	def    *ast.Exp
 	source Source
 }
@@ -32,20 +31,18 @@ type FDef struct {
 type FCat = map[FSign]*ast.FDef
 
 type gctx struct {
-	blockCount int
-	cat        FCat
+	cat FCat
 }
 
 type lctx struct {
-	blockID   int
 	anonCount int
 	global    *gctx
 	parent    *lctx
 	defs      map[string]*FDef
 }
 
-func (l *lctx) sub(id int) *lctx {
-	return &lctx{global: l.global, parent: l, defs: map[string]*FDef{}, blockID: id}
+func (l *lctx) sub() *lctx {
+	return &lctx{global: l.global, parent: l, defs: map[string]*FDef{}}
 }
 
 func (l *lctx) resolve(name string) *FDef {
@@ -59,59 +56,45 @@ func (l *lctx) resolve(name string) *FDef {
 }
 
 func Resolve(exp *ast.Exp) *FCat {
-	ctx := lctx{global: &gctx{cat: FCat{}, blockCount: 0}, defs: map[string]*FDef{}}
-	resolveExp(exp, &ctx)
+	ctx := lctx{global: &gctx{cat: FCat{}}, defs: map[string]*FDef{}, parent: nil}
+	resolveExp(exp, &ctx, "")
 	return &(ctx.global.cat)
 }
 
-func resolveExp(exp *ast.Exp, ctx *lctx) Closure {
+func resolveExp(exp *ast.Exp, ctx *lctx, name string) Closure {
+	if exp.HasBeenResolved {
+		return Closure{}
+	}
+	exp.HasBeenResolved = true
 	if exp.Block != nil {
 		return resolveBlock(exp, ctx)
 	} else if exp.Call != nil {
 		return resolveCall(exp, ctx)
 	} else if exp.Def != nil {
-		return resolveDef(exp, ctx)
+		return resolveDef(exp, ctx, name)
 	} else if exp.Id != nil {
 		return resolveId(exp, ctx)
 	}
 	return Closure{}
 }
 
-func resolveAnonFuncParams(call *ast.FCall, ctx *lctx) Closure {
-	cjs := Closure{}
-	for _, p := range call.Params {
-		if p.Def != nil { // anonymous function
-			ctx.anonCount++
-			anonc := strconv.Itoa(ctx.anonCount)
-			fsig := MakeFSign("<anon"+anonc+">", ctx.blockID, p.Type().Signature())
-			p.Resolved = &resolved.ResolvedFnCall{ID: fsig}
-			if ctx.global.cat[fsig] == nil {
-				ctx.global.cat[fsig] = p.Def
-				cjs = append(cjs, resolveExp(p, ctx)...)
-			}
-		}
-	}
-	return cjs
-}
-
 func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 	call := exp.Call
 	cjs := Closure{}
 	for _, p := range call.Params {
-		cjs = append(cjs, resolveExp(p, ctx)...)
+		cjs = append(cjs, resolveExp(p, ctx, "")...)
 	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
 		typ := es.def.Type()
 		if !typ.HasFreeVars() {
 			sig := typ.Signature()
-			fsig := MakeFSign(call.Name, es.block, sig)
+			fsig := MakeFSign(call.Name, es.def.BlockID, sig)
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
-			if ctx.global.cat[fsig] == nil {
-				ctx.global.cat[fsig] = es.def.Def
-				cjs = append(cjs, resolveExp(es.def, ctx)...)
+			resolveExp(es.def, ctx, call.Name)
+			if es.source != Assignment {
+				cjs = append(cjs, ClosureParam{Name: call.Name, Type: typ})
 			}
-			cjs = append(cjs, resolveAnonFuncParams(call, ctx)...)
 		} else {
 			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
@@ -134,13 +117,12 @@ func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 				panic("type inference failed: " + u1 + " u " + u2 + " => " + cop.Type().Signature())
 			}
 
-			fsig := MakeFSign(call.Name, es.block, cop.Type().Signature())
+			fsig := MakeFSign(call.Name, es.def.BlockID, cop.Type().Signature())
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
-			if ctx.global.cat[fsig] == nil {
-				ctx.global.cat[fsig] = cop.Def
-				cjs = append(cjs, resolveExp(cop, ctx)...)
+			resolveExp(cop, ctx, call.Name)
+			if es.source != Assignment {
+				cjs = append(cjs, ClosureParam{Name: call.Name, Type: typ})
 			}
-			cjs = append(cjs, resolveAnonFuncParams(call, ctx)...)
 		}
 	}
 	return cjs
@@ -148,19 +130,16 @@ func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 
 func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
 	cjs := Closure{}
-	ctx := pctx.sub(pctx.global.blockCount + 1)
-	ctx.global.blockCount++
+	ctx := pctx.sub()
 	block := exp.Block
 	assigns := map[string]bool{}
 	for _, a := range block.Assignments {
 		assigns[a.Name] = true
 		if a.Value.Def != nil {
-			ctx.defs[a.Name] = &FDef{ctx.global.blockCount, a.Value, Assignment}
-		} else {
-			cjs = append(cjs, resolveExp(a.Value, pctx)...)
+			ctx.defs[a.Name] = &FDef{a.Value, Assignment}
 		}
 	}
-	cjs = append(cjs, resolveExp(block.Value, ctx)...)
+	cjs = append(cjs, resolveExp(block.Value, ctx, "")...)
 	result := Closure{}
 	for _, i := range cjs {
 		if !assigns[i.Name] {
@@ -170,9 +149,24 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
 	return result
 }
 
-func resolveDef(exp *ast.Exp, ctx *lctx) Closure {
+func resolveDef(exp *ast.Exp, ctx *lctx, name string) Closure {
 	def := exp.Def
-	cjs := resolveExp(def.Body, ctx)
+	cjs := resolveExp(def.Body, ctx, "")
+	if name != "" {
+		fsig := MakeFSign(name, exp.BlockID, exp.Type().Signature())
+		exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
+		if ctx.global.cat[fsig] == nil {
+			ctx.global.cat[fsig] = exp.Def
+		}
+	} else {
+		ctx.anonCount++
+		anonc := strconv.Itoa(ctx.anonCount)
+		if exp.Resolved == nil {
+			fsig := MakeFSign("<anon"+anonc+">", exp.BlockID, exp.Type().Signature())
+			ctx.global.cat[fsig] = exp.Def
+			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
+		}
+	}
 	params := map[string]bool{}
 	for _, p := range def.Params {
 		params[p.Name] = true
@@ -192,39 +186,28 @@ func resolveId(exp *ast.Exp, ctx *lctx) Closure {
 	typ := exp.Type()
 	if typ.IsFunction() {
 		f := ctx.resolve(id.Name)
-		if f == nil {
-			// function argument has been already resolved.
-			// these should always be in the clojure.
-			return Closure{{Name: id.Name, Type: exp.Type()}}
-		}
-		var fsig string
-		if f.def.Type().HasFreeVars() {
-			cop := f.def.Copy()
-			subs, err := Unify(cop.Type(), typ)
-			if err != nil {
-				panic(err)
-			}
-			subs.Convert(cop)
-			if cop.Type().HasFreeVars() {
-				panic("could not unify")
-			}
-			sig := cop.Type().Signature()
-			fsig = MakeFSign(id.Name, f.block, sig)
+		if f != nil {
+			sig := typ.Signature()
+			fsig := MakeFSign(id.Name, f.def.BlockID, sig)
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
-			if ctx.global.cat[fsig] == nil {
-				ctx.global.cat[fsig] = cop.Def
-				resolveExp(cop, ctx)
+			if f.def.Type().HasFreeVars() {
+				cop := f.def.Copy()
+				subs, err := Unify(cop.Type(), typ)
+				if err != nil {
+					panic(err)
+				}
+				subs.Convert(cop)
+				if cop.Type().HasFreeVars() {
+					panic("could not unify " + f.def.Type().Signature() + " u " + typ.Signature() + " => " + cop.Type().Signature())
+				}
+				resolveExp(cop, ctx, id.Name)
+			} else {
+				resolveExp(f.def, ctx, id.Name)
 			}
-		} else {
-			fsig := MakeFSign(id.Name, f.block, f.def.Type().Signature())
-			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
-			if ctx.global.cat[fsig] == nil {
-				ctx.global.cat[fsig] = f.def.Def
-				resolveExp(f.def, ctx)
+			if f.source == Assignment {
+				return Closure{}
 			}
 		}
-		// Do not place assignment functions to the clojure.
-		return Closure{}
 	}
 	return Closure{{Name: id.Name, Type: exp.Type()}}
 }
