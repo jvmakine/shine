@@ -4,7 +4,7 @@ import "github.com/jvmakine/shine/ast"
 
 func Optimise(exp *ast.Exp) {
 	visited := map[*ast.Exp]bool{}
-	exp.Crawl(func(v *ast.Exp) {
+	exp.Crawl(func(v *ast.Exp, _ *ast.CrawlContext) {
 		visited[v] = true
 	})
 	exp.Visit(func(v *ast.Exp) {
