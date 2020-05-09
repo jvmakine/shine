@@ -1,10 +1,12 @@
-package inferer
+package closure
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/inferer/callresolver"
+	"github.com/jvmakine/shine/inferer/typeinference"
 	"github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/test"
@@ -53,11 +55,11 @@ func TestResolveFunctionDef(tes *testing.T) {
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
-			err := Infer(tt.exp)
+			err := typeinference.Infer(tt.exp)
 			if err != nil {
 				panic(err)
 			}
-			fcat := Resolve(tt.exp)
+			fcat := callresolver.Resolve(tt.exp)
 			result := collectClosures(fcat)
 			if !reflect.DeepEqual(result, tt.want) {
 				t.Errorf("Resolve() = %v, want %v", result, tt.want)
@@ -66,7 +68,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 	}
 }
 
-func collectClosures(cat *FCat) []Closure {
+func collectClosures(cat *callresolver.FCat) []Closure {
 	res := []Closure{}
 	for _, v := range *cat {
 		if v.Resolved != nil {

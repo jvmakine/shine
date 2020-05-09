@@ -1,4 +1,4 @@
-package inferer
+package typeinference
 
 import (
 	"github.com/jvmakine/shine/ast"

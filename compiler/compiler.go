@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/inferer"
+	"github.com/jvmakine/shine/inferer/callresolver"
 	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
@@ -10,7 +10,7 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-func makeFDefs(fcat *inferer.FCat, ctx *context) {
+func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 	for name, fun := range *fcat {
 		rtype := getType(fun.Body.Type())
 		var params []*ir.Param
@@ -32,7 +32,7 @@ func makeFDefs(fcat *inferer.FCat, ctx *context) {
 	}
 }
 
-func compileFDefs(fcat *inferer.FCat, ctx *context) {
+func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 	for name, _ := range *fcat {
 		f := ctx.resolveFun(name)
 		body := f.Fun.NewBlock("")
@@ -77,7 +77,7 @@ func FPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 	return printf, ptr
 }
 
-func Compile(prg *ast.Exp, fcat *inferer.FCat) *ir.Module {
+func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	module := ir.NewModule()
 
 	mainfun := module.NewFunc("main", types.I32)

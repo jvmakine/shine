@@ -1,4 +1,4 @@
-package inferer
+package typeinference
 
 import (
 	"errors"

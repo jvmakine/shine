@@ -1,4 +1,4 @@
-package inferer
+package graph
 
 import (
 	"reflect"

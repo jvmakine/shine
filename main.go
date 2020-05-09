@@ -10,6 +10,7 @@ import (
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/inferer"
+	"github.com/jvmakine/shine/inferer/callresolver"
 	"github.com/jvmakine/shine/optimisation"
 )
 
@@ -36,7 +37,7 @@ func Compile(text string) (*ir.Module, error) {
 		return nil, err
 	}
 	optimisation.Optimise(ast)
-	fcat := inferer.Resolve(ast)
+	fcat := callresolver.Resolve(ast)
 	module := compiler.Compile(ast, fcat)
 	return module, nil
 }

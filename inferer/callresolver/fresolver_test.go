@@ -1,10 +1,11 @@
-package inferer
+package callresolver
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/inferer/typeinference"
 	. "github.com/jvmakine/shine/test"
 )
 
@@ -41,7 +42,7 @@ func TestResolveFunctionCall(tes *testing.T) {
 	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
-			err := Infer(tt.exp)
+			err := typeinference.Infer(tt.exp)
 			if err != nil {
 				panic(err)
 			}

@@ -1,8 +1,9 @@
-package inferer
+package callresolver
 
 import (
 	"strconv"
 
+	"github.com/jvmakine/shine/inferer/typeinference"
 	"github.com/jvmakine/shine/resolved"
 
 	"github.com/jvmakine/shine/ast"
@@ -101,7 +102,7 @@ func resolveCall(exp *ast.Exp, ctx *lctx) {
 			u1 := exp.Type().Signature()
 			u2 := cop.Type().Signature()
 
-			s, err := Unify(fun, cop.Type())
+			s, err := typeinference.Unify(fun, cop.Type())
 			if err != nil {
 				panic(err)
 			}
@@ -163,7 +164,7 @@ func resolveId(exp *ast.Exp, ctx *lctx) {
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			if f.def.Type().HasFreeVars() {
 				cop := f.def.Copy()
-				subs, err := Unify(cop.Type(), typ)
+				subs, err := typeinference.Unify(cop.Type(), typ)
 				if err != nil {
 					panic(err)
 				}

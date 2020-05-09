@@ -1,4 +1,4 @@
-package inferer
+package closure
 
 import "github.com/jvmakine/shine/ast"
 

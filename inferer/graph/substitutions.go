@@ -1,4 +1,4 @@
-package inferer
+package graph
 
 import (
 	"github.com/jvmakine/shine/ast"
