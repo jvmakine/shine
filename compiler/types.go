@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	IntType  = types.I64
-	BoolType = types.I1
-	RealType = types.Double
+	ClosurePType = types.I8Ptr
+	IntType      = types.I64
+	BoolType     = types.I1
+	RealType     = types.Double
 )
 
 func getFunctPtr(fun t.Type) types.Type {

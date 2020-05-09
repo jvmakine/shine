@@ -22,6 +22,7 @@ type Exp struct {
 	Resolved        *resolved.ResolvedFnCall
 	BlockID         int
 	HasBeenResolved bool
+	Closure         resolved.Closure
 }
 
 type Id struct {

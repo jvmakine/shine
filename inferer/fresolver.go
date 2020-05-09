@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/jvmakine/shine/resolved"
-	. "github.com/jvmakine/shine/resolved"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
@@ -61,28 +60,27 @@ func Resolve(exp *ast.Exp) *FCat {
 	return &(ctx.global.cat)
 }
 
-func resolveExp(exp *ast.Exp, ctx *lctx, name string) Closure {
+func resolveExp(exp *ast.Exp, ctx *lctx, name string) {
+	// TODO: remove from AST
 	if exp.HasBeenResolved {
-		return Closure{}
+		return
 	}
 	exp.HasBeenResolved = true
 	if exp.Block != nil {
-		return resolveBlock(exp, ctx)
+		resolveBlock(exp, ctx)
 	} else if exp.Call != nil {
-		return resolveCall(exp, ctx)
+		resolveCall(exp, ctx)
 	} else if exp.Def != nil {
-		return resolveDef(exp, ctx, name)
+		resolveDef(exp, ctx, name)
 	} else if exp.Id != nil {
-		return resolveId(exp, ctx)
+		resolveId(exp, ctx)
 	}
-	return Closure{}
 }
 
-func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
+func resolveCall(exp *ast.Exp, ctx *lctx) {
 	call := exp.Call
-	cjs := Closure{}
 	for _, p := range call.Params {
-		cjs = append(cjs, resolveExp(p, ctx, "")...)
+		resolveExp(p, ctx, "")
 	}
 	es := ctx.resolve(call.Name)
 	if es != nil {
@@ -92,9 +90,6 @@ func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 			fsig := MakeFSign(call.Name, es.def.BlockID, sig)
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			resolveExp(es.def, ctx, call.Name)
-			if es.source != Assignment {
-				cjs = append(cjs, ClosureParam{Name: call.Name, Type: typ})
-			}
 		} else {
 			ptypes := make([]Type, len(call.Params)+1)
 			for i, p := range call.Params {
@@ -120,16 +115,11 @@ func resolveCall(exp *ast.Exp, ctx *lctx) Closure {
 			fsig := MakeFSign(call.Name, es.def.BlockID, cop.Type().Signature())
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 			resolveExp(cop, ctx, call.Name)
-			if es.source != Assignment {
-				cjs = append(cjs, ClosureParam{Name: call.Name, Type: typ})
-			}
 		}
 	}
-	return cjs
 }
 
-func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
-	cjs := Closure{}
+func resolveBlock(exp *ast.Exp, pctx *lctx) {
 	ctx := pctx.sub()
 	block := exp.Block
 	assigns := map[string]bool{}
@@ -139,19 +129,12 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) Closure {
 			ctx.defs[a.Name] = &FDef{a.Value, Assignment}
 		}
 	}
-	cjs = append(cjs, resolveExp(block.Value, ctx, "")...)
-	result := Closure{}
-	for _, i := range cjs {
-		if !assigns[i.Name] {
-			result = append(result, i)
-		}
-	}
-	return result
+	resolveExp(block.Value, ctx, "")
 }
 
-func resolveDef(exp *ast.Exp, ctx *lctx, name string) Closure {
+func resolveDef(exp *ast.Exp, ctx *lctx, name string) {
 	def := exp.Def
-	cjs := resolveExp(def.Body, ctx, "")
+	resolveExp(def.Body, ctx, "")
 	if name != "" {
 		fsig := MakeFSign(name, exp.BlockID, exp.Type().Signature())
 		exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
@@ -167,21 +150,9 @@ func resolveDef(exp *ast.Exp, ctx *lctx, name string) Closure {
 			exp.Resolved = &resolved.ResolvedFnCall{ID: fsig}
 		}
 	}
-	params := map[string]bool{}
-	for _, p := range def.Params {
-		params[p.Name] = true
-	}
-	ClosureIds := Closure{}
-	for _, i := range cjs {
-		if !params[i.Name] {
-			ClosureIds = append(ClosureIds, i)
-		}
-	}
-	exp.Def.Resolved = &resolved.ResolvedFnDef{Closure: ClosureIds}
-	return ClosureIds
 }
 
-func resolveId(exp *ast.Exp, ctx *lctx) Closure {
+func resolveId(exp *ast.Exp, ctx *lctx) {
 	id := exp.Id
 	typ := exp.Type()
 	if typ.IsFunction() {
@@ -204,10 +175,6 @@ func resolveId(exp *ast.Exp, ctx *lctx) Closure {
 			} else {
 				resolveExp(f.def, ctx, id.Name)
 			}
-			if f.source == Assignment {
-				return Closure{}
-			}
 		}
 	}
-	return Closure{{Name: id.Name, Type: exp.Type()}}
 }
