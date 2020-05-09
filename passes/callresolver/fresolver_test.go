@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/passes/typeinference"
 	. "github.com/jvmakine/shine/test"
-	"github.com/jvmakine/shine/typeinference"
 )
 
 func TestResolveFunctionCall(tes *testing.T) {

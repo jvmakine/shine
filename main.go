@@ -7,11 +7,11 @@ import (
 
 	"github.com/llir/llvm/ir"
 
-	"github.com/jvmakine/shine/callresolver"
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
-	"github.com/jvmakine/shine/optimisation"
-	"github.com/jvmakine/shine/typeinference"
+	"github.com/jvmakine/shine/passes/callresolver"
+	"github.com/jvmakine/shine/passes/optimisation"
+	"github.com/jvmakine/shine/passes/typeinference"
 )
 
 func main() {

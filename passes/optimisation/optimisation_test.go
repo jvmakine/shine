@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jvmakine/shine/typeinference"
+	"github.com/jvmakine/shine/passes/typeinference"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/test"
