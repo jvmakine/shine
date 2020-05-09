@@ -18,12 +18,11 @@ func (a *Exp) Visit(f func(p *Exp)) {
 
 type CrawlContext struct {
 	parent *CrawlContext
-	ids    map[string]*Exp
 	blocks map[string]*Block
 }
 
 func (c *CrawlContext) BlockOf(id string) *Block {
-	if c.ids[id] != nil {
+	if c.blocks[id] != nil {
 		return c.blocks[id]
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
@@ -32,8 +31,8 @@ func (c *CrawlContext) BlockOf(id string) *Block {
 }
 
 func (c *CrawlContext) resolve(id string) (*Exp, *CrawlContext) {
-	if c.ids[id] != nil {
-		return c.ids[id], c
+	if c.blocks[id] != nil {
+		return c.blocks[id].Assignments[id], c
 	} else if c.parent != nil {
 		return c.parent.resolve(id)
 	}
@@ -47,9 +46,8 @@ func (a *Exp) crawl(f func(p *Exp, ctx *CrawlContext), ctx *CrawlContext, visite
 	(*visited)[a] = true
 	f(a, ctx)
 	if a.Block != nil {
-		sub := &CrawlContext{ids: map[string]*Exp{}, blocks: map[string]*Block{}, parent: ctx}
-		for k, as := range a.Block.Assignments {
-			sub.ids[k] = as
+		sub := &CrawlContext{blocks: map[string]*Block{}, parent: ctx}
+		for k, _ := range a.Block.Assignments {
 			sub.blocks[k] = a.Block
 		}
 		a.Block.Value.crawl(f, sub, visited)
@@ -71,5 +69,5 @@ func (a *Exp) crawl(f func(p *Exp, ctx *CrawlContext), ctx *CrawlContext, visite
 
 func (a *Exp) Crawl(f func(p *Exp, ctx *CrawlContext)) {
 	visited := map[*Exp]bool{}
-	a.crawl(f, &CrawlContext{ids: map[string]*Exp{}, blocks: map[string]*Block{}}, &visited)
+	a.crawl(f, &CrawlContext{blocks: map[string]*Block{}}, &visited)
 }
