@@ -124,10 +124,10 @@ func resolveBlock(exp *ast.Exp, pctx *lctx) {
 	ctx := pctx.sub()
 	block := exp.Block
 	assigns := map[string]bool{}
-	for _, a := range block.Assignments {
-		assigns[a.Name] = true
-		if a.Value.Def != nil {
-			ctx.defs[a.Name] = &FDef{a.Value, Assignment}
+	for k, a := range block.Assignments {
+		assigns[k] = true
+		if a.Def != nil {
+			ctx.defs[k] = &FDef{a, Assignment}
 		}
 	}
 	resolveExp(block.Value, ctx, "")

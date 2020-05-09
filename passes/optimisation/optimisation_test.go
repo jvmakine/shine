@@ -21,15 +21,19 @@ func TestOptimise(t *testing.T) {
 	}{{
 		name: "removes unused assignments from blocks",
 		before: Block(
+			Assgs{
+				"a": Fdef(Fcall("+", Id("x"), Id("y")), "x"),
+				"y": IConst(5),
+				"z": IConst(4),
+			},
 			Fcall("a", IConst(1)),
-			Assign("a", Fdef(Fcall("+", Id("x"), Id("y")), "x")),
-			Assign("y", IConst(5)),
-			Assign("z", IConst(4)),
 		),
 		after: Block(
+			Assgs{
+				"a": Fdef(Fcall("+", Id("x"), Id("y")), "x"),
+				"y": IConst(5),
+			},
 			Fcall("a", IConst(1)),
-			Assign("a", Fdef(Fcall("+", Id("x"), Id("y")), "x")),
-			Assign("y", IConst(5)),
 		),
 	}}
 	for _, tt := range tests {

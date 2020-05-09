@@ -63,13 +63,8 @@ type FDef struct {
 
 // Blocks
 
-type Assign struct {
-	Name  string
-	Value *Exp
-}
-
 type Block struct {
-	Assignments []*Assign
+	Assignments map[string]*Exp
 	Value       *Exp
 
 	ID int
@@ -98,24 +93,14 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	if a == nil {
 		return nil
 	}
-	ac := make([]*Assign, len(a.Assignments))
-	for i, as := range a.Assignments {
-		ac[i] = as.copy(ctx)
+	ac := map[string]*Exp{}
+	for k, v := range a.Assignments {
+		ac[k] = v.copy(ctx)
 	}
 	return &Block{
 		Assignments: ac,
 		Value:       a.Value.copy(ctx),
 		ID:          a.ID,
-	}
-}
-
-func (a *Assign) copy(ctx *types.TypeCopyCtx) *Assign {
-	if a == nil {
-		return nil
-	}
-	return &Assign{
-		Name:  a.Name,
-		Value: a.Value.copy(ctx),
 	}
 }
 
@@ -172,15 +157,15 @@ func (a *Id) copy(ctx *types.TypeCopyCtx) *Id {
 func (b *Block) CheckValueCycles() error {
 	names := map[string]*Exp{}
 	verified := map[string]bool{}
-	for _, a := range b.Assignments {
-		names[a.Name] = a.Value
+	for k, a := range b.Assignments {
+		names[k] = a
 	}
-	for _, a := range b.Assignments {
-		if !verified[a.Name] {
-			todo := a.Value.collectIds()
-			visited := []string{a.Name}
-			visitedb := map[string]bool{a.Name: true}
-			verified[a.Name] = true
+	for k, a := range b.Assignments {
+		if !verified[k] {
+			todo := a.collectIds()
+			visited := []string{k}
+			visitedb := map[string]bool{k: true}
+			verified[k] = true
 			for len(todo) > 0 {
 				i := todo[0]
 				todo = todo[1:]
@@ -213,7 +198,7 @@ func (exp *Exp) collectIds() []string {
 	} else if exp.Block != nil {
 		result := exp.Block.Value.collectIds()
 		for _, a := range exp.Block.Assignments {
-			result = append(result, a.Value.collectIds()...)
+			result = append(result, a.collectIds()...)
 		}
 		return result
 	}

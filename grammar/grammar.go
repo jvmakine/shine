@@ -46,20 +46,13 @@ func (prg *Program) ToAst() *ast.Exp {
 }
 
 func convBlock(from *Block) *ast.Block {
-	assigns := make([]*ast.Assign, len(from.Assignments))
-	for i, a := range from.Assignments {
-		assigns[i] = convAssign(a)
+	assigns := map[string]*ast.Exp{}
+	for _, a := range from.Assignments {
+		assigns[*a.Name] = convExp(a.Value)
 	}
 	return &ast.Block{
 		Assignments: assigns,
 		Value:       convExp(from.Value),
-	}
-}
-
-func convAssign(from *Assignment) *ast.Assign {
-	return &ast.Assign{
-		Name:  *from.Name,
-		Value: convExp(from.Value),
 	}
 }
 

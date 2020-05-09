@@ -17,26 +17,32 @@ func TestResolveFunctionCall(tes *testing.T) {
 	}{{
 		name: "resolves function signatures based on the call type",
 		exp: Block(
+			Assgs{
+				"a": Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+			},
 			Fcall("if",
 				Fcall("a", BConst(true), BConst(true), BConst(false)),
 				Fcall("a", BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
-			Assign("a", Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x")),
 		),
 		want: []string{"a%%1%%(bool,bool,bool)=>bool", "a%%1%%(bool,int,int)=>int"},
 	}, {
 		name: "resolves functions as arguments",
 		exp: Block(
+			Assgs{
+				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"b": Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+			},
 			Fcall("a", Id("b")),
-			Assign("a", Fdef(Fcall("f", IConst(1), IConst(2)), "f")),
-			Assign("b", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
 		),
 		want: []string{"b%%1%%(int,int)=>int", "a%%1%%((int,int)=>int)=>int", "b%%1%%(int,int)=>int"},
 	}, {
 		name: "resolves anonymous functions",
 		exp: Block(
+			Assgs{
+				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+			},
 			Fcall("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
-			Assign("a", Fdef(Fcall("f", IConst(1), IConst(2)), "f")),
 		),
 		want: []string{"a%%1%%((int,int)=>int)=>int", "<anon1>%%1%%(int,int)=>int"},
 	}}
@@ -62,7 +68,7 @@ func collectResolvedCalls(exp *ast.Exp) []string {
 	}
 	if exp.Block != nil {
 		for _, a := range exp.Block.Assignments {
-			res = append(res, collectResolvedCalls(a.Value)...)
+			res = append(res, collectResolvedCalls(a)...)
 		}
 		res = append(res, collectResolvedCalls(exp.Block.Value)...)
 	}

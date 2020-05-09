@@ -26,20 +26,11 @@ func Id(name string) *ast.Exp {
 	}
 }
 
-func Assign(name string, value *ast.Exp) *ast.Assign {
-	return &ast.Assign{
-		Name:  name,
-		Value: value,
-	}
-}
+type Assgs = map[string]*ast.Exp
 
-func Block(e *ast.Exp, assigns ...*ast.Assign) *ast.Exp {
-	as := assigns
-	if as == nil {
-		as = []*ast.Assign{}
-	}
+func Block(assign Assgs, e *ast.Exp) *ast.Exp {
 	return &ast.Exp{
-		Block: &ast.Block{Value: e, Assignments: as},
+		Block: &ast.Block{Value: e, Assignments: assign},
 	}
 }
 

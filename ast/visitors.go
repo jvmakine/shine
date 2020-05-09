@@ -10,7 +10,7 @@ func (a *Exp) Visit(f func(p *Exp)) {
 		}
 	} else if a.Block != nil {
 		for _, a := range a.Block.Assignments {
-			a.Value.Visit(f)
+			a.Visit(f)
 		}
 		a.Block.Value.Visit(f)
 	}
@@ -48,9 +48,9 @@ func (a *Exp) crawl(f func(p *Exp, ctx *CrawlContext), ctx *CrawlContext, visite
 	f(a, ctx)
 	if a.Block != nil {
 		sub := &CrawlContext{ids: map[string]*Exp{}, blocks: map[string]*Block{}, parent: ctx}
-		for _, as := range a.Block.Assignments {
-			sub.ids[as.Name] = as.Value
-			sub.blocks[as.Name] = a.Block
+		for k, as := range a.Block.Assignments {
+			sub.ids[k] = as
+			sub.blocks[k] = a.Block
 		}
 		a.Block.Value.crawl(f, sub, visited)
 	} else if a.Def != nil {

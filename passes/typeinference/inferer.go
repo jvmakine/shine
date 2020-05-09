@@ -124,7 +124,7 @@ func initialise(exp *ast.Exp, ctx *context) {
 		}
 	} else if exp.Block != nil {
 		for _, a := range exp.Block.Assignments {
-			initialise(a.Value, ctx)
+			initialise(a, ctx)
 		}
 		initialise(exp.Block.Value, ctx)
 	} else if exp.Call != nil {
@@ -153,12 +153,12 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 			return err
 		}
 		nctx := ctx.sub(exp.Block.ID)
-		for _, a := range exp.Block.Assignments {
-			typ := a.Value.Type()
-			nctx.setActiveType(a.Name, &typ)
+		for k, a := range exp.Block.Assignments {
+			typ := a.Type()
+			nctx.setActiveType(k, &typ)
 		}
 		for _, a := range exp.Block.Assignments {
-			if err := inferExp(a.Value, nctx, tgraph); err != nil {
+			if err := inferExp(a, nctx, tgraph); err != nil {
 				return err
 			}
 		}
@@ -168,10 +168,10 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 		if err != nil {
 			return err
 		}
-		for _, a := range exp.Block.Assignments {
-			nctx.stopInference(a.Name)
-			sub.ConvertAssignment(a)
-			nctx.ids[a.Name] = &excon{v: a.Value, c: nctx}
+		for k, a := range exp.Block.Assignments {
+			nctx.stopInference(k)
+			sub.Convert(a)
+			nctx.ids[k] = &excon{v: a, c: nctx}
 		}
 		// infer and convert the block expression
 		if err := inferExp(exp.Block.Value, nctx, tgraph); err != nil {

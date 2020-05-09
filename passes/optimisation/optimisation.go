@@ -9,10 +9,10 @@ func Optimise(exp *ast.Exp) {
 	})
 	exp.Visit(func(v *ast.Exp) {
 		if v.Block != nil {
-			seen := []*ast.Assign{}
-			for _, a := range v.Block.Assignments {
-				if visited[a.Value] {
-					seen = append(seen, a)
+			seen := map[string]*ast.Exp{}
+			for k, a := range v.Block.Assignments {
+				if visited[a] {
+					seen[k] = a
 				}
 			}
 			v.Block.Assignments = seen

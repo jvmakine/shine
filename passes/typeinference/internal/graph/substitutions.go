@@ -26,7 +26,7 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 	if exp.Block != nil {
 		s.Convert(exp.Block.Value)
 		for _, a := range exp.Block.Assignments {
-			s.Convert(a.Value)
+			s.Convert(a)
 		}
 	} else if exp.Call != nil {
 		for _, p := range exp.Call.Params {
@@ -41,8 +41,4 @@ func (s Substitutions) Convert(exp *ast.Exp) {
 	} else if exp.Id != nil {
 		exp.Id.Type = s.Apply(exp.Id.Type)
 	}
-}
-
-func (s Substitutions) ConvertAssignment(ass *ast.Assign) {
-	s.Convert(ass.Value)
 }

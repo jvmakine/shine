@@ -168,10 +168,10 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 
 func compileBlock(from *ast.Block, ctx *context, funcRoot bool) value.Value {
 	sub := ctx.subContext()
-	for _, c := range from.Assignments {
-		if c.Value.Def == nil {
-			v := compileExp(c.Value, sub, false)
-			_, err := sub.addId(c.Name, val{v})
+	for k, c := range from.Assignments {
+		if c.Def == nil {
+			v := compileExp(c, sub, false)
+			_, err := sub.addId(k, val{v})
 			if err != nil {
 				panic(err)
 			}
