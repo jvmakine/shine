@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/inferer/callresolver"
+	"github.com/jvmakine/shine/callresolver"
 	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"

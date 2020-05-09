@@ -7,11 +7,11 @@ import (
 
 	"github.com/llir/llvm/ir"
 
+	"github.com/jvmakine/shine/callresolver"
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
-	"github.com/jvmakine/shine/inferer"
-	"github.com/jvmakine/shine/inferer/callresolver"
 	"github.com/jvmakine/shine/optimisation"
+	"github.com/jvmakine/shine/typeinference"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func Compile(text string) (*ir.Module, error) {
 		return nil, err
 	}
 	ast := parsed.ToAst()
-	err = inferer.Infer(ast)
+	err = typeinference.Infer(ast)
 	if err != nil {
 		return nil, err
 	}

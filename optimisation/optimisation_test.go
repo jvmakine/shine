@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jvmakine/shine/inferer"
+	"github.com/jvmakine/shine/typeinference"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/test"
@@ -34,11 +34,11 @@ func TestOptimise(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := inferer.Infer(tt.before)
+			err := typeinference.Infer(tt.before)
 			if err != nil {
 				panic(err)
 			}
-			err = inferer.Infer(tt.after)
+			err = typeinference.Infer(tt.after)
 			if err != nil {
 				panic(err)
 			}

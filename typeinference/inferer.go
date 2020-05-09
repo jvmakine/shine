@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/inferer/graph"
+	"github.com/jvmakine/shine/typeinference/internal/graph"
 	. "github.com/jvmakine/shine/types"
 )
 

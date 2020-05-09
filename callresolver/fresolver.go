@@ -3,8 +3,8 @@ package callresolver
 import (
 	"strconv"
 
-	"github.com/jvmakine/shine/inferer/typeinference"
 	"github.com/jvmakine/shine/resolved"
+	"github.com/jvmakine/shine/typeinference"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"

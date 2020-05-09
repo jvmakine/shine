@@ -1,15 +1,14 @@
-package closure
+package closureresolver
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/inferer/callresolver"
-	"github.com/jvmakine/shine/inferer/typeinference"
-	"github.com/jvmakine/shine/resolved"
+	"github.com/jvmakine/shine/callresolver"
 	. "github.com/jvmakine/shine/resolved"
 	. "github.com/jvmakine/shine/test"
+	"github.com/jvmakine/shine/typeinference"
 	"github.com/jvmakine/shine/types"
 )
 
@@ -17,7 +16,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		want []resolved.Closure
+		want []Closure
 	}{{
 		name: "resolves empty Closure for function without closure",
 		exp: Block(

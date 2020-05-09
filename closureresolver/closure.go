@@ -1,4 +1,4 @@
-package closure
+package closureresolver
 
 import "github.com/jvmakine/shine/ast"
 
