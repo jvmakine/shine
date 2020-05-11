@@ -54,7 +54,7 @@ func sign(t Type, ctx *signctx) string {
 		return t.Function.sign(ctx)
 	}
 	if !t.IsDefined() {
-		panic("can not get signature from undefined type")
+		return "<undefined>"
 	}
 	panic("invalid type")
 }
