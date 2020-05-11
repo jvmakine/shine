@@ -99,11 +99,11 @@ func Infer(exp *ast.Exp) error {
 	if err != nil {
 		return err
 	}
-	sub.Convert(exp)
+	exp.Convert(sub)
 	return nil
 }
 
-func Unify(a Type, b Type) (graph.Substitutions, error) {
+func Unify(a Type, b Type) (Substitutions, error) {
 	tgraph := graph.MakeTypeGraph()
 	if err := tgraph.Add(a, b); err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 		}
 		for k, a := range exp.Block.Assignments {
 			nctx.stopInference(k)
-			sub.Convert(a)
+			a.Convert(sub)
 			nctx.ids[k] = &excon{v: a, c: nctx}
 		}
 		// infer and convert the block expression

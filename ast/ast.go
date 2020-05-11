@@ -226,3 +226,24 @@ func (exp *Exp) Type() types.Type {
 	}
 	panic("invalid exp")
 }
+
+func (exp *Exp) Convert(s types.Substitutions) {
+	if exp.Block != nil {
+		exp.Block.Value.Convert(s)
+		for _, a := range exp.Block.Assignments {
+			a.Convert(s)
+		}
+	} else if exp.Call != nil {
+		for _, p := range exp.Call.Params {
+			p.Convert(s)
+		}
+		exp.Call.Type = s.Apply(exp.Call.Type)
+	} else if exp.Def != nil {
+		for _, p := range exp.Def.Params {
+			p.Type = s.Apply(p.Type)
+		}
+		exp.Def.Body.Convert(s)
+	} else if exp.Id != nil {
+		exp.Id.Type = s.Apply(exp.Id.Type)
+	}
+}

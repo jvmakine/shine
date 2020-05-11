@@ -44,7 +44,7 @@ func ResolveFunctions(exp *ast.Exp) {
 					if err != nil {
 						panic(err)
 					}
-					subs.Convert(cop)
+					cop.Convert(subs)
 					if cop.Type().HasFreeVars() {
 						panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 					}
@@ -69,7 +69,7 @@ func ResolveFunctions(exp *ast.Exp) {
 					if err != nil {
 						panic(err)
 					}
-					subs.Convert(cop)
+					cop.Convert(subs)
 					if cop.Type().HasFreeVars() {
 						panic("could not unify " + f.Type().Signature() + " u " + fun.Signature() + " => " + cop.Type().Signature())
 					}
