@@ -56,6 +56,7 @@ func (l *lctx) resolve(name string) *FDef {
 }
 
 func ResolveFunctions(exp *ast.Exp) {
+	anonCount := 0
 	exp.Crawl(func(v *ast.Exp, ctx *ast.CrawlContext) {
 		if v.Id != nil && v.Type().IsFunction() {
 			if block := ctx.BlockOf(v.Id.Name); block != nil {
@@ -100,6 +101,13 @@ func ResolveFunctions(exp *ast.Exp) {
 				}
 				v.Call.Name = fsig
 			}
+		} else if v.Def != nil && ctx.NameOf(v) == "" {
+			anonCount++
+			typ := v.Type()
+			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, v.Type().Signature())
+			ctx.Block().Assignments[fsig] = v.Copy()
+			v.Def = nil
+			v.Id = &ast.Id{Name: fsig, Type: typ}
 		}
 	})
 }

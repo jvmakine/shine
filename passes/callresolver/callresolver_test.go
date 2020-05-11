@@ -111,6 +111,40 @@ func TestResolveFunctions(t *testing.T) {
 				Fcall("a%%1%%(bool,int,int)=>int", BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
 		),
+	}, {
+		name: "resolves functions as arguments",
+		before: Block(
+			Assgs{
+				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"b": Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+			},
+			Fcall("a", Id("b")),
+		),
+		after: Block(
+			Assgs{
+				"a":                           Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"b":                           Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"b%%1%%(int,int)=>int":        Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+			},
+			Fcall("a%%1%%((int,int)=>int)=>int", Id("b%%1%%(int,int)=>int")),
+		),
+	}, {
+		name: "resolves anonymous functions",
+		before: Block(
+			Assgs{
+				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+			},
+			Fcall("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+		),
+		after: Block(
+			Assgs{
+				"a":                           Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+			},
+			Fcall("a%%1%%((int,int)=>int)=>int", Id("<anon1>%%1%%(int,int)=>int")),
+		),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
