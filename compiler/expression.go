@@ -17,10 +17,7 @@ func compileExp(from *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	} else if from.Call != nil {
 		return compileCall(from, ctx, funcRoot)
 	} else if from.Def != nil {
-		if from.Resolved == nil {
-			panic("non resolved anonymous function: " + from.Type().Signature())
-		}
-		return ctx.resolveFun(from.Resolved.ID).Call
+		panic("non resolved anonymous function: " + from.Type().Signature())
 	} else if from.Block != nil {
 		return compileBlock(from.Block, ctx, funcRoot)
 	}
@@ -39,16 +36,14 @@ func compileConst(from *ast.Const, ctx *context) value.Value {
 }
 
 func compileID(exp *ast.Exp, ctx *context) value.Value {
-	from := exp.Id
-	if exp.Resolved == nil {
-		id, err := ctx.resolveVal(from.Name)
-		if err != nil {
-			panic(err)
-		}
-		return id
+	id, err := ctx.resolveId(exp.Id.Name)
+	if err != nil {
+		panic(err)
 	}
-	f := ctx.resolveFun(exp.Resolved.ID)
-	return f.Fun
+	if f, ok := id.(function); ok {
+		return f.Fun
+	}
+	return id.(val).Value
 }
 
 func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) value.Value {
@@ -153,13 +148,12 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		case "&&":
 			return ctx.Block.NewAnd(params[0], params[1])
 		default:
-			if exp.Resolved != nil {
-				comp := ctx.resolveFun(exp.Resolved.ID)
-				return ctx.Block.NewCall(comp.Call, params...)
-			}
 			id, err := ctx.resolveId(from.Name)
 			if err != nil {
 				panic(err)
+			}
+			if f, ok := id.(function); ok {
+				return ctx.Block.NewCall(f.Call, params...)
 			}
 			return ctx.Block.NewCall(id.(val).Value, params...)
 		}

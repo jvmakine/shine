@@ -79,18 +79,6 @@ func (c *context) resolveFun(name string) function {
 	panic(name + " is not a function")
 }
 
-func (c *context) resolveVal(name string) (value.Value, error) {
-	i, err := c.resolveId(name)
-	if err != nil {
-		return nil, err
-	}
-	switch i.(type) {
-	case val:
-		return i.(val).Value, nil
-	}
-	return nil, errors.New(name + " is not a value")
-}
-
 func (c *context) functions() []function {
 	var res []function
 	for _, i := range c.ids {

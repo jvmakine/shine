@@ -57,8 +57,9 @@ func TestResolveFunctionDef(tes *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			fcat := callresolver.Resolve(tt.exp)
-			result := collectClosures(fcat)
+			callresolver.ResolveFunctions(tt.exp)
+			fcat := callresolver.Collect(tt.exp)
+			result := collectClosures(&fcat)
 			if !reflect.DeepEqual(result, tt.want) {
 				t.Errorf("Resolve() = %v, want %v", result, tt.want)
 			}

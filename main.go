@@ -36,8 +36,9 @@ func Compile(text string) (*ir.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	fcat := callresolver.Resolve(ast)
+	callresolver.ResolveFunctions(ast)
 	optimisation.Optimise(ast)
-	module := compiler.Compile(ast, fcat)
+	fcat := callresolver.Collect(ast)
+	module := compiler.Compile(ast, &fcat)
 	return module, nil
 }

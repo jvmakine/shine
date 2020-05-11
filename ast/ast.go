@@ -18,11 +18,7 @@ type Exp struct {
 	Call  *FCall
 	Def   *FDef
 
-	// for function value expressions. reference to the compiled function
-	Resolved        *resolved.ResolvedFnCall
-	BlockID         int
-	HasBeenResolved bool
-	Closure         resolved.Closure
+	Closure resolved.Closure
 }
 
 type Id struct {
@@ -79,13 +75,11 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 		return nil
 	}
 	return &Exp{
-		Const:    a.Const,
-		Block:    a.Block.copy(ctx),
-		Id:       a.Id.copy(ctx),
-		Call:     a.Call.copy(ctx),
-		Def:      a.Def.copy(ctx),
-		Resolved: a.Resolved,
-		BlockID:  a.BlockID,
+		Const: a.Const,
+		Block: a.Block.copy(ctx),
+		Id:    a.Id.copy(ctx),
+		Call:  a.Call.copy(ctx),
+		Def:   a.Def.copy(ctx),
 	}
 }
 

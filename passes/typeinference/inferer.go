@@ -145,7 +145,6 @@ func initialise(exp *ast.Exp, ctx *context) {
 }
 
 func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
-	exp.BlockID = ctx.blockID
 	if exp.Block != nil {
 		blockCount++
 		exp.Block.ID = blockCount
