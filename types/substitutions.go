@@ -16,3 +16,19 @@ func (s Substitutions) Apply(t Type) Type {
 	}
 	return target
 }
+
+func (s Substitutions) Combine(o Substitutions) (Substitutions, error) {
+	result := Substitutions{}
+	for k, v := range o {
+		if s[k].IsDefined() {
+			s, err := s[k].Unifier(v)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			result[k] = s.Apply(v)
+		} else {
+			result[k] = v
+		}
+	}
+	return result, nil
+}
