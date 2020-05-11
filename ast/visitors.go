@@ -1,31 +1,15 @@
 package ast
 
-func (a *Exp) Visit(f func(p *Exp)) {
-	f(a)
-	if a.Def != nil {
-		a.Def.Body.Visit(f)
-	} else if a.Call != nil {
-		for _, p := range a.Call.Params {
-			p.Visit(f)
-		}
-	} else if a.Block != nil {
-		for _, a := range a.Block.Assignments {
-			a.Visit(f)
-		}
-		a.Block.Value.Visit(f)
-	}
-}
-
-type CrawlContext struct {
-	parent *CrawlContext
+type VisitContext struct {
+	parent *VisitContext
 	block  *Block
 }
 
-func (c *CrawlContext) Block() *Block {
+func (c *VisitContext) Block() *Block {
 	return c.block
 }
 
-func (c *CrawlContext) BlockOf(id string) *Block {
+func (c *VisitContext) BlockOf(id string) *Block {
 	if c.block == nil {
 		return nil
 	} else if c.block.Assignments[id] != nil {
@@ -36,7 +20,7 @@ func (c *CrawlContext) BlockOf(id string) *Block {
 	return nil
 }
 
-func (c *CrawlContext) NameOf(exp *Exp) string {
+func (c *VisitContext) NameOf(exp *Exp) string {
 	if c.block == nil {
 		return ""
 	}
@@ -51,7 +35,7 @@ func (c *CrawlContext) NameOf(exp *Exp) string {
 	return ""
 }
 
-func (c *CrawlContext) resolve(id string) (*Exp, *CrawlContext) {
+func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
 	if c.block != nil && c.block.Assignments[id] != nil {
 		return c.block.Assignments[id], c
 	} else if c.parent != nil {
@@ -60,14 +44,23 @@ func (c *CrawlContext) resolve(id string) (*Exp, *CrawlContext) {
 	return nil, nil
 }
 
-func (a *Exp) crawl(f func(p *Exp, ctx *CrawlContext), ctx *CrawlContext, visited *map[*Exp]bool) {
+func (a *Exp) Visit(f func(p *Exp, ctx *VisitContext)) {
+	a.visit(f, &VisitContext{})
+}
+
+func (a *Exp) Crawl(f func(p *Exp, ctx *VisitContext)) {
+	visited := map[*Exp]bool{}
+	a.crawl(f, &VisitContext{}, &visited)
+}
+
+func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), ctx *VisitContext, visited *map[*Exp]bool) {
 	if (*visited)[a] {
 		return
 	}
 	(*visited)[a] = true
 	f(a, ctx)
 	if a.Block != nil {
-		sub := &CrawlContext{block: a.Block, parent: ctx}
+		sub := &VisitContext{block: a.Block, parent: ctx}
 		a.Block.Value.crawl(f, sub, visited)
 	} else if a.Def != nil {
 		a.Def.Body.crawl(f, ctx, visited)
@@ -85,7 +78,19 @@ func (a *Exp) crawl(f func(p *Exp, ctx *CrawlContext), ctx *CrawlContext, visite
 	}
 }
 
-func (a *Exp) Crawl(f func(p *Exp, ctx *CrawlContext)) {
-	visited := map[*Exp]bool{}
-	a.crawl(f, &CrawlContext{}, &visited)
+func (a *Exp) visit(f func(p *Exp, ctx *VisitContext), ctx *VisitContext) {
+	f(a, ctx)
+	if a.Block != nil {
+		sub := &VisitContext{block: a.Block, parent: ctx}
+		for _, a := range a.Block.Assignments {
+			a.visit(f, sub)
+		}
+		a.Block.Value.visit(f, sub)
+	} else if a.Def != nil {
+		a.Def.Body.visit(f, ctx)
+	} else if a.Call != nil {
+		for _, p := range a.Call.Params {
+			p.visit(f, ctx)
+		}
+	}
 }

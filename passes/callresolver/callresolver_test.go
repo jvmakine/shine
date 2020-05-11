@@ -87,7 +87,7 @@ func TestResolveFunctions(t *testing.T) {
 }
 
 func eraseType(e *ast.Exp) {
-	e.Visit(func(v *ast.Exp) {
+	e.Visit(func(v *ast.Exp, _ *ast.VisitContext) {
 		if v.Id != nil {
 			v.Id.Type = types.IntP
 		} else if v.Const != nil {

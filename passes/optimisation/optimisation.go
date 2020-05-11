@@ -4,10 +4,10 @@ import "github.com/jvmakine/shine/ast"
 
 func Optimise(exp *ast.Exp) {
 	visited := map[*ast.Exp]bool{}
-	exp.Crawl(func(v *ast.Exp, _ *ast.CrawlContext) {
+	exp.Crawl(func(v *ast.Exp, _ *ast.VisitContext) {
 		visited[v] = true
 	})
-	exp.Visit(func(v *ast.Exp) {
+	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) {
 		if v.Block != nil {
 			seen := map[string]*ast.Exp{}
 			for k, a := range v.Block.Assignments {

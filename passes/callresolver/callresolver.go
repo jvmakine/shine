@@ -19,7 +19,7 @@ type FCat = map[FSign]*ast.FDef
 
 func Collect(exp *ast.Exp) FCat {
 	result := FCat{}
-	exp.Visit(func(v *ast.Exp) {
+	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) {
 		if v.Block != nil {
 			for n, a := range v.Block.Assignments {
 				if a.Def != nil {
@@ -33,7 +33,7 @@ func Collect(exp *ast.Exp) FCat {
 
 func ResolveFunctions(exp *ast.Exp) {
 	anonCount := 0
-	exp.Crawl(func(v *ast.Exp, ctx *ast.CrawlContext) {
+	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) {
 		if v.Id != nil && v.Type().IsFunction() {
 			if block := ctx.BlockOf(v.Id.Name); block != nil {
 				fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
