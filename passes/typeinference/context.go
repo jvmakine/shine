@@ -12,14 +12,13 @@ type excon struct {
 
 type context struct {
 	parent     *context
-	blockID    int
 	ids        map[string]*excon
 	active     map[string]*Type
 	activeVals *[]string
 }
 
-func (c *context) sub(bid int) *context {
-	return &context{parent: c, ids: map[string]*excon{}, active: map[string]*Type{}, blockID: bid}
+func (c *context) sub() *context {
+	return &context{parent: c, ids: map[string]*excon{}, active: map[string]*Type{}}
 }
 
 func (ctx *context) setActiveType(id string, typ *Type) {

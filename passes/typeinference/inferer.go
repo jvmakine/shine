@@ -151,7 +151,7 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 		if err := exp.Block.CheckValueCycles(); err != nil {
 			return err
 		}
-		nctx := ctx.sub(exp.Block.ID)
+		nctx := ctx.sub()
 		for k, a := range exp.Block.Assignments {
 			typ := a.Type()
 			nctx.setActiveType(k, &typ)
@@ -222,8 +222,7 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 			return err
 		}
 	} else if exp.Def != nil {
-		blockCount++
-		sc := ctx.sub(blockCount)
+		sc := ctx.sub()
 		for _, p := range exp.Def.Params {
 			sc.setActiveType(p.Name, &p.Type)
 		}
