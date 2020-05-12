@@ -76,12 +76,12 @@ type FunParam struct {
 }
 
 type FunDef struct {
-	Params []*FunParam `"(" (@@ ("," @@)*)? ")" "=>"`
-	Body   *Block      `"{" Newline* @@ Newline* "}"`
+	Params []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")" Newline* "=>"`
+	Body   *Block      `Newline* "{" Newline* @@ Newline* "}"`
 }
 
 type CallParams struct {
-	Params []*Expression `"(" ( Newline* @@ ("," Newline* @@)*)? Newline* ")"`
+	Params []*Expression `"(" Newline* (@@ Newline* ("," Newline* @@)*)? Newline* ")"`
 }
 
 type FunCall struct {
