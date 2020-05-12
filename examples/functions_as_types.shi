@@ -2,4 +2,4 @@ operate = (x, y, f) => f(x, y)
 add = (x, y) => x + y
 pick = (b) => if (b) (x, y) => x - y else add
 
-operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + ((x, y) => x + y)(2, 3)
+operate(3, 1, pick(true)) + pick(false)(5, 1) + ((x, y) => x + y)(2, 3)
