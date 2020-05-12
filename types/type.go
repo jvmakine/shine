@@ -59,12 +59,16 @@ func MakeRestricted(ps ...Primitive) Type {
 }
 
 func (t Type) FreeVars() []*TypeVar {
-	if t.Variable != nil {
+	if t.Variable != nil && t.Variable.Function == nil {
 		return []*TypeVar{t.Variable}
 	}
-	if t.Function != nil {
+	fun := t.Function
+	if t.Variable != nil {
+		fun = t.Variable.Function
+	}
+	if fun != nil {
 		res := []*TypeVar{}
-		for _, p := range *t.Function {
+		for _, p := range *fun {
 			res = append(res, p.FreeVars()...)
 		}
 		return res

@@ -182,17 +182,32 @@ func (exp *Exp) collectIds() []string {
 	if exp.Id != nil {
 		return []string{exp.Id.Name}
 	} else if exp.Call != nil {
-		result := []string{}
+		resultM := map[string]bool{}
 		for _, p := range exp.Call.Params {
-			result = append(result, p.collectIds()...)
+			for _, id := range p.collectIds() {
+				resultM[id] = true
+			}
+		}
+		result := []string{}
+		for k := range resultM {
+			result = append(result, k)
 		}
 		return result
 	} else if exp.Def != nil {
 		return exp.Def.Body.collectIds()
 	} else if exp.Block != nil {
-		result := exp.Block.Value.collectIds()
+		resultM := map[string]bool{}
+		for _, id := range exp.Block.Value.collectIds() {
+			resultM[id] = true
+		}
 		for _, a := range exp.Block.Assignments {
-			result = append(result, a.collectIds()...)
+			for _, id := range a.collectIds() {
+				resultM[id] = true
+			}
+		}
+		result := []string{}
+		for k := range resultM {
+			result = append(result, k)
 		}
 		return result
 	}

@@ -38,8 +38,6 @@ func Compile(text string) (*ir.Module, error) {
 	}
 	callresolver.ResolveFunctions(ast)
 	optimisation.Optimise(ast)
-	a := ast.Block.Assignments
-	println(a)
 	fcat := callresolver.Collect(ast)
 	module := compiler.Compile(ast, &fcat)
 	return module, nil

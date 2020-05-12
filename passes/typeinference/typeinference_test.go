@@ -97,6 +97,18 @@ func TestInfer(tes *testing.T) {
 		typ:  "",
 		err:  errors.New("recursive value: a -> b -> a"),
 	}, {
+		name: "work on non-recursive values",
+		exp: Block(
+			Assgs{
+				"a": Fcall(Id("+"), Id("b"), Id("b")),
+				"b": Fcall(Id("+"), Id("c"), Id("c")),
+				"c": Fcall(Id("+"), IConst(1), IConst(2)),
+			},
+			Id("a"),
+		),
+		typ: "int",
+		err: nil,
+	}, {
 		name: "unify one function multiple ways",
 		exp: Block(
 			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("if"), BConst(true), Id("x"), Id("x"))), "x")},

@@ -125,7 +125,9 @@ func (g TypeGraph) Substitutions() (Substitutions, error) {
 			}
 		}
 		for _, v := range vars {
-			result[v] = ires
+			if v.Function == nil {
+				result[v] = ires
+			}
 		}
 	}
 	return result, nil

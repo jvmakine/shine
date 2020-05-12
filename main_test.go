@@ -24,18 +24,14 @@ func TestCompile(t *testing.T) {
 		}, */{
 			name: "compile euler2 without errors",
 			program: `
-					sum_even_fib = (upto) => {
-						agg = (p2, p1, u, sum) => {
-							cur = p1 + p2
-							if (cur > u) sum else {
-								nsum = if (cur % 2 == 0) sum + cur else sum
-								agg(p1, cur, u, nsum)
-							}
-						}
-						agg(1, 1, upto, 0)
+				agg = (p2, p1, u, sum) => {
+					cur = p1 + p2
+					if (cur > u) sum else {
+						nsum = if (cur % 2 == 0) sum + cur else sum
+						agg(p1, cur, u, nsum)
 					}
-
-					sum_even_fib(100)
+				}
+				agg(1, 1, 100, 0)
 				`,
 			err: nil,
 		}, /*{
