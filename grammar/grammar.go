@@ -13,7 +13,8 @@ type Program struct {
 func Parse(str string) (*Program, error) {
 	lexer, err := ebnf.New(`
 		Fun = "=>" .
-		Whitespace = " " | "\n" | "\r" | "\t" .
+		Newline = "\n" .
+		Whitespace = " " | "\r" | "\t" .
 		Reserved = "if" | "else" | "true" | "false" .
 		Comma = "," .
 		Brackets = "(" | ")" | "{" | "}" .

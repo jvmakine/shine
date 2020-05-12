@@ -106,6 +106,22 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "f((x) => {x + 2}, (y) => {y + 1})",
 		want:  t.Block(t.Assgs{}, t.Fcall(t.Id("f"), t.Fdef(t.Block(t.Assgs{}, t.Fcall(t.Id("+"), t.Id("x"), t.IConst(2))), "x"), t.Fdef(t.Block(t.Assgs{}, t.Fcall(t.Id("+"), t.Id("y"), t.IConst(1))), "y"))),
 	}, {
+		name: "parse several assignments",
+		input: `
+			a = 1 + 2
+			b = 2 + 3
+			c = 3 + 4
+			a + b + c
+		`,
+		want: t.Block(
+			t.Assgs{
+				"a": t.Fcall(t.Id("+"), t.IConst(1), t.IConst(2)),
+				"b": t.Fcall(t.Id("+"), t.IConst(2), t.IConst(3)),
+				"c": t.Fcall(t.Id("+"), t.IConst(3), t.IConst(4)),
+			},
+			t.Fcall(t.Id("+"), t.Fcall(t.Id("+"), t.Id("a"), t.Id("b")), t.Id("c")),
+		),
+	}, {
 		name: "parse a function definition",
 		input: `
 			a = (x, y) => { x + y }

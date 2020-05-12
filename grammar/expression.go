@@ -49,7 +49,7 @@ type OpFactor struct {
 
 type Block struct {
 	Assignments []*Assignment `@@*`
-	Value       *Expression   `@@`
+	Value       *Expression   `@@ Newline*`
 }
 
 type EValue struct {
@@ -62,13 +62,13 @@ type Value struct {
 	Int   *int64   `| @Int`
 	Real  *float64 `| @Real`
 	Bool  *string  `| @("true" | "false")`
-	Block *Block   `| "{" @@ "}"`
+	Block *Block   `| "{" Newline* @@ Newline* "}"`
 	Eval  *EValue  `| @@`
 }
 
 type Assignment struct {
-	Name  *string     `@Ident "="`
-	Value *Expression `@@`
+	Name  *string     `Newline* @Ident "="`
+	Value *Expression `@@ Newline+`
 }
 
 type FunParam struct {
@@ -77,11 +77,11 @@ type FunParam struct {
 
 type FunDef struct {
 	Params []*FunParam `"(" (@@ ("," @@)*)? ")" "=>"`
-	Body   *Block      `"{" @@ "}"`
+	Body   *Block      `"{" Newline* @@ Newline* "}"`
 }
 
 type CallParams struct {
-	Params []*Expression `"(" (@@ ("," @@)*)? ")"`
+	Params []*Expression `"(" ( Newline* @@ ("," Newline* @@)*)? Newline* ")"`
 }
 
 type FunCall struct {
