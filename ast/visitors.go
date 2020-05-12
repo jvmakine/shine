@@ -65,11 +65,9 @@ func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), ctx *VisitContext, visite
 	} else if a.Def != nil {
 		a.Def.Body.crawl(f, ctx, visited)
 	} else if a.Call != nil {
+		a.Call.Function.crawl(f, ctx, visited)
 		for _, p := range a.Call.Params {
 			p.crawl(f, ctx, visited)
-		}
-		if r, c := ctx.resolve(a.Call.Name); r != nil {
-			r.crawl(f, c, visited)
 		}
 	} else if a.Id != nil {
 		if r, c := ctx.resolve(a.Id.Name); r != nil {
@@ -89,6 +87,7 @@ func (a *Exp) visit(f func(p *Exp, ctx *VisitContext), ctx *VisitContext) {
 	} else if a.Def != nil {
 		a.Def.Body.visit(f, ctx)
 	} else if a.Call != nil {
+		a.Call.Function.visit(f, ctx)
 		for _, p := range a.Call.Params {
 			p.visit(f, ctx)
 		}

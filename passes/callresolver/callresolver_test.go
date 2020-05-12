@@ -19,57 +19,57 @@ func TestResolveFunctions(t *testing.T) {
 		name: "resolves function signatures based on the call type",
 		before: Block(
 			Assgs{
-				"a": Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a": Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Fcall("if",
-				Fcall("a", BConst(true), BConst(true), BConst(false)),
-				Fcall("a", BConst(true), IConst(5), IConst(6)),
+			Fcall(Id("if"),
+				Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
+				Fcall(Id("a"), BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
 		),
 		after: Block(
 			Assgs{
-				"a":                            Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall("if", Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a":                            Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Fcall("if",
-				Fcall("a%%1%%(bool,bool,bool)=>bool", BConst(true), BConst(true), BConst(false)),
-				Fcall("a%%1%%(bool,int,int)=>int", BConst(true), IConst(5), IConst(6)),
+			Fcall(Id("if"),
+				Fcall(Id("a%%1%%(bool,bool,bool)=>bool"), BConst(true), BConst(true), BConst(false)),
+				Fcall(Id("a%%1%%(bool,int,int)=>int"), BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
 		),
 	}, {
 		name: "resolves functions as arguments",
 		before: Block(
 			Assgs{
-				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
-				"b": Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"b": Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall("a", Id("b")),
+			Fcall(Id("a"), Id("b")),
 		),
 		after: Block(
 			Assgs{
-				"a":                           Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
-				"b":                           Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
-				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
-				"b%%1%%(int,int)=>int":        Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"b":                           Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"b%%1%%(int,int)=>int":        Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall("a%%1%%((int,int)=>int)=>int", Id("b%%1%%(int,int)=>int")),
+			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
 		),
 	}, {
 		name: "resolves anonymous functions",
 		before: Block(
 			Assgs{
-				"a": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
+				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 			},
-			Fcall("a", Fdef(Fcall("+", Id("x"), Id("y")), "x", "y")),
+			Fcall(Id("a"), Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y")),
 		),
 		after: Block(
 			Assgs{
-				"a":                           Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
-				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall("f", IConst(1), IConst(2)), "f"),
-				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
+				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall("a%%1%%((int,int)=>int)=>int", Id("<anon1>%%1%%(int,int)=>int")),
+			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
 	}}
 	for _, tt := range tests {

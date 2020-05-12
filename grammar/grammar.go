@@ -72,8 +72,8 @@ func convExp(from *Expression) *ast.Exp {
 func convIf(from *IfExpression) *ast.Exp {
 	return &ast.Exp{
 		Call: &ast.FCall{
-			Name:   "if",
-			Params: []*ast.Exp{convExp(from.Cond), convExp(from.True), convExp(from.False)},
+			Function: &ast.Exp{Id: &ast.Id{Name: "if"}},
+			Params:   []*ast.Exp{convExp(from.Cond), convExp(from.True), convExp(from.False)},
 		},
 	}
 }
@@ -101,8 +101,8 @@ func convOpComp(left *ast.Exp, right []*OpComp) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Name:   *right[0].Operation,
-			Params: []*ast.Exp{left, convComp(right[0].Right)},
+			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Params:   []*ast.Exp{left, convComp(right[0].Right)},
 		},
 	}
 	return convOpComp(res, right[1:])
@@ -118,8 +118,8 @@ func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Name:   *right[0].Operation,
-			Params: []*ast.Exp{left, convTerm(right[0].Right)},
+			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Params:   []*ast.Exp{left, convTerm(right[0].Right)},
 		},
 	}
 	return convOpTerm(res, right[1:])
@@ -135,11 +135,22 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Name:   *right[0].Operation,
-			Params: []*ast.Exp{left, convVal(right[0].Right)},
+			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Params:   []*ast.Exp{left, convVal(right[0].Right)},
 		},
 	}
 	return convOpFact(res, right[1:])
+}
+
+func convEval(from *EValue) *ast.Exp {
+	if from.Sub != nil {
+		return convExp(from.Sub)
+	} else if from.Id != nil {
+		return &ast.Exp{
+			Id: &ast.Id{Name: *from.Id},
+		}
+	}
+	return nil
 }
 
 func convVal(from *Value) *ast.Exp {
@@ -150,12 +161,6 @@ func convVal(from *Value) *ast.Exp {
 	} else if from.Call != nil {
 		return &ast.Exp{
 			Call: convFCall(from.Call),
-		}
-	} else if from.Sub != nil {
-		return convExp(from.Sub)
-	} else if from.Id != nil {
-		return &ast.Exp{
-			Id: &ast.Id{Name: *from.Id},
 		}
 	} else if from.Int != nil {
 		return &ast.Exp{
@@ -173,17 +178,32 @@ func convVal(from *Value) *ast.Exp {
 		return &ast.Exp{
 			Const: &ast.Const{Bool: &value},
 		}
+	} else if from.Eval != nil {
+		return convEval(from.Eval)
 	}
 	return nil
 }
 
 func convFCall(from *FunCall) *ast.FCall {
-	params := make([]*ast.Exp, len(from.Params))
-	for i, p := range from.Params {
+	call, calls := from.Calls[0], from.Calls[1:]
+	params := make([]*ast.Exp, len(call.Params))
+	for i, p := range call.Params {
 		params[i] = convExp(p)
 	}
-	return &ast.FCall{
-		Name:   *from.Name,
-		Params: params,
+	res := &ast.FCall{
+		Function: convEval(from.Function),
+		Params:   params,
 	}
+	for len(calls) > 0 {
+		call, calls = calls[0], calls[1:]
+		params := make([]*ast.Exp, len(call.Params))
+		for i, p := range call.Params {
+			params[i] = convExp(p)
+		}
+		res = &ast.FCall{
+			Function: &ast.Exp{Call: res},
+			Params:   params,
+		}
+	}
+	return res
 }

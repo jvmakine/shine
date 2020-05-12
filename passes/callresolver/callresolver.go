@@ -6,7 +6,6 @@ import (
 	"github.com/jvmakine/shine/passes/typeinference"
 
 	"github.com/jvmakine/shine/ast"
-	. "github.com/jvmakine/shine/types"
 )
 
 type FSign = string
@@ -51,31 +50,6 @@ func ResolveFunctions(exp *ast.Exp) {
 					block.Assignments[fsig] = cop
 				}
 				v.Id.Name = fsig
-			}
-		} else if v.Call != nil {
-			params := make([]Type, len(v.Call.Params)+1)
-			for i, p := range v.Call.Params {
-				params[i] = p.Type()
-			}
-			params[len(v.Call.Params)] = v.Type()
-			fun := MakeFunction(params...)
-			if block := ctx.BlockOf(v.Call.Name); block != nil {
-				fsig := MakeFSign(v.Call.Name, block.ID, fun.Signature())
-				if block.Assignments[fsig] == nil {
-					f := block.Assignments[v.Call.Name]
-					cop := f.Copy()
-
-					subs, err := typeinference.Unify(cop.Type(), fun)
-					if err != nil {
-						panic(err)
-					}
-					cop.Convert(subs)
-					if cop.Type().HasFreeVars() {
-						panic("could not unify " + f.Type().Signature() + " u " + fun.Signature() + " => " + cop.Type().Signature())
-					}
-					block.Assignments[fsig] = cop
-				}
-				v.Call.Name = fsig
 			}
 		} else if v.Def != nil && ctx.NameOf(v) == "" {
 			anonCount++

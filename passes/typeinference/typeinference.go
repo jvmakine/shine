@@ -83,6 +83,8 @@ func (ctx *context) getId(id string) *excon {
 		return ctx.ids[id]
 	} else if ctx.parent != nil {
 		return ctx.parent.getId(id)
+	} else if global[id] != nil {
+		return global[id]
 	}
 	return nil
 }
@@ -128,8 +130,9 @@ func initialise(exp *ast.Exp, ctx *context) {
 		}
 		initialise(exp.Block.Value, ctx)
 	} else if exp.Call != nil {
-		for i := range exp.Call.Params {
-			initialise(exp.Call.Params[i], ctx)
+		initialise(exp.Call.Function, ctx)
+		for _, p := range exp.Call.Params {
+			initialise(p, ctx)
 		}
 		exp.Call.Type = MakeVariable()
 	} else if exp.Def != nil {
@@ -185,7 +188,7 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 		if def := ctx.getActiveType(exp.Id.Name); def != nil {
 			typ = def
 		} else if at := ctx.getId(exp.Id.Name); at != nil {
-			t := at.v.Type()
+			t := at.v.Type().Copy(NewTypeCopyCtx())
 			typ = &t
 		}
 		if typ == nil {
@@ -195,20 +198,9 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 			return err
 		}
 	} else if exp.Call != nil {
-		name := exp.Call.Name
-		var typ *Type
-
-		if at := ctx.getActiveType(name); at != nil {
-			typ = at
-		} else if def := ctx.getId(name); def != nil {
-			v := def.v.Type().Copy(NewTypeCopyCtx())
-			typ = &v
-		}
-		if typ == nil {
-			return errors.New("undefined function: " + name)
-		}
-		if !typ.IsFunction() && !typ.IsVariable() {
-			return errors.New("not a function: " + name)
+		function := exp.Call.Function
+		if err := inferExp(function, ctx, tgraph); err != nil {
+			return err
 		}
 		args := make([]Type, len(exp.Call.Params)+1)
 		for i, a := range exp.Call.Params {
@@ -218,7 +210,7 @@ func inferExp(exp *ast.Exp, ctx *context, tgraph *graph.TypeGraph) error {
 			args[i] = a.Type()
 		}
 		args[len(exp.Call.Params)] = exp.Type()
-		if err := tgraph.Add(MakeFunction(args...), *typ); err != nil {
+		if err := tgraph.Add(MakeFunction(args...), function.Type()); err != nil {
 			return err
 		}
 	} else if exp.Def != nil {

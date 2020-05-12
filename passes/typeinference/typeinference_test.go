@@ -32,22 +32,22 @@ func TestInfer(tes *testing.T) {
 		err:  nil,
 	}, {
 		name: "infer integer comparisons as boolean",
-		exp:  Block(Assgs{}, Fcall(">", IConst(1), IConst(2))),
+		exp:  Block(Assgs{}, Fcall(Id(">"), IConst(1), IConst(2))),
 		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer if expressions",
-		exp:  Block(Assgs{}, Fcall("if", BConst(true), IConst(1), IConst(2))),
+		exp:  Block(Assgs{}, Fcall(Id("if"), BConst(true), IConst(1), IConst(2))),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "fail on mismatching if expression branches",
-		exp:  Block(Assgs{}, Fcall("if", BConst(true), IConst(1), BConst(false))),
+		exp:  Block(Assgs{}, Fcall(Id("if"), BConst(true), IConst(1), BConst(false))),
 		typ:  "",
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "fail when adding booleans together",
-		exp:  Fcall("+", BConst(true), BConst(false)),
+		exp:  Fcall(Id("+"), BConst(true), BConst(false)),
 		typ:  "",
 		err:  errors.New("can not unify bool with V1[int|real]"),
 	}, {
@@ -55,40 +55,40 @@ func TestInfer(tes *testing.T) {
 		exp: Block(
 			Assgs{"a": Fdef(Block(
 				Assgs{},
-				Fcall("if", BConst(false), Id("x"), Fcall("a", BConst(true)))),
+				Fcall(Id("if"), BConst(false), Id("x"), Fcall(Id("a"), BConst(true)))),
 				"x",
 			)},
-			Fcall("a", BConst(false)),
+			Fcall(Id("a"), BConst(false)),
 		),
 		typ: "bool",
 		err: nil,
 	}, {
 		name: "infer function calls",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall("+", IConst(1), Id("x"))), "x")},
-			Fcall("a", IConst(1)),
+			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("+"), IConst(1), Id("x"))), "x")},
+			Fcall(Id("a"), IConst(1)),
 		),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer function parameters",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall("if", Id("b"), Id("x"), IConst(0))), "x", "b")},
-			Fcall("a", IConst(1), BConst(true)),
+			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Fcall(Id("a"), IConst(1), BConst(true)),
 		),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "fail on inferred function parameter mismatch",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall("if", Id("b"), Id("x"), IConst(0))), "x", "b")},
-			Fcall("a", BConst(true), BConst(true)),
+			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Fcall(Id("a"), BConst(true), BConst(true)),
 		),
 		typ: "",
 		err: errors.New("can not unify bool with int"),
 	}, {
 		name: "unify function return values",
-		exp:  Fdef(Block(Assgs{}, Fcall("if", BConst(true), Id("x"), Id("x"))), "x"),
+		exp:  Fdef(Block(Assgs{}, Fcall(Id("if"), BConst(true), Id("x"), Id("x"))), "x"),
 		typ:  "(V1)=>V1",
 		err:  nil,
 	}, {
@@ -99,8 +99,8 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "unify one function multiple ways",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall("if", BConst(true), Id("x"), Id("x"))), "x")},
-			Fcall("if", Fcall("a", BConst(true)), Fcall("a", IConst(1)), IConst(2)),
+			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("if"), BConst(true), Id("x"), Id("x"))), "x")},
+			Fcall(Id("if"), Fcall(Id("a"), BConst(true)), Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "int",
 		err: nil,
@@ -108,7 +108,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer parameters in block values",
 		exp: Block(
 			Assgs{},
-			Fdef(Fcall("if", BConst(true), Block(Assgs{}, Id("x")), IConst(2)), "x"),
+			Fdef(Fcall(Id("if"), BConst(true), Block(Assgs{}, Id("x")), IConst(2)), "x"),
 		),
 		typ: "(int)=>int",
 		err: nil,
@@ -116,7 +116,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer functions as arguments",
 		exp: Block(
 			Assgs{},
-			Fdef(Fcall("+", Fcall("x", BConst(true), IConst(2)), IConst(1)), "x"),
+			Fdef(Fcall(Id("+"), Fcall(Id("x"), BConst(true), IConst(2)), IConst(1)), "x"),
 		),
 		typ: "((bool,int)=>int)=>int",
 		err: nil,
@@ -124,10 +124,10 @@ func TestInfer(tes *testing.T) {
 		name: "fail to unify functions with wrong number of arguments",
 		exp: Block(
 			Assgs{
-				"a": Fdef(Fcall("x", IConst(2), IConst(2)), "x"),
+				"a": Fdef(Fcall(Id("x"), IConst(2), IConst(2)), "x"),
 				"b": Fdef(Id("x"), "x"),
 			},
-			Fcall("a", Id("b")),
+			Fcall(Id("a"), Id("b")),
 		),
 		typ: "",
 		err: errors.New("wrong number of function arguments: 3 != 2"),
@@ -135,11 +135,11 @@ func TestInfer(tes *testing.T) {
 		name: "infer multiple function arguments",
 		exp: Block(
 			Assgs{
-				"a":  Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
-				"b":  Fdef(Fcall("-", Id("x"), Id("y")), "x", "y"),
-				"op": Fdef(Fcall("x", IConst(1), IConst(2)), "x"),
+				"a":  Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"b":  Fdef(Fcall(Id("-"), Id("x"), Id("y")), "x", "y"),
+				"op": Fdef(Fcall(Id("x"), IConst(1), IConst(2)), "x"),
 			},
-			Fcall("+", Fcall("op", Id("a")), Fcall("op", Id("b"))),
+			Fcall(Id("+"), Fcall(Id("op"), Id("a")), Fcall(Id("op"), Id("b"))),
 		),
 		typ: "int",
 		err: nil,
@@ -147,12 +147,12 @@ func TestInfer(tes *testing.T) {
 		name: "infer functions as return values",
 		exp: Block(
 			Assgs{
-				"a":  Fdef(Fcall("+", Id("x"), Id("y")), "x", "y"),
-				"b":  Fdef(Fcall("-", Id("x"), Id("y")), "x", "y"),
-				"sw": Fdef(Fcall("if", Id("x"), Id("a"), Id("b")), "x"),
-				"r":  Fdef(Fcall("f", RConst(1.0), RConst(2.0)), "f"),
+				"a":  Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"b":  Fdef(Fcall(Id("-"), Id("x"), Id("y")), "x", "y"),
+				"sw": Fdef(Fcall(Id("if"), Id("x"), Id("a"), Id("b")), "x"),
+				"r":  Fdef(Fcall(Id("f"), RConst(1.0), RConst(2.0)), "f"),
 			},
-			Fcall("r", Fcall("sw", BConst(true))),
+			Fcall(Id("r"), Fcall(Id("sw"), BConst(true))),
 		),
 		typ: "real",
 		err: nil,
@@ -162,12 +162,12 @@ func TestInfer(tes *testing.T) {
 			Assgs{
 				"a": Fdef(Block(
 					Assgs{
-						"b": Fdef(Fcall("if", Id("b"), Id("x"), IConst(2)), "b"),
+						"b": Fdef(Fcall(Id("if"), Id("b"), Id("x"), IConst(2)), "b"),
 					},
-					Fcall("b", BConst(true)),
+					Fcall(Id("b"), BConst(true)),
 				), "x"),
 			},
-			Fcall("a", IConst(1)),
+			Fcall(Id("a"), IConst(1)),
 		),
 		typ: "int",
 		err: nil,

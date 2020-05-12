@@ -19,12 +19,6 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 			params = append(params, param)
 		}
 
-		/*if len(fun.Resolved.Closure) > 0 {
-			param := ir.NewParam("%%closure", types.I8Ptr)
-			param.Attrs = append(param.Attrs, ir.AttrString("nest"))
-			params = append(params, param)
-		}*/
-
 		compiled := ctx.Module.NewFunc(name, rtype, params...)
 		compiled.Linkage = enum.LinkageInternal
 
@@ -46,14 +40,6 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 			}
 			params = append(params, param)
 		}
-		/*if len(f.From.Resolved.Closure) > 0 {
-			cparam := ir.NewParam("%%closure", ClosurePType)
-			for _, c := range f.From.Resolved.Closure {
-				t := getType(c.Type)
-				v := subCtx.Block.NewLoad(t, cparam)
-				subCtx.addId(c.Name, val{v})
-			}
-		}*/
 		result := compileExp(f.From.Body, subCtx, true)
 		if result != nil { // result can be nil if it has already been returned from the function
 			subCtx.Block.NewRet(result)

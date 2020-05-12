@@ -38,8 +38,8 @@ type Const struct {
 // Functions
 
 type FCall struct {
-	Name   string
-	Params []*Exp
+	Function *Exp
+	Params   []*Exp
 
 	Type types.Type
 }
@@ -107,9 +107,9 @@ func (a *FCall) copy(ctx *types.TypeCopyCtx) *FCall {
 		pc[i] = p.copy(ctx)
 	}
 	return &FCall{
-		Name:   a.Name,
-		Params: pc,
-		Type:   a.Type.Copy(ctx),
+		Function: a.Function.copy(ctx),
+		Params:   pc,
+		Type:     a.Type.Copy(ctx),
 	}
 }
 
@@ -234,6 +234,7 @@ func (exp *Exp) Convert(s types.Substitutions) {
 			a.Convert(s)
 		}
 	} else if exp.Call != nil {
+		exp.Call.Function.Convert(s)
 		for _, p := range exp.Call.Params {
 			p.Convert(s)
 		}

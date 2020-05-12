@@ -23,9 +23,9 @@ func (e *Exp) stringer(b *strings.Builder) {
 		b.WriteString(e.Const.Type.Signature())
 		b.WriteString("]")
 	} else if e.Call != nil {
-		b.WriteString("CALL[name:")
-		b.WriteString(e.Call.Name)
-		b.WriteString(",type:")
+		b.WriteString("CALL[fun:{")
+		e.Call.Function.stringer(b)
+		b.WriteString("},type:")
 		b.WriteString(e.Call.Type.Signature())
 		b.WriteString(",params:{")
 		for i, p := range e.Call.Params {

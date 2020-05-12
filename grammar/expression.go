@@ -52,14 +52,18 @@ type Block struct {
 	Value       *Expression   `@@`
 }
 
+type EValue struct {
+	Id  *string     `@Ident`
+	Sub *Expression `| "(" @@ ")"`
+}
+
 type Value struct {
-	Int   *int64      `@Int`
-	Real  *float64    `| @Real`
-	Bool  *string     `| @("true" | "false")`
-	Call  *FunCall    `| @@`
-	Id    *string     `| @Ident`
-	Block *Block      `| "{" @@ "}"`
-	Sub   *Expression `| "(" @@ ")"`
+	Call  *FunCall `@@`
+	Int   *int64   `| @Int`
+	Real  *float64 `| @Real`
+	Bool  *string  `| @("true" | "false")`
+	Block *Block   `| "{" @@ "}"`
+	Eval  *EValue  `| @@`
 }
 
 type Assignment struct {
@@ -76,7 +80,11 @@ type FunDef struct {
 	Body   *Block      `"{" @@ "}"`
 }
 
-type FunCall struct {
-	Name   *string       `@Ident`
+type CallParams struct {
 	Params []*Expression `"(" (@@ ("," @@)*)? ")"`
+}
+
+type FunCall struct {
+	Function *EValue       `@@`
+	Calls    []*CallParams `@@+`
 }

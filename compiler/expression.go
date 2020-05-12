@@ -88,7 +88,7 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 
 func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	from := exp.Call
-	name := from.Name
+	name := from.Function.Id.Name
 	if name == "if" { // Need to evaluate if parameters lazily
 		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
 	} else {
@@ -148,7 +148,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		case "&&":
 			return ctx.Block.NewAnd(params[0], params[1])
 		default:
-			id, err := ctx.resolveId(from.Name)
+			id, err := ctx.resolveId(name)
 			if err != nil {
 				panic(err)
 			}

@@ -34,10 +34,10 @@ func Block(assign Assgs, e *ast.Exp) *ast.Exp {
 	}
 }
 
-func Fcall(name string, args ...*ast.Exp) *ast.Exp {
+func Fcall(function *ast.Exp, args ...*ast.Exp) *ast.Exp {
 	call := &ast.FCall{
-		Name:   name,
-		Params: args,
+		Function: function,
+		Params:   args,
 	}
 	return &ast.Exp{
 		Call: call,
