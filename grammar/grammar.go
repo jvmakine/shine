@@ -86,7 +86,7 @@ func convFDef(from *FunDef) *ast.FDef {
 	}
 	return &ast.FDef{
 		Params: params,
-		Body:   &ast.Exp{Block: convBlock(from.Body)},
+		Body:   convExp(from.Body),
 	}
 }
 

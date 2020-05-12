@@ -1,5 +1,5 @@
-inv = (x) => { if (x) false else true }
-choose = (b, l, r) => { if (b) l else choose(true, r, r) }
+inv = (x) => if (x) false else true
+choose = (b, l, r) => if (b) l else choose(true, r, r)
 
 choose (
     choose(true, true, false),
