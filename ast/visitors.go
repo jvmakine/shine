@@ -45,15 +45,24 @@ func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
 }
 
 func (a *Exp) Visit(f func(p *Exp, ctx *VisitContext)) {
-	a.visit(f, &VisitContext{})
+	a.visit(f, func(_ *Exp, _ *VisitContext) {}, &VisitContext{})
+}
+
+func (a *Exp) VisitAfter(f func(p *Exp, ctx *VisitContext)) {
+	a.visit(func(_ *Exp, _ *VisitContext) {}, f, &VisitContext{})
 }
 
 func (a *Exp) Crawl(f func(p *Exp, ctx *VisitContext)) {
 	visited := map[*Exp]bool{}
-	a.crawl(f, &VisitContext{}, &visited)
+	a.crawl(f, func(_ *Exp, _ *VisitContext) {}, &VisitContext{}, &visited)
 }
 
-func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), ctx *VisitContext, visited *map[*Exp]bool) {
+func (a *Exp) CrawlAfter(f func(p *Exp, ctx *VisitContext)) {
+	visited := map[*Exp]bool{}
+	a.crawl(func(_ *Exp, _ *VisitContext) {}, f, &VisitContext{}, &visited)
+}
+
+func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), l func(p *Exp, ctx *VisitContext), ctx *VisitContext, visited *map[*Exp]bool) {
 	if (*visited)[a] {
 		return
 	}
@@ -61,35 +70,37 @@ func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), ctx *VisitContext, visite
 	f(a, ctx)
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx}
-		a.Block.Value.crawl(f, sub, visited)
+		a.Block.Value.crawl(f, l, sub, visited)
 	} else if a.Def != nil {
-		a.Def.Body.crawl(f, ctx, visited)
+		a.Def.Body.crawl(f, l, ctx, visited)
 	} else if a.Call != nil {
-		a.Call.Function.crawl(f, ctx, visited)
+		a.Call.Function.crawl(f, l, ctx, visited)
 		for _, p := range a.Call.Params {
-			p.crawl(f, ctx, visited)
+			p.crawl(f, l, ctx, visited)
 		}
 	} else if a.Id != nil {
 		if r, c := ctx.resolve(a.Id.Name); r != nil {
-			r.crawl(f, c, visited)
+			r.crawl(f, l, c, visited)
 		}
 	}
+	l(a, ctx)
 }
 
-func (a *Exp) visit(f func(p *Exp, ctx *VisitContext), ctx *VisitContext) {
+func (a *Exp) visit(f func(p *Exp, ctx *VisitContext), l func(p *Exp, ctx *VisitContext), ctx *VisitContext) {
 	f(a, ctx)
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx}
 		for _, a := range a.Block.Assignments {
-			a.visit(f, sub)
+			a.visit(f, l, sub)
 		}
-		a.Block.Value.visit(f, sub)
+		a.Block.Value.visit(f, l, sub)
 	} else if a.Def != nil {
-		a.Def.Body.visit(f, ctx)
+		a.Def.Body.visit(f, l, ctx)
 	} else if a.Call != nil {
-		a.Call.Function.visit(f, ctx)
+		a.Call.Function.visit(f, l, ctx)
 		for _, p := range a.Call.Params {
-			p.visit(f, ctx)
+			p.visit(f, l, ctx)
 		}
 	}
+	l(a, ctx)
 }
