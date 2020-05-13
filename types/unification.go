@@ -24,6 +24,9 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
 		return Substitutions{}, UnificationError(o, t)
 	}
+	if (o.IsPrimitive() && t.IsFunction()) || (o.IsFunction() && t.IsPrimitive()) {
+		return Substitutions{}, UnificationError(o, t)
+	}
 	if t.IsVariable() && o.IsVariable() {
 		if o.IsRestrictedVariable() && !t.IsRestrictedVariable() {
 			return o.Unifier(t)
@@ -35,35 +38,14 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 			}
 			rv := MakeRestricted(resolv...)
 			return Substitutions{t.Variable: rv, o.Variable: rv}, err
-		} else if t.IsFunction() && !o.IsFunction() {
-			return o.Unifier(t)
-		} else if t.IsRestrictedVariable() && o.IsFunction() {
-			return Substitutions{}, UnificationError(t, o)
-		} else if o.IsFunction() && !t.IsFunction() {
-			return Substitutions{t.Variable: o}, nil
-		} else if t.IsFunction() && o.IsFunction() {
-			ot := o.FunctTypes()
-			tt := t.FunctTypes()
-			if len(ot) != len(tt) {
-				return Substitutions{}, UnificationError(o, t)
-			}
-			result := Substitutions{t.Variable: o}
-			for i, p := range tt {
-				s, err := p.Unifier(ot[i])
-				if err != nil {
-					return Substitutions{}, err
-				}
-				result, err = result.Combine(s)
-				if err != nil {
-					return Substitutions{}, err
-				}
-			}
-			return result, nil
 		}
 		return Substitutions{o.Variable: t}, nil
 	}
 	if o.IsVariable() && !t.IsVariable() {
 		return o.Unifier(t)
+	}
+	if t.IsVariable() && o.IsFunction() {
+		return Substitutions{t.Variable: o}, nil
 	}
 	if o.IsFunction() && t.IsFunction() {
 		op := o.FunctTypes()
@@ -71,7 +53,7 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 		if len(op) != len(tp) {
 			return Substitutions{}, UnificationError(o, t)
 		}
-		result := Substitutions{t.Variable: o}
+		result := Substitutions{}
 		for i, p := range op {
 			s, err := p.Unifier(tp[i])
 			if err != nil {

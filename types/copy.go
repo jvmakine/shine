@@ -29,16 +29,7 @@ func (t Type) Copy(ctx *TypeCopyCtx) Type {
 }
 
 func (t *TypeVar) Copy(ctx *TypeCopyCtx) *TypeVar {
-	var fun *Function = nil
-	if t.Function != nil {
-		f := make(Function, len(*t.Function))
-		fun = &f
-		for i, p := range *t.Function {
-			(*fun)[i] = p.Copy(ctx)
-		}
-	}
 	return &TypeVar{
 		Restrictions: t.Restrictions,
-		Function:     fun,
 	}
 }

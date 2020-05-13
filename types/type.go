@@ -18,7 +18,6 @@ type Function []Type
 
 type TypeVar struct {
 	Restrictions Restrictions
-	Function     *Function
 }
 
 type Type struct {
@@ -40,17 +39,7 @@ func WithType(t Type, f func(t Type) Type) Type {
 }
 
 func MakeFunction(ts ...Type) Type {
-	isvar := false
-	for _, t := range ts {
-		if t.IsVariable() {
-			isvar = true
-			break
-		}
-	}
 	var f Function = ts
-	if isvar {
-		return Type{Variable: &TypeVar{Function: &f}}
-	}
 	return Type{Function: &f}
 }
 
@@ -59,13 +48,10 @@ func MakeRestricted(ps ...Primitive) Type {
 }
 
 func (t Type) FreeVars() []*TypeVar {
-	if t.Variable != nil && t.Variable.Function == nil {
+	if t.Variable != nil {
 		return []*TypeVar{t.Variable}
 	}
 	fun := t.Function
-	if t.Variable != nil {
-		fun = t.Variable.Function
-	}
 	if fun != nil {
 		res := []*TypeVar{}
 		for _, p := range *fun {
@@ -77,7 +63,7 @@ func (t Type) FreeVars() []*TypeVar {
 }
 
 func (t Type) IsFunction() bool {
-	return t.Function != nil || (t.Variable != nil && t.Variable.Function != nil)
+	return t.Function != nil
 }
 
 func (t Type) FunctTypes() []Type {
@@ -85,9 +71,6 @@ func (t Type) FunctTypes() []Type {
 		panic("can not get params from a non-function")
 	}
 	f := t.Function
-	if f == nil {
-		f = t.Variable.Function
-	}
 	return *f
 }
 
@@ -96,9 +79,6 @@ func (t Type) FunctTypesPtr() []*Type {
 		panic("can not get params from a non-function")
 	}
 	f := t.Function
-	if f == nil {
-		f = t.Variable.Function
-	}
 	ptrs := make([]*Type, len(*f))
 	for i, t := range *f {
 		ptrs[i] = &t

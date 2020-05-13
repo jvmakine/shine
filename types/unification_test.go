@@ -68,6 +68,12 @@ func TestType_Unify(t *testing.T) {
 		want: Type{},
 		err:  errors.New("can not unify int with real"),
 	}, {
+		name: "fails to unify a function with a primitive",
+		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		b:    MakePrimitive("int"),
+		want: Type{},
+		err:  errors.New("can not unify (real)=>real with int"),
+	}, {
 		name: "unifies variable functions with variables",
 		a:    MakeVariable(),
 		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),

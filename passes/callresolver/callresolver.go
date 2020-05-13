@@ -3,8 +3,6 @@ package callresolver
 import (
 	"strconv"
 
-	"github.com/jvmakine/shine/passes/typeinference"
-
 	"github.com/jvmakine/shine/ast"
 )
 
@@ -39,7 +37,7 @@ func ResolveFunctions(exp *ast.Exp) {
 				if block.Assignments[fsig] == nil {
 					f := block.Assignments[v.Id.Name]
 					cop := f.Copy()
-					subs, err := typeinference.Unify(cop.Type(), v.Type())
+					subs, err := cop.Type().Unifier(v.Type())
 					if err != nil {
 						panic(err)
 					}

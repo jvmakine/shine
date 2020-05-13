@@ -48,9 +48,6 @@ func sign(t Type, ctx *signctx) string {
 		return ctx.varm[t.Variable]
 	}
 	if t.IsFunction() {
-		if t.IsVariable() {
-			return t.Variable.Function.sign(ctx)
-		}
 		return t.Function.sign(ctx)
 	}
 	if !t.IsDefined() {
