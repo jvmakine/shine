@@ -7,8 +7,7 @@ import (
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/callresolver"
 	"github.com/jvmakine/shine/passes/typeinference"
-	. "github.com/jvmakine/shine/resolved"
-	//. "github.com/jvmakine/shine/test"
+	. "github.com/jvmakine/shine/types"
 )
 
 func TestResolveFunctionDef(tes *testing.T) {
@@ -70,8 +69,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 func collectClosures(cat *callresolver.FCat) []Closure {
 	res := []Closure{}
 	for _, v := range *cat {
-		if v.Resolved != nil {
-			res = append(res, v.Resolved.Closure)
+		if v.Closure != nil {
+			res = append(res, *v.Closure)
 		}
 	}
 	return res

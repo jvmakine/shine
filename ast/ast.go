@@ -5,7 +5,6 @@ package ast
 import (
 	"errors"
 
-	"github.com/jvmakine/shine/resolved"
 	"github.com/jvmakine/shine/types"
 )
 
@@ -17,8 +16,6 @@ type Exp struct {
 	Id    *Id
 	Call  *FCall
 	Def   *FDef
-
-	Closure resolved.Closure
 }
 
 type Id struct {
@@ -54,7 +51,7 @@ type FDef struct {
 	Params []*FParam
 	Body   *Exp
 
-	Resolved *resolved.ResolvedFnDef
+	Closure *types.Closure
 }
 
 // Blocks
@@ -131,9 +128,9 @@ func (a *FDef) copy(ctx *types.TypeCopyCtx) *FDef {
 		pc[i] = p.copy(ctx)
 	}
 	return &FDef{
-		Params:   pc,
-		Body:     a.Body.copy(ctx),
-		Resolved: a.Resolved,
+		Params:  pc,
+		Body:    a.Body.copy(ctx),
+		Closure: a.Closure,
 	}
 }
 
