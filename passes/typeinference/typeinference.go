@@ -106,8 +106,8 @@ func typeCall(call *ast.FCall, unifier Substitutions) error {
 	return nil
 }
 
-func initialiseVariables(exp *ast.Exp) {
-	exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
+func initialiseVariables(exp *ast.Exp) error {
+	return exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Def != nil {
 			for _, p := range v.Def.Params {
 				name := p.Name
@@ -116,6 +116,11 @@ func initialiseVariables(exp *ast.Exp) {
 				}
 				p.Type = MakeVariable()
 			}
+		} else if v.Block != nil {
+			err := v.Block.CheckValueCycles()
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -123,7 +128,9 @@ func initialiseVariables(exp *ast.Exp) {
 
 func Infer(exp *ast.Exp) error {
 	blockCount := 0
-	initialiseVariables(exp)
+	if err := initialiseVariables(exp); err != nil {
+		return err
+	}
 	unifier := MakeSubstitutions()
 	crawler := func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Const != nil {
