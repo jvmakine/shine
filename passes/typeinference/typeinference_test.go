@@ -142,7 +142,7 @@ func TestInfer(tes *testing.T) {
 			Fcall(Id("a"), Id("b")),
 		),
 		typ: "",
-		err: errors.New("wrong number of function arguments: 3 != 2"),
+		err: errors.New("can not unify (V1)=>V1 with (int,int)=>V1"),
 	}, {
 		name: "infer multiple function arguments",
 		exp: Block(
@@ -173,13 +173,30 @@ func TestInfer(tes *testing.T) {
 		exp: Block(
 			Assgs{
 				"a": Fdef(Block(
-					Assgs{
-						"b": Fdef(Fcall(Id("if"), Id("b"), Id("x"), IConst(2)), "b"),
-					},
+					Assgs{"b": Fdef(Fcall(Id("if"), Id("bo"), Id("x"), IConst(2)), "bo")},
 					Fcall(Id("b"), BConst(true)),
 				), "x"),
 			},
 			Fcall(Id("a"), IConst(1)),
+		),
+		typ: "int",
+		err: nil,
+	}, {
+		name: "fail on type errors in unused code",
+		exp: Block(
+			Assgs{
+				"a": Fdef(Fcall(Id("if"), BConst(true), Id("x"), IConst(2)), "x"),
+				"b": Fdef(Fcall(Id("if"), Id("bo"), RConst(1.0), IConst(2)), "bo"),
+			},
+			Fcall(Id("a"), IConst(3)),
+		),
+		typ: "",
+		err: errors.New("can not unify int with real"),
+	}, {
+		name: "leave free variables to functions",
+		exp: Block(
+			Assgs{"a": Fdef(Fcall(Id("+"), Id("x"), Id("x")), "x")},
+			Fcall(Id("if"), Fcall(Id("<"), Fcall(Id("a"), RConst(1.0)), RConst(2.0)), Fcall(Id("a"), IConst(1)), IConst(3)),
 		),
 		typ: "int",
 		err: nil,

@@ -3,10 +3,23 @@ package ast
 type VisitContext struct {
 	parent *VisitContext
 	block  *Block
+	def    *FDef
 }
 
 func (c *VisitContext) Block() *Block {
 	return c.block
+}
+
+func (c *VisitContext) ParamOf(id string) *FParam {
+	if c.def != nil {
+		if p := c.def.ParamOf(id); p != nil {
+			return p
+		}
+	}
+	if c.parent != nil {
+		return c.parent.ParamOf(id)
+	}
+	return nil
 }
 
 func (c *VisitContext) BlockOf(id string) *Block {
@@ -44,63 +57,101 @@ func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
 	return nil, nil
 }
 
-func (a *Exp) Visit(f func(p *Exp, ctx *VisitContext)) {
-	a.visit(f, func(_ *Exp, _ *VisitContext) {}, &VisitContext{})
+type VisitFunc = func(p *Exp, ctx *VisitContext) error
+
+func nullVisitFun(_ *Exp, _ *VisitContext) error {
+	return nil
 }
 
-func (a *Exp) VisitAfter(f func(p *Exp, ctx *VisitContext)) {
-	a.visit(func(_ *Exp, _ *VisitContext) {}, f, &VisitContext{})
+func (a *Exp) Visit(f VisitFunc) error {
+	return a.visit(f, nullVisitFun, &VisitContext{})
 }
 
-func (a *Exp) Crawl(f func(p *Exp, ctx *VisitContext)) {
+func (a *Exp) VisitAfter(f VisitFunc) error {
+	return a.visit(nullVisitFun, f, &VisitContext{})
+}
+
+func (a *Exp) Crawl(f VisitFunc) (map[*Exp]bool, error) {
 	visited := map[*Exp]bool{}
-	a.crawl(f, func(_ *Exp, _ *VisitContext) {}, &VisitContext{}, &visited)
+	return visited, a.crawl(f, nullVisitFun, &VisitContext{}, &visited)
 }
 
-func (a *Exp) CrawlAfter(f func(p *Exp, ctx *VisitContext)) {
+func (a *Exp) CrawlAfter(f VisitFunc) (map[*Exp]bool, error) {
 	visited := map[*Exp]bool{}
-	a.crawl(func(_ *Exp, _ *VisitContext) {}, f, &VisitContext{}, &visited)
+	return visited, a.crawl(nullVisitFun, f, &VisitContext{}, &visited)
 }
 
-func (a *Exp) crawl(f func(p *Exp, ctx *VisitContext), l func(p *Exp, ctx *VisitContext), ctx *VisitContext, visited *map[*Exp]bool) {
+func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*Exp]bool) error {
 	if (*visited)[a] {
-		return
+		return nil
 	}
 	(*visited)[a] = true
-	f(a, ctx)
+	if err := f(a, ctx); err != nil {
+		return err
+	}
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx}
-		a.Block.Value.crawl(f, l, sub, visited)
+		if err := a.Block.Value.crawl(f, l, sub, visited); err != nil {
+			return err
+		}
 	} else if a.Def != nil {
-		a.Def.Body.crawl(f, l, ctx, visited)
+		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def}
+		if err := a.Def.Body.crawl(f, l, sub, visited); err != nil {
+			return err
+		}
 	} else if a.Call != nil {
-		a.Call.Function.crawl(f, l, ctx, visited)
+		if err := a.Call.Function.crawl(f, l, ctx, visited); err != nil {
+			return err
+		}
 		for _, p := range a.Call.Params {
-			p.crawl(f, l, ctx, visited)
+			if err := p.crawl(f, l, ctx, visited); err != nil {
+				return err
+			}
 		}
 	} else if a.Id != nil {
 		if r, c := ctx.resolve(a.Id.Name); r != nil {
-			r.crawl(f, l, c, visited)
+			if err := r.crawl(f, l, c, visited); err != nil {
+				return err
+			}
 		}
 	}
-	l(a, ctx)
+	if err := l(a, ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (a *Exp) visit(f func(p *Exp, ctx *VisitContext), l func(p *Exp, ctx *VisitContext), ctx *VisitContext) {
-	f(a, ctx)
+func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
+	if err := f(a, ctx); err != nil {
+		return err
+	}
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx}
 		for _, a := range a.Block.Assignments {
-			a.visit(f, l, sub)
+			if err := a.visit(f, l, sub); err != nil {
+				return err
+			}
 		}
-		a.Block.Value.visit(f, l, sub)
+		if err := a.Block.Value.visit(f, l, sub); err != nil {
+			return err
+		}
 	} else if a.Def != nil {
-		a.Def.Body.visit(f, l, ctx)
+		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def}
+		if err := a.Def.Body.visit(f, l, sub); err != nil {
+			return err
+		}
 	} else if a.Call != nil {
-		a.Call.Function.visit(f, l, ctx)
+		if err := a.Call.Function.visit(f, l, ctx); err != nil {
+			return err
+		}
 		for _, p := range a.Call.Params {
-			p.visit(f, l, ctx)
+			if err := p.visit(f, l, ctx); err != nil {
+				return err
+			}
 		}
 	}
-	l(a, ctx)
+	if err := l(a, ctx); err != nil {
+		return err
+	}
+	return nil
 }

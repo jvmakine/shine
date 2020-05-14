@@ -83,6 +83,15 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 	}
 }
 
+func (a *FDef) ParamOf(name string) *FParam {
+	for _, p := range a.Params {
+		if p.Name == name {
+			return p
+		}
+	}
+	return nil
+}
+
 func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	if a == nil {
 		return nil
@@ -220,6 +229,15 @@ func cycleToStr(arr []string, v string) string {
 		res = res + a + " -> "
 	}
 	return res + v
+}
+
+func (call *FCall) MakeFunType() types.Type {
+	funps := make([]types.Type, len(call.Params)+1)
+	for i, p := range call.Params {
+		funps[i] = p.Type()
+	}
+	funps[len(call.Params)] = call.Type
+	return types.MakeFunction(funps...)
 }
 
 func (exp *Exp) Type() types.Type {

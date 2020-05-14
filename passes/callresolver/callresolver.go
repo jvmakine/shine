@@ -16,7 +16,7 @@ type FCat = map[FSign]*ast.FDef
 
 func Collect(exp *ast.Exp) FCat {
 	result := FCat{}
-	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) {
+	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
 		if v.Block != nil {
 			for n, a := range v.Block.Assignments {
 				if a.Def != nil {
@@ -24,13 +24,22 @@ func Collect(exp *ast.Exp) FCat {
 				}
 			}
 		}
+		return nil
 	})
 	return result
 }
 
 func ResolveFunctions(exp *ast.Exp) {
 	anonCount := 0
-	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) {
+	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
+		if v.Call != nil {
+			fun := v.Call.MakeFunType()
+			uni, err := fun.Unifier(v.Call.Function.Type())
+			if err != nil {
+				panic(err)
+			}
+			v.Call.Function.Convert(uni)
+		}
 		if v.Id != nil && v.Type().IsFunction() {
 			if block := ctx.BlockOf(v.Id.Name); block != nil {
 				fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
@@ -64,5 +73,6 @@ func ResolveFunctions(exp *ast.Exp) {
 			v.Call.Function.Call = nil
 			v.Call.Function.Id = &ast.Id{Name: fsig, Type: typ}
 		}
+		return nil
 	})
 }

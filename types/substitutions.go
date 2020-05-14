@@ -1,9 +1,19 @@
 package types
 
-type Substitutions map[*TypeVar]Type
+type Substitutions struct {
+	substitutions map[*TypeVar]Type
+	references    map[*TypeVar]map[*TypeVar]bool
+}
+
+func MakeSubstitutions() Substitutions {
+	return Substitutions{
+		substitutions: map[*TypeVar]Type{},
+		references:    map[*TypeVar]map[*TypeVar]bool{},
+	}
+}
 
 func (s Substitutions) Apply(t Type) Type {
-	target := s[t.Variable]
+	target := s.substitutions[t.Variable]
 	if !target.IsDefined() {
 		target = t
 	}
@@ -17,18 +27,53 @@ func (s Substitutions) Apply(t Type) Type {
 	return target
 }
 
-func (s Substitutions) Combine(o Substitutions) (Substitutions, error) {
-	result := Substitutions{}
-	for k, v := range o {
-		if s[k].IsDefined() {
-			s, err := s[k].Unifier(v)
+func (s Substitutions) Update(from *TypeVar, to Type) error {
+	result := s.Apply(to)
+
+	if p := s.substitutions[from]; p.IsDefined() {
+		if result != p {
+			uni, err := result.Unifier(p)
 			if err != nil {
-				return Substitutions{}, err
+				return err
 			}
-			result[k] = s.Apply(v)
-		} else {
-			result[k] = v
+			s.Combine(uni)
+			result = uni.Apply(result)
 		}
 	}
-	return result, nil
+
+	s.substitutions[from] = result
+
+	for _, fv := range result.FreeVars() {
+		if s.references[fv] == nil {
+			s.references[fv] = map[*TypeVar]bool{}
+		}
+		s.references[fv][from] = true
+	}
+
+	if rs := s.references[from]; rs != nil {
+		s.references[from] = nil
+		subs := MakeSubstitutions()
+		subs.Update(from, result)
+		for k := range rs {
+			substit := s.substitutions[k]
+			s.substitutions[k] = subs.Apply(substit)
+			for _, fv := range s.substitutions[k].FreeVars() {
+				if s.references[fv] == nil {
+					s.references[fv] = map[*TypeVar]bool{}
+				}
+				s.references[fv][from] = true
+			}
+		}
+	}
+	return nil
+}
+
+func (s Substitutions) Combine(o Substitutions) error {
+	for f, t := range o.substitutions {
+		err := s.Update(f, t)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

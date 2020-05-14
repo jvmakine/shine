@@ -34,32 +34,42 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 			resolv, err := t.Variable.Restrictions.Resolve(o.Variable.Restrictions)
 			if len(resolv) == 1 {
 				prim := MakePrimitive(resolv[0])
-				return Substitutions{t.Variable: prim, o.Variable: prim}, err
+				subs := MakeSubstitutions()
+				subs.Update(t.Variable, prim)
+				subs.Update(o.Variable, prim)
+				return subs, err
 			}
 			rv := MakeRestricted(resolv...)
-			return Substitutions{t.Variable: rv, o.Variable: rv}, err
+			subs := MakeSubstitutions()
+			subs.Update(t.Variable, rv)
+			subs.Update(o.Variable, rv)
+			return subs, err
 		}
-		return Substitutions{o.Variable: t}, nil
+		subs := MakeSubstitutions()
+		subs.Update(o.Variable, t)
+		return subs, nil
 	}
 	if o.IsVariable() && !t.IsVariable() {
 		return o.Unifier(t)
 	}
 	if t.IsVariable() && o.IsFunction() {
-		return Substitutions{t.Variable: o}, nil
+		subs := MakeSubstitutions()
+		subs.Update(t.Variable, o)
+		return subs, nil
 	}
 	if o.IsFunction() && t.IsFunction() {
 		op := o.FunctTypes()
 		tp := t.FunctTypes()
 		if len(op) != len(tp) {
-			return Substitutions{}, UnificationError(o, t)
+			return MakeSubstitutions(), UnificationError(o, t)
 		}
-		result := Substitutions{}
+		result := MakeSubstitutions()
 		for i, p := range op {
 			s, err := p.Unifier(tp[i])
 			if err != nil {
-				return Substitutions{}, err
+				return MakeSubstitutions(), err
 			}
-			result, err = result.Combine(s)
+			err = result.Combine(s)
 			if err != nil {
 				return Substitutions{}, err
 			}
@@ -69,9 +79,13 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 	if o.IsPrimitive() {
 		if t.IsRestrictedVariable() {
 			err := t.Variable.Restrictions.Unifies(*o.Primitive)
-			return Substitutions{t.Variable: o}, err
+			subs := MakeSubstitutions()
+			subs.Update(t.Variable, o)
+			return subs, err
 		} else if t.IsVariable() {
-			return Substitutions{t.Variable: o}, nil
+			subs := MakeSubstitutions()
+			subs.Update(t.Variable, o)
+			return subs, nil
 		}
 		return Substitutions{}, nil
 	}

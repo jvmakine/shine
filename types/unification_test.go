@@ -7,6 +7,8 @@ import (
 )
 
 func TestType_Unify(t *testing.T) {
+	var1 := MakeVariable()
+	var2 := MakeVariable()
 	tests := []struct {
 		name string
 		a    Type
@@ -91,6 +93,18 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeRestricted("int", "real"),
 		want: MakeRestricted("int", "real"),
 		err:  nil,
+	}, {
+		name: "unifies functions with overlapping variables",
+		a:    MakeFunction(var1, IntP, var1),
+		b:    MakeFunction(var2, var2, var2),
+		want: MakeFunction(IntP, IntP, IntP),
+		err:  nil,
+	}, {
+		name: "fails to unify mismatching functions",
+		a:    MakeFunction(var1, IntP, var1),
+		b:    MakeFunction(var2, var2, RealP),
+		want: Type{},
+		err:  errors.New("can not unify int with real"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
