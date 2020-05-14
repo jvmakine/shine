@@ -160,9 +160,7 @@ func convVal(from *Value) *ast.Exp {
 			Block: convBlock(from.Block),
 		}
 	} else if from.Call != nil {
-		return &ast.Exp{
-			Call: convFCall(from.Call),
-		}
+		return convFCall(from.Call)
 	} else if from.Int != nil {
 		return &ast.Exp{
 			Const: &ast.Const{Int: from.Int},
@@ -185,26 +183,35 @@ func convVal(from *Value) *ast.Exp {
 	return nil
 }
 
-func convFCall(from *FunCall) *ast.FCall {
-	call, calls := from.Calls[0], from.Calls[1:]
-	params := make([]*ast.Exp, len(call.Params))
-	for i, p := range call.Params {
-		params[i] = convExp(p)
-	}
-	res := &ast.FCall{
-		Function: convEval(from.Function),
-		Params:   params,
-	}
-	for len(calls) > 0 {
-		call, calls = calls[0], calls[1:]
+func convFCall(from *FunCall) *ast.Exp {
+	if len(from.Calls) > 0 {
+		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]*ast.Exp, len(call.Params))
 		for i, p := range call.Params {
 			params[i] = convExp(p)
 		}
-		res = &ast.FCall{
-			Function: &ast.Exp{Call: res},
+		res := &ast.FCall{
+			Function: convEval(from.Function),
 			Params:   params,
 		}
+		for len(calls) > 0 {
+			call, calls = calls[0], calls[1:]
+			params := make([]*ast.Exp, len(call.Params))
+			for i, p := range call.Params {
+				params[i] = convExp(p)
+			}
+			res = &ast.FCall{
+				Function: &ast.Exp{Call: res},
+				Params:   params,
+			}
+		}
+		return &ast.Exp{
+			Call: res,
+		}
 	}
-	return res
+	// Single brackets get interpreted as fcalls as well, this is a workaround
+	if from.Function.Id != nil {
+		return &ast.Exp{Id: &ast.Id{Name: *from.Function.Id}}
+	}
+	return convExp(from.Function.Sub)
 }

@@ -42,34 +42,24 @@ func function(ts ...Type) Type {
 	return MakeFunction(ts...)
 }
 
-func variable() Type {
-	return Type{Variable: &TypeVar{}}
-}
-
 func withVar(v Type, f func(t Type) *ast.Exp) *ast.Exp {
 	return f(v)
 }
-
-var (
-	integer = base(Int)
-	real    = base(Real)
-	boolean = base(Bool)
-)
 
 var global map[string]*ast.Exp = map[string]*ast.Exp{
 	"+":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
 	"-":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
 	"*":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
-	"%":  fun(integer, integer, integer),
+	"%":  fun(IntP, IntP, IntP),
 	"/":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
-	"<":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, boolean) }),
-	">":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, boolean) }),
-	">=": withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, boolean) }),
-	"<=": withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, boolean) }),
-	"||": fun(boolean, boolean, boolean),
-	"&&": fun(boolean, boolean, boolean),
-	"==": withVar(union(Int, Bool), func(t Type) *ast.Exp { return fun(t, t, boolean) }),
-	"if": withVar(variable(), func(t Type) *ast.Exp { return fun(boolean, t, t, t) }),
+	"<":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	">":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	">=": withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	"<=": withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	"||": fun(BoolP, BoolP, BoolP),
+	"&&": fun(BoolP, BoolP, BoolP),
+	"==": withVar(union(Int, Bool), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	"if": withVar(MakeVariable(), func(t Type) *ast.Exp { return fun(BoolP, t, t, t) }),
 }
 
 func typeConstant(constant *ast.Const) {
@@ -120,8 +110,9 @@ func Infer(exp *ast.Exp) error {
 	exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Def != nil {
 			for _, p := range v.Def.Params {
-				if ctx.BlockOf(p.Name) != nil || ctx.ParamOf(p.Name) != nil {
-					return errors.New("redefinition of " + p.Name)
+				name := p.Name
+				if ctx.BlockOf(name) != nil || ctx.ParamOf(name) != nil {
+					return errors.New("redefinition of " + name)
 				}
 				p.Type = MakeVariable()
 			}

@@ -63,6 +63,18 @@ func TestInfer(tes *testing.T) {
 		typ: "bool",
 		err: nil,
 	}, {
+		name: "infer deeply nested recursive functions",
+		exp: Block(
+			Assgs{"a": Fdef(Block(
+				Assgs{"b": Fdef(Fcall(Id("a"), Id("y")), "y")},
+				Fcall(Id("if"), BConst(false), Id("x"), Fcall(Id("b"), BConst(true)))),
+				"x",
+			)},
+			Fcall(Id("a"), BConst(false)),
+		),
+		typ: "bool",
+		err: nil,
+	}, {
 		name: "infer function calls",
 		exp: Block(
 			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Id("+"), IConst(1), Id("x"))), "x")},

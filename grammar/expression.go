@@ -86,5 +86,5 @@ type CallParams struct {
 
 type FunCall struct {
 	Function *EValue       `@@`
-	Calls    []*CallParams `@@+`
+	Calls    []*CallParams `@@*`
 }

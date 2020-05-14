@@ -54,6 +54,10 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "2 + 3 * 4",
 		want:  t.Block(t.Assgs{}, t.Fcall(t.Id("+"), t.IConst(2), t.Fcall(t.Id("*"), t.IConst(3), t.IConst(4)))),
 	}, {
+		name:  "parse expressions with brackets",
+		input: "(2 + 4) * 3",
+		want:  t.Block(t.Assgs{}, t.Fcall(t.Id("*"), t.Fcall(t.Id("+"), t.IConst(2), t.IConst(4)), t.IConst(3))),
+	}, {
 		name:  "parse == operator",
 		input: "2 == 3",
 		want:  t.Block(t.Assgs{}, t.Fcall(t.Id("=="), t.IConst(2), t.IConst(3))),
