@@ -27,11 +27,10 @@ func Parse(str string) (*Program, error) {
 		alpha = "a"…"z" | "A"…"Z" | "_" .
 		digit = "0"…"9" .
 	`)
-	parser, err := participle.Build(&Program{}, participle.Lexer(lexer), participle.Elide("Whitespace"))
+	parser, err := participle.Build(&Program{}, participle.UseLookahead(2), participle.Lexer(lexer), participle.Elide("Whitespace"))
 	if err != nil {
 		panic(err)
 	}
-
 	ast := &Program{}
 	err = parser.ParseString(str, ast)
 	if err != nil {
@@ -127,7 +126,7 @@ func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {
 }
 
 func convTerm(from *Term) *ast.Exp {
-	return convOpFact(convVal(from.Left), from.Right)
+	return convOpFact(convFVal(from.Left), from.Right)
 }
 
 func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
@@ -137,53 +136,13 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 	res := &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
-			Params:   []*ast.Exp{left, convVal(right[0].Right)},
+			Params:   []*ast.Exp{left, convFVal(right[0].Right)},
 		},
 	}
 	return convOpFact(res, right[1:])
 }
 
-func convEval(from *EValue) *ast.Exp {
-	if from.Sub != nil {
-		return convExp(from.Sub)
-	} else if from.Id != nil {
-		return &ast.Exp{
-			Id: &ast.Id{Name: *from.Id},
-		}
-	}
-	return nil
-}
-
-func convVal(from *Value) *ast.Exp {
-	if from.Block != nil {
-		return &ast.Exp{
-			Block: convBlock(from.Block),
-		}
-	} else if from.Call != nil {
-		return convFCall(from.Call)
-	} else if from.Int != nil {
-		return &ast.Exp{
-			Const: &ast.Const{Int: from.Int},
-		}
-	} else if from.Real != nil {
-		return &ast.Exp{
-			Const: &ast.Const{Real: from.Real},
-		}
-	} else if from.Bool != nil {
-		value := false
-		if *from.Bool == "true" {
-			value = true
-		}
-		return &ast.Exp{
-			Const: &ast.Const{Bool: &value},
-		}
-	} else if from.Eval != nil {
-		return convEval(from.Eval)
-	}
-	return nil
-}
-
-func convFCall(from *FunCall) *ast.Exp {
+func convFVal(from *FValue) *ast.Exp {
 	if len(from.Calls) > 0 {
 		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]*ast.Exp, len(call.Params))
@@ -191,7 +150,7 @@ func convFCall(from *FunCall) *ast.Exp {
 			params[i] = convExp(p)
 		}
 		res := &ast.FCall{
-			Function: convEval(from.Function),
+			Function: convPVal(from.Value),
 			Params:   params,
 		}
 		for len(calls) > 0 {
@@ -209,9 +168,36 @@ func convFCall(from *FunCall) *ast.Exp {
 			Call: res,
 		}
 	}
-	// Single brackets get interpreted as fcalls as well, this is a workaround
-	if from.Function.Id != nil {
-		return &ast.Exp{Id: &ast.Id{Name: *from.Function.Id}}
+	return convPVal(from.Value)
+}
+
+func convPVal(from *PValue) *ast.Exp {
+	if from.Block != nil {
+		return &ast.Exp{
+			Block: convBlock(from.Block),
+		}
+	} else if from.Int != nil {
+		return &ast.Exp{
+			Const: &ast.Const{Int: from.Int},
+		}
+	} else if from.Real != nil {
+		return &ast.Exp{
+			Const: &ast.Const{Real: from.Real},
+		}
+	} else if from.Bool != nil {
+		value := false
+		if *from.Bool == "true" {
+			value = true
+		}
+		return &ast.Exp{
+			Const: &ast.Const{Bool: &value},
+		}
+	} else if from.Sub != nil {
+		return convExp(from.Sub)
+	} else if from.Id != nil {
+		return &ast.Exp{
+			Id: &ast.Id{Name: *from.Id},
+		}
 	}
-	return convExp(from.Function.Sub)
+	return nil
 }

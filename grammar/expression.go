@@ -38,13 +38,13 @@ type OpTerm struct {
 }
 
 type Term struct {
-	Left  *Value      `@@`
+	Left  *FValue     `@@`
 	Right []*OpFactor `@@*`
 }
 
 type OpFactor struct {
 	Operation *string `@("*" | "/" | "%")`
-	Right     *Value  `@@`
+	Right     *FValue `@@`
 }
 
 type Block struct {
@@ -52,18 +52,22 @@ type Block struct {
 	Value       *Expression   `@@ Newline*`
 }
 
-type EValue struct {
-	Id  *string     `@Ident`
-	Sub *Expression `| "(" @@ ")"`
+type CallParams struct {
+	Params []*Expression `"(" Newline* (@@ Newline* ("," Newline* @@)*)? Newline* ")"`
 }
 
-type Value struct {
-	Call  *FunCall `@@`
-	Int   *int64   `| @Int`
-	Real  *float64 `| @Real`
-	Bool  *string  `| @("true" | "false")`
-	Block *Block   `| "{" Newline* @@ Newline* "}"`
-	Eval  *EValue  `| @@`
+type FValue struct {
+	Value *PValue       `@@`
+	Calls []*CallParams `@@*`
+}
+
+type PValue struct {
+	Int   *int64      `@Int`
+	Real  *float64    `| @Real`
+	Bool  *string     `| @("true" | "false")`
+	Id    *string     `| @Ident`
+	Block *Block      `| "{" Newline* @@ Newline* "}"`
+	Sub   *Expression `| "(" @@ ")"`
 }
 
 type Assignment struct {
@@ -78,13 +82,4 @@ type FunParam struct {
 type FunDef struct {
 	Params []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")" Newline* "=>"`
 	Body   *Expression `@@`
-}
-
-type CallParams struct {
-	Params []*Expression `"(" Newline* (@@ Newline* ("," Newline* @@)*)? Newline* ")"`
-}
-
-type FunCall struct {
-	Function *EValue       `@@`
-	Calls    []*CallParams `@@*`
 }

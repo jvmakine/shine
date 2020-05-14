@@ -32,7 +32,7 @@ func TestCompile(t *testing.T) {
 						}
 					}
 					agg(1, 1, 100, 0)
-					`,
+				`,
 		err: nil,
 	}, {
 		name: "compile nested function args without errors",
