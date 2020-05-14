@@ -76,7 +76,9 @@ func typeConstant(constant *ast.Const) {
 
 func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 	block := ctx.BlockOf(id.Name)
-	if block != nil {
+	if ctx.Path()[id.Name] {
+		id.Type = MakeVariable()
+	} else if block != nil {
 		ref := ctx.BlockOf(id.Name).Assignments[id.Name]
 		id.Type = ref.Type().Copy(NewTypeCopyCtx())
 	} else if g := global[id.Name]; g != nil {
@@ -104,9 +106,7 @@ func typeCall(call *ast.FCall, unifier Substitutions) error {
 	return nil
 }
 
-func Infer(exp *ast.Exp) error {
-	blockCount := 0
-	// set function parameters as variables
+func initialiseVariables(exp *ast.Exp) {
 	exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Def != nil {
 			for _, p := range v.Def.Params {
@@ -119,6 +119,11 @@ func Infer(exp *ast.Exp) error {
 		}
 		return nil
 	})
+}
+
+func Infer(exp *ast.Exp) error {
+	blockCount := 0
+	initialiseVariables(exp)
 	unifier := MakeSubstitutions()
 	crawler := func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Const != nil {

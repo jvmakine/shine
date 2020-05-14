@@ -27,7 +27,12 @@ func Parse(str string) (*Program, error) {
 		alpha = "a"…"z" | "A"…"Z" | "_" .
 		digit = "0"…"9" .
 	`)
-	parser, err := participle.Build(&Program{}, participle.UseLookahead(2), participle.Lexer(lexer), participle.Elide("Whitespace"))
+	parser, err := participle.Build(
+		&Program{},
+		participle.UseLookahead(2),
+		participle.Lexer(lexer),
+		participle.Elide("Whitespace"),
+	)
 	if err != nil {
 		panic(err)
 	}

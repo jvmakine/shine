@@ -1,9 +1,21 @@
 package ast
 
 type VisitContext struct {
-	parent *VisitContext
-	block  *Block
-	def    *FDef
+	parent     *VisitContext
+	block      *Block
+	def        *FDef
+	assignment string
+}
+
+func (c *VisitContext) Path() map[string]bool {
+	p := map[string]bool{}
+	if c.parent != nil {
+		p = c.parent.Path()
+	}
+	if c.assignment != "" {
+		p[c.assignment] = true
+	}
+	return p
 }
 
 func (c *VisitContext) Block() *Block {
@@ -110,7 +122,8 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 		}
 	} else if a.Id != nil {
 		if r, c := ctx.resolve(a.Id.Name); r != nil {
-			if err := r.crawl(f, l, c, visited); err != nil {
+			sub := &VisitContext{assignment: a.Id.Name, block: c.block, def: c.def, parent: c}
+			if err := r.crawl(f, l, sub, visited); err != nil {
 				return err
 			}
 		}
@@ -127,8 +140,9 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 	}
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx}
-		for _, a := range a.Block.Assignments {
-			if err := a.visit(f, l, sub); err != nil {
+		for n, a := range a.Block.Assignments {
+			ssub := &VisitContext{assignment: n, block: sub.block, def: sub.def, parent: sub}
+			if err := a.visit(f, l, ssub); err != nil {
 				return err
 			}
 		}
