@@ -20,9 +20,9 @@ func (e *Exp) stringer(b *strings.Builder) {
 		b.WriteString("]")
 	} else if e.Op != nil {
 		b.WriteString("OP[name:")
-		b.WriteString(e.Id.Name)
+		b.WriteString(e.Op.Name)
 		b.WriteString(",type:")
-		b.WriteString(e.Id.Type.Signature())
+		b.WriteString(e.Op.Type.Signature())
 		b.WriteString("]")
 	} else if e.Const != nil {
 		b.WriteString("CONST[type:")

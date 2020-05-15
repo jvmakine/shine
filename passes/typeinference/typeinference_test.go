@@ -212,6 +212,14 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "int",
 		err: nil,
+	}, {
+		name: "infer sequential function definitions",
+		exp: Block(
+			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
+			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
+		),
+		typ: "int",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {

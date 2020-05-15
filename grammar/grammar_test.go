@@ -165,6 +165,16 @@ func TestExpressionParsing(tes *testing.T) {
 			},
 			t.Fcall(t.Id("a"), t.IConst(1), t.IConst(2)),
 		),
+	}, {
+		name: "parse sequential function definitions",
+		input: `
+			a = (x) => (y) => x + y
+			a(1)(2)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Fdef(t.Fdef(t.Fcall(t.Op("+"), t.Id("x"), t.Id("y")), "y"), "x")},
+			t.Fcall(t.Fcall(t.Id("a"), t.IConst(1)), t.IConst(2)),
+		),
 	},
 	}
 	for _, tt := range tests {
