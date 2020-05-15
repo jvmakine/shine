@@ -1,0 +1,21 @@
+sumOfSquares = (from, to) => {
+    agg = (f, result) => {
+        if (f > to) result else {
+            agg(f + 1, result + f * f)
+        }
+    }
+    agg(from, 0)
+}
+
+sum = (from, to) => {
+    if (from >= to) from else {
+        from + sum(from + 1, to)
+    }
+}
+
+squareOfSums = (from, to) => {
+    s = sum(from, to)
+    s * s
+}
+
+squareOfSums(1,100) - sumOfSquares(1,100)
