@@ -13,13 +13,18 @@ type signctx struct {
 func (f Function) sign(ctx *signctx) string {
 	var sb strings.Builder
 	sb.WriteString("(")
-	for i, p := range f {
-		sb.WriteString(sign(p, ctx))
-		if i < len(f)-2 {
-			sb.WriteString(",")
-		} else if i < len(f)-1 {
-			sb.WriteString(")=>")
+	if len(f) > 1 {
+		for i, p := range f {
+			sb.WriteString(sign(p, ctx))
+			if i < len(f)-2 {
+				sb.WriteString(",")
+			} else if i < len(f)-1 {
+				sb.WriteString(")=>")
+			}
 		}
+	} else {
+		sb.WriteString(")=>")
+		sb.WriteString(sign(f[0], ctx))
 	}
 	return sb.String()
 }

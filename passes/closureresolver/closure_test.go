@@ -17,7 +17,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		want []Closure
+		want map[string]Closure
 	}{{
 		name: "resolves empty Closure for function without closure",
 		exp: Block(
@@ -26,7 +26,9 @@ func TestResolveFunctionDef(tes *testing.T) {
 			},
 			Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 		),
-		want: []Closure{Closure{}},
+		want: map[string]Closure{
+			"a%%1%%(bool,bool,bool)=>bool": Closure{},
+		},
 	}, {
 		name: "resolve closure parameters for function referring to outer ids",
 		exp: Block(
@@ -43,20 +45,29 @@ func TestResolveFunctionDef(tes *testing.T) {
 			},
 			Fcall(Id("a"), IConst(1), BConst(true)),
 		),
-		want: []Closure{Closure{}, Closure{
-			ClosureParam{Name: "y", Type: types.BoolP},
-			ClosureParam{Name: "x", Type: types.IntP}},
+		want: map[string]Closure{
+			"a%%3%%(int,bool)=>int": Closure{},
+			"b%%2%%()=>int": Closure{
+				ClosureParam{Name: "y", Type: types.BoolP},
+				ClosureParam{Name: "x", Type: types.IntP},
+			},
 		},
-	}, /*{
+	}, {
 		name: "not include static function references in the closure",
 		exp: Block(
-			Fcall("a", IConst(1)),
-			Assign("a", Fdef(Fcall("b", Id("x"), Id("s")), "x")),
-			Assign("b", Fdef(Fcall("+", Fcall("f", Id("y")), IConst(2)), "y", "f")),
-			Assign("s", Fdef(Fcall("+", Id("y"), IConst(3)), "y")),
+			Assgs{
+				"a": Fdef(Fcall(Id("b"), Id("x"), Id("s")), "x"),
+				"b": Fdef(Fcall(Op("+"), Fcall(Id("f"), Id("y")), IConst(2)), "y", "f"),
+				"s": Fdef(Fcall(Op("+"), Id("y"), IConst(3)), "y"),
+			},
+			Fcall(Id("a"), IConst(1)),
 		),
-		want: []Closure{Closure{}, Closure{}, Closure{}},
-	},*/
+		want: map[string]Closure{
+			"a%%1%%(int)=>int":            Closure{},
+			"b%%1%%(int,(int)=>int)=>int": Closure{},
+			"s%%1%%(int)=>int":            Closure{},
+		},
+	},
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
@@ -76,11 +87,11 @@ func TestResolveFunctionDef(tes *testing.T) {
 	}
 }
 
-func collectClosures(cat *callresolver.FCat) []Closure {
-	res := []Closure{}
-	for _, v := range *cat {
+func collectClosures(cat *callresolver.FCat) map[string]Closure {
+	res := map[string]Closure{}
+	for k, v := range *cat {
 		if v.Closure != nil {
-			res = append(res, *v.Closure)
+			res[k] = *v.Closure
 		}
 	}
 	return res

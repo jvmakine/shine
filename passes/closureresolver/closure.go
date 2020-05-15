@@ -60,8 +60,10 @@ func CollectClosures(exp *ast.Exp) {
 			}
 			result := Closure{}
 			for n := range closureAt[v] {
-				t := ctx.TypeOf(n)
-				result = append(result, ClosureParam{Name: n, Type: t})
+				if block := ctx.BlockOf(n); block == nil || !block.Assignments[n].Type().IsFunction() {
+					t := ctx.TypeOf(n)
+					result = append(result, ClosureParam{Name: n, Type: t})
+				}
 			}
 			v.Def.Closure = &result
 		}
