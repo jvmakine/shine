@@ -19,7 +19,7 @@ func Parse(str string) (*Program, error) {
 		Comma = "," .
 		Brackets = "(" | ")" | "{" | "}" .
 		COp = ">=" | "<=" .
-		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "||" | "&&" .
+		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
 		Real = "0"…"9" { digit } "." "0"…"9" { digit } .

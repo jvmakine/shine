@@ -143,6 +143,8 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			return ctx.Block.NewICmp(enum.IPredSLE, params[0], params[1])
 		case "==":
 			return ctx.Block.NewICmp(enum.IPredEQ, params[0], params[1])
+		case "!=":
+			return ctx.Block.NewICmp(enum.IPredNE, params[0], params[1])
 		case "||":
 			return ctx.Block.NewOr(params[0], params[1])
 		case "&&":

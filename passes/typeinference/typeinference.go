@@ -59,6 +59,7 @@ var global map[string]*ast.Exp = map[string]*ast.Exp{
 	"||": fun(BoolP, BoolP, BoolP),
 	"&&": fun(BoolP, BoolP, BoolP),
 	"==": withVar(union(Int, Bool), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
+	"!=": withVar(union(Int, Bool), func(t Type) *ast.Exp { return fun(t, t, BoolP) }),
 	"if": withVar(MakeVariable(), func(t Type) *ast.Exp { return fun(BoolP, t, t, t) }),
 }
 

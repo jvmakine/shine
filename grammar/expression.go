@@ -33,7 +33,7 @@ type TermExpression struct {
 }
 
 type OpTerm struct {
-	Operation *string `@("+" | "-" | ">" | "<" | "<=" | ">=" | "==" )`
+	Operation *string `@("+" | "-" | ">" | "<" | "<=" | ">=" | "==" | "!=" )`
 	Right     *Term   `@@*`
 }
 

@@ -66,6 +66,10 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "2 == 3",
 		want:  t.Block(t.Assgs{}, t.Fcall(t.Op("=="), t.IConst(2), t.IConst(3))),
 	}, {
+		name:  "parse != operator",
+		input: "a != 3",
+		want:  t.Block(t.Assgs{}, t.Fcall(t.Op("!="), t.Id("a"), t.IConst(3))),
+	}, {
 		name:  "parse < operator",
 		input: "2 < 3",
 		want:  t.Block(t.Assgs{}, t.Fcall(t.Op("<"), t.IConst(2), t.IConst(3))),
