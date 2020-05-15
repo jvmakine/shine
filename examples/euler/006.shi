@@ -1,17 +1,17 @@
-sumOfSquares = (from, to) => {
-    agg = (f, result) => {
-        if (f > to) result else {
-            agg(f + 1, result + f * f)
+reduce = (from, to, initial, f) => {
+    agg = (n, result) => {
+        if (n > to) result else {
+            agg(n + 1, f(result, n))
         }
     }
-    agg(from, 0)
+    agg(from, initial)
 }
 
-sum = (from, to) => {
-    if (from >= to) from else {
-        from + sum(from + 1, to)
-    }
-}
+sumOfSquares = (from, to) =>
+    reduce(from, to, 0, (a, x) => a + x * x)
+
+sum = (from, to) =>
+    reduce(from, to, 0, (a, x) => a + x)
 
 squareOfSums = (from, to) => {
     s = sum(from, to)
