@@ -10,6 +10,7 @@ import (
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/passes/callresolver"
+	"github.com/jvmakine/shine/passes/closureresolver"
 	"github.com/jvmakine/shine/passes/optimisation"
 	"github.com/jvmakine/shine/passes/typeinference"
 )
@@ -38,6 +39,7 @@ func Compile(text string) (*ir.Module, error) {
 	}
 	callresolver.ResolveFunctions(ast)
 	optimisation.Optimise(ast)
+	closureresolver.CollectClosures(ast)
 	fcat := callresolver.Collect(ast)
 	module := compiler.Compile(ast, &fcat)
 	return module, nil

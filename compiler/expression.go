@@ -162,6 +162,13 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			panic(err)
 		}
 		if f, ok := id.(function); ok {
+			for _, p := range *f.From.Closure {
+				r, err := ctx.resolveId(p.Name)
+				if err != nil {
+					panic(err)
+				}
+				params = append(params, r.(val).Value)
+			}
 			return ctx.Block.NewCall(f.Call, params...)
 		}
 		return ctx.Block.NewCall(id.(val).Value, params...)
