@@ -26,6 +26,12 @@ func Id(name string) *ast.Exp {
 	}
 }
 
+func Op(name string) *ast.Exp {
+	return &ast.Exp{
+		Op: &ast.Op{Name: name},
+	}
+}
+
 type Assgs = map[string]*ast.Exp
 
 func Block(assign Assgs, e *ast.Exp) *ast.Exp {

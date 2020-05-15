@@ -77,7 +77,7 @@ func convExp(from *Expression) *ast.Exp {
 func convIf(from *IfExpression) *ast.Exp {
 	return &ast.Exp{
 		Call: &ast.FCall{
-			Function: &ast.Exp{Id: &ast.Id{Name: "if"}},
+			Function: &ast.Exp{Op: &ast.Op{Name: "if"}},
 			Params:   []*ast.Exp{convExp(from.Cond), convExp(from.True), convExp(from.False)},
 		},
 	}
@@ -106,7 +106,7 @@ func convOpComp(left *ast.Exp, right []*OpComp) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
 			Params:   []*ast.Exp{left, convComp(right[0].Right)},
 		},
 	}
@@ -123,7 +123,7 @@ func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
 			Params:   []*ast.Exp{left, convTerm(right[0].Right)},
 		},
 	}
@@ -140,7 +140,7 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
-			Function: &ast.Exp{Id: &ast.Id{Name: *right[0].Operation}},
+			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
 			Params:   []*ast.Exp{left, convFVal(right[0].Right)},
 		},
 	}

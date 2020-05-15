@@ -27,7 +27,7 @@ func fun(ts ...interface{}) *ast.Exp {
 			result[i] = Type{Variable: variables[v]}
 		}
 	}
-	return &ast.Exp{Id: &ast.Id{Type: function(result...)}}
+	return &ast.Exp{Op: &ast.Op{Type: function(result...)}}
 }
 
 func base(t Primitive) Type {
@@ -81,13 +81,20 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 	} else if block != nil {
 		ref := ctx.BlockOf(id.Name).Assignments[id.Name]
 		id.Type = ref.Type().Copy(NewTypeCopyCtx())
-	} else if g := global[id.Name]; g != nil {
-		id.Type = g.Type().Copy(NewTypeCopyCtx())
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.Type = p.Type
 	} else {
 		return errors.New("undefined id " + id.Name)
 	}
+	return nil
+}
+
+func typeOp(op *ast.Op, ctx *ast.VisitContext) error {
+	g := global[op.Name]
+	if g == nil {
+		panic("invalid op " + op.Name)
+	}
+	op.Type = g.Type().Copy(NewTypeCopyCtx())
 	return nil
 }
 
@@ -140,6 +147,10 @@ func Infer(exp *ast.Exp) error {
 			v.Block.ID = blockCount
 		} else if v.Id != nil {
 			if err := typeId(v.Id, ctx); err != nil {
+				return err
+			}
+		} else if v.Op != nil {
+			if err := typeOp(v.Op, ctx); err != nil {
 				return err
 			}
 		} else if v.Call != nil {

@@ -19,20 +19,20 @@ func TestResolveFunctions(t *testing.T) {
 		name: "resolves function signatures based on the call type",
 		before: Block(
 			Assgs{
-				"a": Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Fcall(Id("if"),
+			Fcall(Op("if"),
 				Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a"), BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
 		),
 		after: Block(
 			Assgs{
-				"a":                            Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Id("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a":                            Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
+				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Fcall(Id("if"),
+			Fcall(Op("if"),
 				Fcall(Id("a%%1%%(bool,bool,bool)=>bool"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a%%1%%(bool,int,int)=>int"), BConst(true), IConst(5), IConst(6)),
 				IConst(7)),
@@ -42,16 +42,16 @@ func TestResolveFunctions(t *testing.T) {
 		before: Block(
 			Assgs{
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b": Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"b": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
 			Fcall(Id("a"), Id("b")),
 		),
 		after: Block(
 			Assgs{
 				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b":                           Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"b":                           Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b%%1%%(int,int)=>int":        Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"b%%1%%(int,int)=>int":        Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
 		),
@@ -61,13 +61,13 @@ func TestResolveFunctions(t *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 			},
-			Fcall(Id("a"), Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y")),
+			Fcall(Id("a"), Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y")),
 		),
 		after: Block(
 			Assgs{
 				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Id("+"), Id("x"), Id("y")), "x", "y"),
+				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
@@ -90,6 +90,8 @@ func eraseType(e *ast.Exp) {
 	e.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
 		if v.Id != nil {
 			v.Id.Type = types.IntP
+		} else if v.Op != nil {
+			v.Op.Type = types.IntP
 		} else if v.Const != nil {
 			v.Const.Type = types.IntP
 		} else if v.Call != nil {

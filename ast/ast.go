@@ -14,8 +14,15 @@ type Exp struct {
 	Const *Const
 	Block *Block
 	Id    *Id
+	Op    *Op
 	Call  *FCall
 	Def   *FDef
+}
+
+type Op struct {
+	Name string
+
+	Type types.Type
 }
 
 type Id struct {
@@ -75,6 +82,7 @@ func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
 		Const: a.Const,
 		Block: a.Block.copy(ctx),
 		Id:    a.Id.copy(ctx),
+		Op:    a.Op.copy(ctx),
 		Call:  a.Call.copy(ctx),
 		Def:   a.Def.copy(ctx),
 	}
@@ -149,6 +157,16 @@ func (a *Id) copy(ctx *types.TypeCopyCtx) *Id {
 		return nil
 	}
 	return &Id{
+		Name: a.Name,
+		Type: a.Type.Copy(ctx),
+	}
+}
+
+func (a *Op) copy(ctx *types.TypeCopyCtx) *Op {
+	if a == nil {
+		return nil
+	}
+	return &Op{
 		Name: a.Name,
 		Type: a.Type.Copy(ctx),
 	}
@@ -253,6 +271,8 @@ func (exp *Exp) Type() types.Type {
 		return types.MakeFunction(ts...)
 	} else if exp.Id != nil {
 		return exp.Id.Type
+	} else if exp.Op != nil {
+		return exp.Op.Type
 	}
 	panic("invalid exp")
 }

@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/jvmakine/shine/types"
+
 type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
@@ -18,8 +20,21 @@ func (c *VisitContext) Path() map[string]bool {
 	return p
 }
 
+func (c *VisitContext) Def() *FDef {
+	return c.def
+}
+
 func (c *VisitContext) Block() *Block {
 	return c.block
+}
+
+func (c *VisitContext) TypeOf(id string) types.Type {
+	if block := c.BlockOf(id); block != nil {
+		return block.Assignments[id].Type()
+	} else if par := c.ParamOf(id); par != nil {
+		return par.Type
+	}
+	return types.Type{}
 }
 
 func (c *VisitContext) ParamOf(id string) *FParam {
@@ -102,7 +117,7 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 		return err
 	}
 	if a.Block != nil {
-		sub := &VisitContext{block: a.Block, parent: ctx}
+		sub := &VisitContext{block: a.Block, def: ctx.def, parent: ctx}
 		if err := a.Block.Value.crawl(f, l, sub, visited); err != nil {
 			return err
 		}
@@ -139,7 +154,7 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 		return err
 	}
 	if a.Block != nil {
-		sub := &VisitContext{block: a.Block, parent: ctx}
+		sub := &VisitContext{block: a.Block, parent: ctx, def: ctx.def}
 		for n, a := range a.Block.Assignments {
 			ssub := &VisitContext{assignment: n, block: sub.block, def: sub.def, parent: sub}
 			if err := a.visit(f, l, ssub); err != nil {

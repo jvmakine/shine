@@ -88,16 +88,16 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 
 func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	from := exp.Call
-	name := from.Function.Id.Name
-	if name == "if" { // Need to evaluate if parameters lazily
-		return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
-	} else {
-		var params []value.Value
+	var params []value.Value
+	if from.Function.Op != nil {
+		name := from.Function.Op.Name
+		if name == "if" { // Need to evaluate if parameters lazily
+			return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
+		}
 		for _, p := range from.Params {
 			v := compileExp(p, ctx, false)
 			params = append(params, v)
 		}
-
 		switch name {
 		case "*":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
@@ -148,15 +148,23 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		case "&&":
 			return ctx.Block.NewAnd(params[0], params[1])
 		default:
-			id, err := ctx.resolveId(name)
-			if err != nil {
-				panic(err)
-			}
-			if f, ok := id.(function); ok {
-				return ctx.Block.NewCall(f.Call, params...)
-			}
-			return ctx.Block.NewCall(id.(val).Value, params...)
+			panic("unknown op " + name)
 		}
+	} else {
+		name := from.Function.Id.Name
+		for _, p := range from.Params {
+			v := compileExp(p, ctx, false)
+			params = append(params, v)
+		}
+
+		id, err := ctx.resolveId(name)
+		if err != nil {
+			panic(err)
+		}
+		if f, ok := id.(function); ok {
+			return ctx.Block.NewCall(f.Call, params...)
+		}
+		return ctx.Block.NewCall(id.(val).Value, params...)
 	}
 }
 
