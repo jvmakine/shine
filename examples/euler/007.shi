@@ -1,0 +1,28 @@
+isPrime = (n) => {
+    agg = (x) => {
+        if (x >= n / 2) { 
+            true 
+        } else if (n % x == 0) {
+            false
+        } else {
+            agg(x + 2)
+        }
+    }
+    agg(3)
+}
+
+nThPrime = (n) => {
+    agg = (x, count) => {
+        prime = isPrime(x)
+        if (prime && count >= n) {
+            x
+        } else if (prime) {
+            agg(x + 2, count + 1)
+        } else {
+            agg(x + 2, count)
+        }
+    }
+    agg(3, 2)
+}
+
+nThPrime(10001)
