@@ -55,6 +55,13 @@ func TestCompile(t *testing.T) {
 			findLargestProd(10, 99, (x) => x % 2 == 0)
 		`,
 		err: nil,
+	}, {
+		name: "compile sequential functions",
+		program: `
+			a = (x) => (y) => x + y
+			a(1)(2)
+		`,
+		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

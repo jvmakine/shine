@@ -138,7 +138,7 @@ func (a *FDef) copy(ctx *types.TypeCopyCtx) *FDef {
 	return &FDef{
 		Params:  pc,
 		Body:    a.Body.copy(ctx),
-		Closure: a.Closure,
+		Closure: a.Closure.Copy(ctx),
 	}
 }
 

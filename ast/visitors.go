@@ -1,7 +1,5 @@
 package ast
 
-import "github.com/jvmakine/shine/types"
-
 type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
@@ -26,15 +24,6 @@ func (c *VisitContext) Def() *FDef {
 
 func (c *VisitContext) Block() *Block {
 	return c.block
-}
-
-func (c *VisitContext) TypeOf(id string) types.Type {
-	if block := c.BlockOf(id); block != nil {
-		return block.Assignments[id].Type()
-	} else if par := c.ParamOf(id); par != nil {
-		return par.Type
-	}
-	return types.Type{}
 }
 
 func (c *VisitContext) ParamOf(id string) *FParam {

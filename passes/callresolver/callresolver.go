@@ -2,6 +2,7 @@ package callresolver
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/jvmakine/shine/ast"
 )
@@ -40,7 +41,7 @@ func ResolveFunctions(exp *ast.Exp) {
 			}
 			v.Call.Function.Convert(uni)
 		}
-		if v.Id != nil && v.Type().IsFunction() {
+		if v.Id != nil && v.Type().IsFunction() && !strings.Contains(v.Id.Name, "%%") {
 			if block := ctx.BlockOf(v.Id.Name); block != nil {
 				fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
 				if block.Assignments[fsig] == nil {
@@ -65,13 +66,13 @@ func ResolveFunctions(exp *ast.Exp) {
 			ctx.Block().Assignments[fsig] = v.Copy()
 			v.Def = nil
 			v.Id = &ast.Id{Name: fsig, Type: typ}
-		} else if v.Call != nil && v.Call.Function.Call != nil && v.Call.Function.Op == nil {
+		} else if v.Call != nil && v.Call.Function.Call != nil {
 			anonCount++
 			typ := v.Call.Function.Type()
 			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, typ.Signature())
 			ctx.Block().Assignments[fsig] = v.Call.Function.Copy()
 			v.Call.Function.Call = nil
-			v.Call.Function.Id = &ast.Id{Name: fsig, Type: typ}
+			v.Call.Function.Id = &ast.Id{Name: fsig, Type: ctx.Block().Assignments[fsig].Type()}
 		}
 		return nil
 	})

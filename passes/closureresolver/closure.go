@@ -5,8 +5,8 @@ import (
 	. "github.com/jvmakine/shine/types"
 )
 
-func combine(a map[string]bool, b map[string]bool) map[string]bool {
-	res := map[string]bool{}
+func combine(a map[string]Type, b map[string]Type) map[string]Type {
+	res := map[string]Type{}
 	for k, v := range a {
 		res[k] = v
 	}
@@ -17,21 +17,21 @@ func combine(a map[string]bool, b map[string]bool) map[string]bool {
 }
 
 func CollectClosures(exp *ast.Exp) {
-	closureAt := map[*ast.Exp]map[string]bool{}
+	closureAt := map[*ast.Exp]map[string]Type{}
 	exp.VisitAfter(func(v *ast.Exp, ctx *ast.VisitContext) error {
-		closureAt[v] = map[string]bool{}
+		closureAt[v] = map[string]Type{}
 		if v.Id != nil {
-			closureAt[v] = map[string]bool{v.Id.Name: true}
+			closureAt[v] = map[string]Type{v.Id.Name: v.Id.Type}
 		} else if v.Call != nil {
-			closureAt[v] = map[string]bool{}
+			closureAt[v] = map[string]Type{}
 			for _, p := range v.Call.Params {
 				closureAt[v] = combine(closureAt[v], closureAt[p])
 			}
 			closureAt[v] = combine(closureAt[v], closureAt[v.Call.Function])
 		} else if v.Const != nil {
-			closureAt[v] = map[string]bool{}
+			closureAt[v] = map[string]Type{}
 		} else if v.Block != nil {
-			closureAt[v] = map[string]bool{}
+			closureAt[v] = map[string]Type{}
 			assigns := map[string]bool{}
 			for n := range v.Block.Assignments {
 				assigns[n] = true
@@ -59,9 +59,8 @@ func CollectClosures(exp *ast.Exp) {
 				}
 			}
 			result := Closure{}
-			for n := range closureAt[v] {
+			for n, t := range closureAt[v] {
 				if block := ctx.BlockOf(n); block == nil || !block.Assignments[n].Type().IsFunction() {
-					t := ctx.TypeOf(n)
 					result = append(result, ClosureParam{Name: n, Type: t})
 				}
 			}
