@@ -12,7 +12,7 @@ rtest() {
 
 rtest "examples/fibonacci.shi" "102334155"
 
-rtest "examples/features/sequential_fn.shi" "14"
+rtest "examples/features/sequential_fn.shi" "9"
 rtest "examples/features/real_numbers.shi" "102334155.000000"
 rtest "examples/features/multi_types.shi" "2"
 rtest "examples/features/functions_as_types.shi" "13"

@@ -83,7 +83,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%c":                    Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 				"a%c%%1%%(int,int)=>int": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall(Id("a%c%%1%%(int,int)=>int"), IConst(2), IConst(1)),
+			Fcall(Id("a%c%%1%%(int,int)=>int"), IConst(1), IConst(2)),
 		),
 	}}
 	for _, tt := range tests {
