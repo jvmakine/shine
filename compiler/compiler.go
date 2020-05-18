@@ -61,7 +61,15 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 	}
 }
 
-func IPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
+func mallocF(m *ir.Module) *ir.Func {
+	return m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32))
+}
+
+func free(m *ir.Module) *ir.Func {
+	return m.NewFunc("free", types.Void, ir.NewParam("ptr", types.I8Ptr))
+}
+
+func iPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 	msg := m.NewGlobalDef("intFormat", constant.NewCharArrayFromString("%ld\n"))
 	printf := m.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
 	printf.Sig.Variadic = true
@@ -69,7 +77,7 @@ func IPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 	return printf, ptr
 }
 
-func FPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
+func fPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 	msg := m.NewGlobalDef("realFormat", constant.NewCharArrayFromString("%f\n"))
 	printf := m.NewFunc("printf", types.I32, ir.NewParam("msg", types.I8Ptr))
 	printf.Sig.Variadic = true
@@ -80,6 +88,8 @@ func FPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	module := ir.NewModule()
 
+	mallocF(module)
+	free(module)
 	mainfun := module.NewFunc("main", types.I32)
 	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun}
 	makeFDefs(fcat, &ctx)
@@ -88,10 +98,10 @@ func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	v := compileExp(prg, &ctx, false)
 
 	if prg.Type().AsPrimitive() == t.Int {
-		printf, ptr := IPrintF(module, ctx.Block)
+		printf, ptr := iPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
 	} else if prg.Type().AsPrimitive() == t.Real {
-		printf, ptr := FPrintF(module, ctx.Block)
+		printf, ptr := fPrintF(module, ctx.Block)
 		ctx.Block.NewCall(printf, ptr, v)
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
