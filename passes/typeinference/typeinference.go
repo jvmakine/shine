@@ -169,14 +169,11 @@ func Infer(exp *ast.Exp) error {
 		return err
 	}
 	// infer unused code
-	err = exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
+	err = exp.VisitAfter(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if !visited[v] {
-			v, err := v.CrawlAfter(crawler)
+			err := crawler(v, ctx)
 			if err != nil {
 				return err
-			}
-			for k, v := range v {
-				visited[k] = v
 			}
 		}
 		return nil

@@ -53,7 +53,7 @@ func (c *context) resolveId(name string) (interface{}, error) {
 	} else if c.parent != nil {
 		return c.parent.resolveId(name)
 	}
-	return nil, errors.New("undefined identifier " + name)
+	return nil, errors.New("undefined id " + name)
 }
 
 func (c *context) addId(name string, val interface{}) (*context, error) {

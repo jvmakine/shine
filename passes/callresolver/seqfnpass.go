@@ -25,7 +25,7 @@ func sequentialFunctionPass(exp *ast.Exp) {
 			params := v.Call.Params
 			ptr := v
 			nid := id
-			for ptr.Call.Function.Call != nil && def.Body.Def != nil {
+			for ptr.Call.Function.Call != nil && def != nil && def.Body.Def != nil {
 				changed = true
 				params = append(params, ptr.Call.Function.Call.Params...)
 				ptr = ptr.Call.Function

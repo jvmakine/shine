@@ -62,6 +62,14 @@ func TestCompile(t *testing.T) {
 			a(1)(2)(3)
 		`,
 		err: nil,
+	}, {
+		name: "cwork with unused values",
+		program: `
+			a = b
+			b = 3
+			3
+		`,
+		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
