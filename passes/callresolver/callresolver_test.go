@@ -1,13 +1,13 @@
 package callresolver
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/typeinference"
 	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
+	"github.com/roamz/deepdiff"
 )
 
 func TestResolveFunctions(t *testing.T) {
@@ -71,6 +71,20 @@ func TestResolveFunctions(t *testing.T) {
 			},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
+	}, {
+		name: "combines sequential functions when possible",
+		before: Block(
+			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
+			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
+		),
+		after: Block(
+			Assgs{
+				"a":                      Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x"),
+				"a%c":                    Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
+				"a%c%%1%%(int,int)=>int": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
+			},
+			Fcall(Id("a%c%%1%%(int,int)=>int"), IConst(2), IConst(1)),
+		),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -79,8 +93,9 @@ func TestResolveFunctions(t *testing.T) {
 
 			eraseType(tt.after)
 			eraseType(tt.before)
-			if !reflect.DeepEqual(tt.before, tt.after) {
-				t.Errorf("Resolve() = %v, want %v", tt.before, tt.after)
+			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
+			if !ok {
+				t.Error(err)
 			}
 		})
 	}
@@ -100,6 +115,7 @@ func eraseType(e *ast.Exp) {
 			for _, p := range v.Def.Params {
 				p.Type = types.IntP
 			}
+			v.Def.Closure = nil
 		} else if v.Block != nil {
 			v.Block.ID = 0
 		}
