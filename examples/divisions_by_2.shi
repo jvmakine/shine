@@ -1,6 +1,0 @@
-divisions_by_2 = (x) => {
-    agg = (n, res) => { if (n % 2 == 0) agg(n / 2, res + 1) else res }
-    agg(x, 0)
-}
-
-divisions_by_2(72)
