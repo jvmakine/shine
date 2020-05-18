@@ -220,6 +220,14 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "int",
 		err: nil,
+	}, {
+		name: "fail on parameter redefinitions",
+		exp: Block(
+			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("x")), "x"), "x")},
+			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
+		),
+		typ: "",
+		err: errors.New("redefinition of x"),
 	},
 	}
 	for _, tt := range tests {
