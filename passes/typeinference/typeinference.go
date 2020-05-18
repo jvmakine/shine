@@ -7,31 +7,8 @@ import (
 	. "github.com/jvmakine/shine/types"
 )
 
-func fun(ts ...interface{}) *ast.Exp {
-	result := make([]Type, len(ts))
-	var variables map[string]*TypeVar = map[string]*TypeVar{}
-	for _, t := range ts {
-		switch v := t.(type) {
-		case string:
-			if variables[v] == nil {
-				variables[v] = &TypeVar{}
-			}
-		}
-	}
-
-	for i, t := range ts {
-		switch v := t.(type) {
-		case Type:
-			result[i] = v
-		case string:
-			result[i] = Type{Variable: variables[v]}
-		}
-	}
-	return &ast.Exp{Op: &ast.Op{Type: function(result...)}}
-}
-
-func base(t Primitive) Type {
-	return Type{Primitive: &t}
+func fun(ts ...Type) *ast.Exp {
+	return &ast.Exp{Op: &ast.Op{Type: function(ts...)}}
 }
 
 func union(un ...Primitive) Type {
