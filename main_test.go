@@ -58,8 +58,8 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile sequential functions",
 		program: `
-			a = (x) => (y) => x + y
-			a(1)(2)
+			a = (x) => (y) => (z) => x + y + z
+			a(1)(2)(3)
 		`,
 		err: nil,
 	}}

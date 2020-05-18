@@ -97,6 +97,13 @@ func (a *FDef) ParamOf(name string) *FParam {
 	return nil
 }
 
+func (a *FCall) RootFunc() *Exp {
+	if a.Function.Call != nil {
+		return a.Function.Call.RootFunc()
+	}
+	return a.Function
+}
+
 func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	if a == nil {
 		return nil

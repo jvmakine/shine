@@ -32,33 +32,13 @@ func Collect(exp *ast.Exp) FCat {
 
 func ResolveFunctions(exp *ast.Exp) {
 	anonCount := 0
+	sequentialFunctionPass(exp)
 	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Call != nil {
-			fun := v.Call.MakeFunType()
-			uni, err := fun.Unifier(v.Call.Function.Type())
-			if err != nil {
-				panic(err)
-			}
-			v.Call.Function.Convert(uni)
+			resolveCall(v.Call)
 		}
 		if v.Id != nil && v.Type().IsFunction() && !strings.Contains(v.Id.Name, "%%") {
-			if block := ctx.BlockOf(v.Id.Name); block != nil {
-				fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
-				if block.Assignments[fsig] == nil {
-					f := block.Assignments[v.Id.Name]
-					cop := f.Copy()
-					subs, err := cop.Type().Unifier(v.Type())
-					if err != nil {
-						panic(err)
-					}
-					cop.Convert(subs)
-					if cop.Type().HasFreeVars() {
-						panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
-					}
-					block.Assignments[fsig] = cop
-				}
-				v.Id.Name = fsig
-			}
+			resolveIdFunct(v, ctx)
 		} else if v.Def != nil && ctx.NameOf(v) == "" {
 			anonCount++
 			typ := v.Type()
@@ -76,4 +56,33 @@ func ResolveFunctions(exp *ast.Exp) {
 		}
 		return nil
 	})
+}
+
+func resolveCall(v *ast.FCall) {
+	fun := v.MakeFunType()
+	uni, err := fun.Unifier(v.Function.Type())
+	if err != nil {
+		panic(err)
+	}
+	v.Function.Convert(uni)
+}
+
+func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
+	if block := ctx.BlockOf(v.Id.Name); block != nil {
+		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
+		if block.Assignments[fsig] == nil {
+			f := block.Assignments[v.Id.Name]
+			cop := f.Copy()
+			subs, err := cop.Type().Unifier(v.Type())
+			if err != nil {
+				panic(err)
+			}
+			cop.Convert(subs)
+			if cop.Type().HasFreeVars() {
+				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
+			}
+			block.Assignments[fsig] = cop
+		}
+		v.Id.Name = fsig
+	}
 }
