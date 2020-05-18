@@ -8,7 +8,7 @@ type Expression struct {
 
 type IfExpression struct {
 	Cond  *Expression `"if" "(" @@ ")"`
-	True  *Expression `@@`
+	True  *Expression `@@ Newline*`
 	False *Expression `"else" @@`
 }
 

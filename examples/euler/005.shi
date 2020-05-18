@@ -1,11 +1,7 @@
 divisibleRange = (n, from, to) => {
-    if (from > to) {
-        true 
-    } else if (n % from != 0) {
-        false
-    } else {
-        divisibleRange(n, from + 1, to)
-    }
+    if (from > to) true 
+    else if (n % from != 0) false
+    else divisibleRange(n, from + 1, to)
 }
 
 smallestDivisibleIn = (n, from, to) => {

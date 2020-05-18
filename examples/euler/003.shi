@@ -1,14 +1,8 @@
 largest_prime_factor = (n) => {
     agg = (x, div) => {
-        if (div >= x) {
-            x
-        } else {
-            if (x % div == 0) {
-                agg(x / div, div)
-            } else {
-                agg(x, div + 1)
-            }
-        }
+        if (div >= x) x
+        else if (x % div == 0) agg(x / div, div)
+        else agg(x, div + 1)
     }
 
     agg(n, 2)
