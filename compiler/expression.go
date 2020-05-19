@@ -155,6 +155,9 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		}
 	} else {
 		params := []value.Value{constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosurePType)}
+		if from.Type.IsFunction() {
+			params = append(params, constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosureRType))
+		}
 		name := from.Function.Id.Name
 		for _, p := range from.Params {
 			v := compileExp(p, ctx, false)

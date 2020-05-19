@@ -7,9 +7,11 @@ import (
 
 var (
 	ClosurePType = types.I8Ptr
-	IntType      = types.I64
-	BoolType     = types.I1
-	RealType     = types.Double
+	ClosureRType = types.NewPointer(types.I8Ptr)
+
+	IntType  = types.I64
+	BoolType = types.I1
+	RealType = types.Double
 )
 
 func closureType(c *t.Closure) types.Type {
@@ -27,6 +29,9 @@ func getFunctPtr(fun t.Type) types.Type {
 	params[0] = ClosurePType
 	for i, p := range fparams {
 		params[i+1] = getType(p)
+	}
+	if fun.FunctReturn().IsFunction() {
+		params = append([]types.Type{ClosurePType}, params...)
 	}
 	return types.NewPointer(types.NewFunc(ret, params...))
 }
