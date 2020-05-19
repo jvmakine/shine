@@ -12,6 +12,14 @@ var (
 	RealType     = types.Double
 )
 
+func closureType(c *t.Closure) types.Type {
+	ps := make([]types.Type, len(*c))
+	for i, p := range *c {
+		ps[i] = getType(p.Type)
+	}
+	return types.NewStruct(ps...)
+}
+
 func getFunctPtr(fun t.Type) types.Type {
 	ret := getType(fun.FunctReturn())
 	fparams := fun.FunctParams()
