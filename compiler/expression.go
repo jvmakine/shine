@@ -6,6 +6,7 @@ import (
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
+	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 )
 
@@ -88,8 +89,8 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 
 func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 	from := exp.Call
-	var params []value.Value
 	if from.Function.Op != nil {
+		var params []value.Value
 		name := from.Function.Op.Name
 		if name == "if" { // Need to evaluate if parameters lazily
 			return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
@@ -153,6 +154,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			panic("unknown op " + name)
 		}
 	} else {
+		params := []value.Value{constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosurePType)}
 		name := from.Function.Id.Name
 		for _, p := range from.Params {
 			v := compileExp(p, ctx, false)

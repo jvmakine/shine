@@ -23,9 +23,10 @@ func closureType(c *t.Closure) types.Type {
 func getFunctPtr(fun t.Type) types.Type {
 	ret := getType(fun.FunctReturn())
 	fparams := fun.FunctParams()
-	params := make([]types.Type, len(fparams))
+	params := make([]types.Type, len(fparams)+1)
+	params[0] = ClosurePType
 	for i, p := range fparams {
-		params[i] = getType(p)
+		params[i+1] = getType(p)
 	}
 	return types.NewPointer(types.NewFunc(ret, params...))
 }

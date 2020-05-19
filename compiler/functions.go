@@ -9,7 +9,7 @@ import (
 func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 	for name, fun := range *fcat {
 		rtype := getType(fun.Body.Type())
-		var params []*ir.Param
+		params := []*ir.Param{ir.NewParam("%cls", ClosurePType)}
 		for _, p := range fun.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
 			params = append(params, param)
@@ -32,7 +32,8 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 		f := ctx.resolveFun(name)
 		body := f.Fun.NewBlock("")
 		subCtx := ctx.funcContext(body, f.Fun)
-		var params []*ir.Param
+		closureParam := ir.NewParam("%cls", ClosurePType)
+		params := []*ir.Param{closureParam}
 		for _, p := range f.From.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
 			_, err := subCtx.addId(p.Name, val{param})
