@@ -154,9 +154,11 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			panic("unknown op " + name)
 		}
 	} else {
+		var closure value.Value
 		params := []value.Value{constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosurePType)}
 		if from.Type.IsFunction() {
-			params = append(params, constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosureRType))
+			closure = ctx.Block.NewAlloca(ClosurePType)
+			params = append(params, closure)
 		}
 		name := from.Function.Id.Name
 		for _, p := range from.Params {
