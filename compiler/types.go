@@ -8,6 +8,7 @@ import (
 var (
 	ClosurePType = types.I8Ptr
 	ClosureRType = types.NewPointer(types.I8Ptr)
+	FunType      = types.NewVector(2, types.I8Ptr)
 
 	IntType  = types.I64
 	BoolType = types.I1
@@ -30,9 +31,6 @@ func getFunctPtr(fun t.Type) types.Type {
 	for i, p := range fparams {
 		params[i+1] = getType(p)
 	}
-	if fun.FunctReturn().IsFunction() {
-		params = append([]types.Type{ClosurePType}, params...)
-	}
 	return types.NewPointer(types.NewFunc(ret, params...))
 }
 
@@ -54,7 +52,7 @@ func getType(typ t.Type) types.Type {
 		}
 		return rtype
 	} else if typ.IsFunction() {
-		return getFunctPtr(typ)
+		return FunType
 	}
 	panic("invalid type: " + typ.Signature())
 }

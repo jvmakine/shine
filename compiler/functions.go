@@ -2,17 +2,18 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/passes/callresolver"
+	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
+	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
+	"github.com/llir/llvm/ir/types"
+	"github.com/llir/llvm/ir/value"
 )
 
 func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 	for name, fun := range *fcat {
 		rtype := getType(fun.Body.Type())
 		params := []*ir.Param{ir.NewParam("+cls", ClosurePType)}
-		if fun.Body.Type().IsFunction() {
-			params = append(params, ir.NewParam("+rc", ClosureRType))
-		}
 		for _, p := range fun.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
 			params = append(params, param)
@@ -37,9 +38,6 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 		subCtx := ctx.funcContext(body, f.Fun)
 		closureParam := ir.NewParam("+cls", ClosurePType)
 		params := []*ir.Param{closureParam}
-		if f.From.Body.Type().IsFunction() {
-			params = append(params, ir.NewParam("+rc", ClosureRType))
-		}
 		for _, p := range f.From.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
 			_, err := subCtx.addId(p.Name, val{param})
@@ -59,7 +57,18 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 		}
 		result := compileExp(f.From.Body, subCtx, true)
 		if result != nil { // result can be nil if it has already been returned from the function
-			subCtx.Block.NewRet(result)
+			compileRet(result, f.From.Body.Type(), subCtx.Block)
 		}
+	}
+}
+
+func compileRet(v value.Value, typ t.Type, block *ir.Block) {
+	_, isvect := v.Type().(*types.VectorType)
+	if typ.IsFunction() && !isvect {
+		nv := block.NewBitCast(v, types.I8Ptr)
+		vec := block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
+		block.NewRet(vec)
+	} else {
+		block.NewRet(v)
 	}
 }

@@ -42,7 +42,9 @@ func compileID(exp *ast.Exp, ctx *context) value.Value {
 		panic(err)
 	}
 	if f, ok := id.(function); ok {
-		return f.Fun
+		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
+		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
+		return vec
 	}
 	return id.(val).Value
 }
@@ -78,10 +80,10 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 		return continueB.NewLoad(typ, resV)
 	} else { // optimise root ifs at functions for tail recursion elimination
 		if truev != nil {
-			trueB.NewRet(truev)
+			compileRet(truev, t.Type(), trueB)
 		}
 		if falsev != nil {
-			falseB.NewRet(falsev)
+			compileRet(falsev, f.Type(), falseB)
 		}
 		return nil
 	}
@@ -154,12 +156,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			panic("unknown op " + name)
 		}
 	} else {
-		var closure value.Value
 		params := []value.Value{constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosurePType)}
-		if from.Type.IsFunction() {
-			closure = ctx.Block.NewAlloca(ClosurePType)
-			params = append(params, closure)
-		}
 		name := from.Function.Id.Name
 		for _, p := range from.Params {
 			v := compileExp(p, ctx, false)
@@ -180,7 +177,9 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			}
 			return ctx.Block.NewCall(f.Call, params...)
 		}
-		return ctx.Block.NewCall(id.(val).Value, params...)
+		fptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 0))
+		f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
+		return ctx.Block.NewCall(f, params...)
 	}
 }
 
