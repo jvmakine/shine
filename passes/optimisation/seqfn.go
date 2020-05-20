@@ -1,4 +1,4 @@
-package callresolver
+package optimisation
 
 import "github.com/jvmakine/shine/ast"
 

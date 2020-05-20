@@ -2,7 +2,7 @@ package optimisation
 
 import "github.com/jvmakine/shine/ast"
 
-func Optimise(exp *ast.Exp) {
+func DeadCodeElimination(exp *ast.Exp) {
 	visited := map[*ast.Exp]bool{}
 	exp.Crawl(func(v *ast.Exp, _ *ast.VisitContext) error {
 		visited[v] = true

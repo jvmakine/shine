@@ -71,25 +71,10 @@ func TestResolveFunctions(t *testing.T) {
 			},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
-	}, {
-		name: "combines sequential functions when possible",
-		before: Block(
-			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
-			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
-		),
-		after: Block(
-			Assgs{
-				"a":                      Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x"),
-				"a%c":                    Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-				"a%c%%1%%(int,int)=>int": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-			},
-			Fcall(Id("a%c%%1%%(int,int)=>int"), IConst(1), IConst(2)),
-		),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			typeinference.Infer(tt.before)
-			SequentialFunctionPass(tt.before)
 			ResolveFunctions(tt.before)
 
 			eraseType(tt.after)

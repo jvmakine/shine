@@ -10,7 +10,7 @@ import (
 	. "github.com/jvmakine/shine/test"
 )
 
-func TestOptimise(t *testing.T) {
+func TestDCE(t *testing.T) {
 	type args struct {
 		exp *ast.Exp
 	}
@@ -46,7 +46,7 @@ func TestOptimise(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			Optimise(tt.before)
+			DeadCodeElimination(tt.before)
 			if !reflect.DeepEqual(tt.before, tt.after) {
 				t.Errorf("Resolve() = %v, want %v", tt.before, tt.after)
 			}
