@@ -37,6 +37,7 @@ func Compile(text string) (*ir.Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	callresolver.SequentialFunctionPass(ast)
 	callresolver.ResolveFunctions(ast)
 	optimisation.Optimise(ast)
 	closureresolver.CollectClosures(ast)

@@ -3,7 +3,7 @@ package callresolver
 import "github.com/jvmakine/shine/ast"
 
 // Optimise sequential function definitions into one when called with multiple arguments
-func sequentialFunctionPass(exp *ast.Exp) {
+func SequentialFunctionPass(exp *ast.Exp) {
 	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Call != nil && v.Call.Function.Call != nil {
 			root := v.Call.RootFunc()

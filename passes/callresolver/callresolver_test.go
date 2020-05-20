@@ -89,6 +89,7 @@ func TestResolveFunctions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			typeinference.Infer(tt.before)
+			SequentialFunctionPass(tt.before)
 			ResolveFunctions(tt.before)
 
 			eraseType(tt.after)

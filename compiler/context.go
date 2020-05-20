@@ -5,6 +5,9 @@ import (
 	"strconv"
 
 	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/types"
+	"github.com/llir/llvm/ir/constant"
+	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
 
 	"github.com/llir/llvm/ir"
@@ -89,4 +92,38 @@ func (c *context) functions() []function {
 		}
 	}
 	return res
+}
+
+func (c *context) makeClosure(closure *Closure) value.Value {
+	if closure == nil || len(*closure) == 0 {
+		return constant.NewNull(types.I8Ptr)
+	}
+	ctyp := closureType(closure)
+	ctypp := types.NewPointer(ctyp)
+	sp := c.Block.NewGetElementPtr(ctyp, constant.NewNull(ctypp), constant.NewInt(types.I32, 1))
+	size := c.Block.NewPtrToInt(sp, types.I32)
+	mem := c.Block.NewBitCast(c.Block.NewCall(c.utils.malloc, size), ctypp)
+	for i, clj := range *closure {
+		ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
+		res, err := c.resolveId(clj.Name)
+		if err != nil {
+			panic(err)
+		}
+		c.Block.NewStore(res.(val).Value, ptr)
+	}
+	return c.Block.NewBitCast(mem, types.I8Ptr)
+}
+
+func (c *context) loadClosure(closure *Closure, ptr value.Value) {
+	if closure == nil || len(*closure) == 0 {
+		return
+	}
+	ctyp := closureType(closure)
+	ctypp := types.NewPointer(ctyp)
+	cptr := c.Block.NewBitCast(ptr, ctypp)
+	for i, clj := range *closure {
+		ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
+		r := c.Block.NewLoad(getType(clj.Type), ptr)
+		c.addId(clj.Name, val{r})
+	}
 }

@@ -17,7 +17,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
-		want map[string]Closure
+		want map[string]map[string]Type
 	}{{
 		name: "resolves empty Closure for function without closure",
 		exp: Block(
@@ -26,8 +26,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 			},
 			Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 		),
-		want: map[string]Closure{
-			"a%%1%%(bool,bool,bool)=>bool": Closure{},
+		want: map[string]map[string]Type{
+			"a%%1%%(bool,bool,bool)=>bool": map[string]Type{},
 		},
 	}, {
 		name: "resolve closure parameters for function referring to outer ids",
@@ -45,11 +45,11 @@ func TestResolveFunctionDef(tes *testing.T) {
 			},
 			Fcall(Id("a"), IConst(1), BConst(true)),
 		),
-		want: map[string]Closure{
-			"a%%3%%(int,bool)=>int": Closure{},
-			"b%%2%%()=>int": Closure{
-				ClosureParam{Name: "y", Type: types.BoolP},
-				ClosureParam{Name: "x", Type: types.IntP},
+		want: map[string]map[string]Type{
+			"a%%3%%(int,bool)=>int": map[string]Type{},
+			"b%%2%%()=>int": map[string]Type{
+				"y": types.BoolP,
+				"x": types.IntP,
 			},
 		},
 	}, {
@@ -62,10 +62,26 @@ func TestResolveFunctionDef(tes *testing.T) {
 			},
 			Fcall(Id("a"), IConst(1)),
 		),
-		want: map[string]Closure{
-			"a%%1%%(int)=>int":            Closure{},
-			"b%%1%%(int,(int)=>int)=>int": Closure{},
-			"s%%1%%(int)=>int":            Closure{},
+		want: map[string]map[string]Type{
+			"a%%1%%(int)=>int":            map[string]Type{},
+			"b%%1%%(int,(int)=>int)=>int": map[string]Type{},
+			"s%%1%%(int)=>int":            map[string]Type{},
+		},
+	}, {
+		name: "resolves closures for sequential functions",
+		exp: Block(
+			Assgs{"a": Fdef(Fdef(Fdef(Fcall(Op("+"), Fcall(Op("+"), Id("x"), Id("y")), Id("z")), "z"), "y"), "x")},
+			Fcall(Fcall(Fcall(Id("a"), IConst(1)), IConst(2)), IConst(3)),
+		),
+		want: map[string]map[string]Type{
+			"a%%1%%(int)=>(int)=>(int)=>int": map[string]Type{},
+			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
+				"x": types.IntP,
+			},
+			"<anon2>%%1%%(int)=>int": map[string]Type{
+				"x": types.IntP,
+				"y": types.IntP,
+			},
 		},
 	},
 	}
@@ -87,11 +103,14 @@ func TestResolveFunctionDef(tes *testing.T) {
 	}
 }
 
-func collectClosures(cat *callresolver.FCat) map[string]Closure {
-	res := map[string]Closure{}
+func collectClosures(cat *callresolver.FCat) map[string]map[string]Type {
+	res := map[string]map[string]Type{}
 	for k, v := range *cat {
 		if v.Closure != nil {
-			res[k] = *v.Closure
+			res[k] = map[string]Type{}
+			for _, c := range *v.Closure {
+				res[k][c.Name] = c.Type
+			}
 		}
 	}
 	return res

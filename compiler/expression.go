@@ -43,7 +43,9 @@ func compileID(exp *ast.Exp, ctx *context) value.Value {
 	}
 	if f, ok := id.(function); ok {
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
+		clj := ctx.makeClosure(f.From.Closure)
 		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
+		vec = ctx.Block.NewInsertElement(vec, clj, constant.NewInt(types.I32, 1))
 		return vec
 	}
 	return id.(val).Value
@@ -156,30 +158,39 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			panic("unknown op " + name)
 		}
 	} else {
-		params := []value.Value{constant.NewIntToPtr(constant.NewInt(types.I64, 0), ClosurePType)}
-		name := from.Function.Id.Name
+		params := []value.Value{}
 		for _, p := range from.Params {
 			v := compileExp(p, ctx, false)
 			params = append(params, v)
 		}
-
-		id, err := ctx.resolveId(name)
-		if err != nil {
-			panic(err)
-		}
-		if f, ok := id.(function); ok {
-			for _, p := range *f.From.Closure {
-				r, err := ctx.resolveId(p.Name)
-				if err != nil {
-					panic(err)
-				}
-				params = append(params, r.(val).Value)
+		if from.Function.Id != nil {
+			name := from.Function.Id.Name
+			id, err := ctx.resolveId(name)
+			if err != nil {
+				panic(err)
 			}
-			return ctx.Block.NewCall(f.Call, params...)
+			if f, ok := id.(function); ok {
+				if len(*f.From.Closure) > 0 {
+					mem := ctx.makeClosure(f.From.Closure)
+					res := ctx.Block.NewCall(f.Call, append([]value.Value{mem}, params...)...)
+					// TODO: fix
+					//ctx.Block.NewCall(ctx.utils.free, mem)
+					return res
+				}
+				return ctx.Block.NewCall(f.Call, append([]value.Value{constant.NewNull(ClosurePType)}, params...)...)
+			}
+			fptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 0))
+			cptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 1))
+			f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
+			return ctx.Block.NewCall(f, append([]value.Value{cptr}, params...)...)
+		} else {
+			fval := compileExp(from.Function, ctx, false)
+			fptr := ctx.Block.NewExtractElement(fval, constant.NewInt(types.I32, 0))
+			cptr := ctx.Block.NewExtractElement(fval, constant.NewInt(types.I32, 1))
+			f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
+			return ctx.Block.NewCall(f, append([]value.Value{cptr}, params...)...)
+
 		}
-		fptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 0))
-		f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
-		return ctx.Block.NewCall(f, params...)
 	}
 }
 

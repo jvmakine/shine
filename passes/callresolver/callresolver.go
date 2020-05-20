@@ -32,7 +32,6 @@ func Collect(exp *ast.Exp) FCat {
 
 func ResolveFunctions(exp *ast.Exp) {
 	anonCount := 0
-	sequentialFunctionPass(exp)
 	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Call != nil {
 			resolveCall(v.Call)
@@ -46,13 +45,6 @@ func ResolveFunctions(exp *ast.Exp) {
 			ctx.Block().Assignments[fsig] = v.Copy()
 			v.Def = nil
 			v.Id = &ast.Id{Name: fsig, Type: typ}
-		} else if v.Call != nil && v.Call.Function.Call != nil {
-			anonCount++
-			typ := v.Call.Function.Type()
-			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, typ.Signature())
-			ctx.Block().Assignments[fsig] = v.Call.Function.Copy()
-			v.Call.Function.Call = nil
-			v.Call.Function.Id = &ast.Id{Name: fsig, Type: ctx.Block().Assignments[fsig].Type()}
 		}
 		return nil
 	})

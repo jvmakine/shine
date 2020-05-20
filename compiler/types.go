@@ -7,7 +7,6 @@ import (
 
 var (
 	ClosurePType = types.I8Ptr
-	ClosureRType = types.NewPointer(types.I8Ptr)
 	FunType      = types.NewVector(2, types.I8Ptr)
 
 	IntType  = types.I64
