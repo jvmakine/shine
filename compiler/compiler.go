@@ -9,12 +9,16 @@ import (
 	"github.com/llir/llvm/ir/types"
 )
 
-func mallocF(m *ir.Module) *ir.Func {
-	return m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32))
+type utils struct {
+	malloc *ir.Func
+	free   *ir.Func
 }
 
-func free(m *ir.Module) *ir.Func {
-	return m.NewFunc("free", types.Void, ir.NewParam("ptr", types.I8Ptr))
+func makeUtils(m *ir.Module) *utils {
+	return &utils{
+		malloc: m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
+		free:   m.NewFunc("free", types.Void, ir.NewParam("ptr", types.I8Ptr)),
+	}
 }
 
 func iPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
@@ -35,11 +39,10 @@ func fPrintF(m *ir.Module, b *ir.Block) (*ir.Func, *ir.InstGetElementPtr) {
 
 func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	module := ir.NewModule()
+	utils := makeUtils(module)
 
-	mallocF(module)
-	free(module)
 	mainfun := module.NewFunc("main", types.I32)
-	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun}
+	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun, utils: utils}
 	makeFDefs(fcat, &ctx)
 	compileFDefs(fcat, &ctx)
 

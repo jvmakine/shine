@@ -28,11 +28,12 @@ type context struct {
 	Func   *ir.Func
 	Block  *ir.Block
 	parent *context
+	utils  *utils
 	ids    map[string]interface{}
 }
 
 func (c *context) subContext() *context {
-	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func}
+	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func, utils: c.utils}
 }
 
 var labels = 0
@@ -44,7 +45,7 @@ func (c *context) newLabel() string {
 }
 
 func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
-	return &context{parent: c, Module: c.Module, Block: block, Func: fun}
+	return &context{parent: c, Module: c.Module, Block: block, Func: fun, utils: c.utils}
 }
 
 func (c *context) resolveId(name string) (interface{}, error) {
