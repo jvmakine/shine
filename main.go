@@ -33,14 +33,18 @@ func Compile(text string) (*ir.Module, error) {
 		return nil, err
 	}
 	ast := parsed.ToAst()
+
 	err = typeinference.Infer(ast)
 	if err != nil {
 		return nil, err
 	}
+
 	optimisation.SequentialFunctionPass(ast)
 	callresolver.ResolveFunctions(ast)
 	closureresolver.CollectClosures(ast)
+	optimisation.ClosureRemoval(ast)
 	optimisation.DeadCodeElimination(ast)
+
 	fcat := callresolver.Collect(ast)
 	module := compiler.Compile(ast, &fcat)
 	return module, nil
