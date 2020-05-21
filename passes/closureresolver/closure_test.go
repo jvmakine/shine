@@ -92,7 +92,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 				panic(err)
 			}
 			callresolver.ResolveFunctions(tt.exp)
-			optimisation.Optimise(tt.exp)
+			optimisation.DeadCodeElimination(tt.exp)
 			CollectClosures(tt.exp)
 			fcat := callresolver.Collect(tt.exp)
 			result := collectClosures(&fcat)

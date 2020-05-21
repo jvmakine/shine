@@ -66,10 +66,17 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 	ctx.Block = trueB
 	truev := compileExp(t, ctx, funcRoot)
 	trueB = ctx.Block
+	if funcRoot && truev != nil {
+		ctx.ret(truev)
+	}
 
 	ctx.Block = falseB
 	falsev := compileExp(f, ctx, funcRoot)
 	falseB = ctx.Block
+	if funcRoot && falsev != nil {
+		ctx.ret(falsev)
+	}
+
 	if !funcRoot {
 		trueB.NewStore(truev, resV)
 		falseB.NewStore(falsev, resV)
@@ -81,12 +88,6 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 		ctx.Block = continueB
 		return continueB.NewLoad(typ, resV)
 	} else { // optimise root ifs at functions for tail recursion elimination
-		if truev != nil {
-			compileRet(truev, t.Type(), trueB)
-		}
-		if falsev != nil {
-			compileRet(falsev, f.Type(), falseB)
-		}
 		return nil
 	}
 }
@@ -172,10 +173,10 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 			if f, ok := id.(function); ok {
 				return ctx.Block.NewCall(f.Call, append(params, constant.NewNull(ClosurePType))...)
 			}
-			return ctx.callClosureFunction(id.(val).Value, from.Function.Type(), params)
+			return ctx.call(id.(val).Value, from.Function.Type(), params)
 		} else {
 			fval := compileExp(from.Function, ctx, false)
-			return ctx.callClosureFunction(fval, from.Function.Type(), params)
+			return ctx.call(fval, from.Function.Type(), params)
 		}
 	}
 }

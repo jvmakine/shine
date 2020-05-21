@@ -2,12 +2,8 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/passes/callresolver"
-	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
-	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
-	"github.com/llir/llvm/ir/types"
-	"github.com/llir/llvm/ir/value"
 )
 
 func makeFDefs(fcat *callresolver.FCat, ctx *context) {
@@ -41,18 +37,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 		subCtx.loadClosure(f.From.Closure, ir.NewParam("+cls", ClosurePType))
 		result := compileExp(f.From.Body, subCtx, true)
 		if result != nil { // result can be nil if it has already been returned from the function
-			compileRet(result, f.From.Body.Type(), subCtx.Block)
+			subCtx.ret(result)
 		}
-	}
-}
-
-func compileRet(v value.Value, typ t.Type, block *ir.Block) {
-	_, isvect := v.Type().(*types.VectorType)
-	if typ.IsFunction() && !isvect {
-		nv := block.NewBitCast(v, types.I8Ptr)
-		vec := block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
-		block.NewRet(vec)
-	} else {
-		block.NewRet(v)
 	}
 }

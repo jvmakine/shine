@@ -84,17 +84,6 @@ func (c *context) resolveFun(name string) function {
 	panic(name + " is not a function")
 }
 
-func (c *context) functions() []function {
-	var res []function
-	for _, i := range c.ids {
-		switch i.(type) {
-		case function:
-			res = append(res, i.(function))
-		}
-	}
-	return res
-}
-
 func (c *context) makeClosure(closure *Closure) value.Value {
 	if closure == nil || len(*closure) == 0 {
 		return constant.NewNull(types.I8Ptr)
@@ -129,9 +118,21 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 	}
 }
 
-func (c *context) callClosureFunction(f value.Value, typ t.Type, params []value.Value) value.Value {
+func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
 	fptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 0))
 	cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))
 	fun := c.Block.NewBitCast(fptr, getFunctPtr(typ))
 	return c.Block.NewCall(fun, append(params, cptr)...)
+}
+
+func (c *context) ret(v value.Value) {
+	_, isfunc := v.Type().(*types.FuncType)
+	block := c.Block
+	if isfunc {
+		nv := block.NewBitCast(v, types.I8Ptr)
+		vec := block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
+		block.NewRet(vec)
+	} else {
+		block.NewRet(v)
+	}
 }
