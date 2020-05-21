@@ -92,7 +92,7 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	ctypp := types.NewPointer(ctyp)
 	sp := c.Block.NewGetElementPtr(ctyp, constant.NewNull(ctypp), constant.NewInt(types.I32, 1))
 	size := c.Block.NewPtrToInt(sp, types.I32)
-	mem := c.Block.NewBitCast(c.Block.NewCall(c.utils.malloc, size), ctypp)
+	mem := c.Block.NewBitCast(c.malloc(size), ctypp)
 	for i, clj := range *closure {
 		ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
 		res, err := c.resolveId(clj.Name)
@@ -135,4 +135,12 @@ func (c *context) ret(v value.Value) {
 	} else {
 		block.NewRet(v)
 	}
+}
+
+func (c *context) malloc(size value.Value) value.Value {
+	return c.Block.NewCall(c.utils.malloc, size)
+}
+
+func (c *context) free(ptr value.Value) {
+	c.Block.NewCall(c.utils.free, ptr)
 }
