@@ -13,26 +13,26 @@ func TestCompile(t *testing.T) {
 	}{{
 		name: "compiles functions as variables program without errors",
 		program: `
-							operate = (x, y, f) => { f(x, y) }
-							add = (x, y) => { x + y }
-							sub = (x, y) => { x - y }
-							pick = (b) => { if (b) sub else add }
+					operate = (x, y, f) => { f(x, y) }
+					add = (x, y) => { x + y }
+					sub = (x, y) => { x - y }
+					pick = (b) => { if (b) sub else add }
 
-							operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
-						`,
+					operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
+				`,
 		err: nil,
 	}, {
 		name: "compile euler2 without errors",
 		program: `
-						agg = (p2, p1, u, sum) => {
-							cur = p1 + p2
-							if (cur > u) sum else {
-								nsum = if (cur % 2 == 0) sum + cur else sum
-								agg(p1, cur, u, nsum)
-							}
+					agg = (p2, p1, u, sum) => {
+						cur = p1 + p2
+						if (cur > u) sum else {
+							nsum = if (cur % 2 == 0) sum + cur else sum
+							agg(p1, cur, u, nsum)
 						}
-						agg(1, 1, 100, 0)
-					`,
+					}
+					agg(1, 1, 100, 0)
+				`,
 		err: nil,
 	}, {
 		name: "compile nested function args without errors",
