@@ -170,13 +170,6 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 				panic(err)
 			}
 			if f, ok := id.(function); ok {
-				if len(*f.From.Closure) > 0 {
-					mem := ctx.makeClosure(f.From.Closure)
-					res := ctx.Block.NewCall(f.Call, append([]value.Value{mem}, params...)...)
-					// TODO: fix
-					//ctx.Block.NewCall(ctx.utils.free, mem)
-					return res
-				}
 				return ctx.Block.NewCall(f.Call, append([]value.Value{constant.NewNull(ClosurePType)}, params...)...)
 			}
 			fptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 0))
