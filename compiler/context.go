@@ -6,6 +6,7 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
+	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/types"
 	"github.com/llir/llvm/ir/value"
@@ -126,4 +127,11 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 		r := c.Block.NewLoad(getType(clj.Type), ptr)
 		c.addId(clj.Name, val{r})
 	}
+}
+
+func (c *context) callClosureFunction(f value.Value, typ t.Type, params []value.Value) value.Value {
+	fptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 0))
+	cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))
+	fun := c.Block.NewBitCast(fptr, getFunctPtr(typ))
+	return c.Block.NewCall(fun, append(params, cptr)...)
 }

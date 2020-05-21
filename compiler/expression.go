@@ -170,19 +170,12 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 				panic(err)
 			}
 			if f, ok := id.(function); ok {
-				return ctx.Block.NewCall(f.Call, append([]value.Value{constant.NewNull(ClosurePType)}, params...)...)
+				return ctx.Block.NewCall(f.Call, append(params, constant.NewNull(ClosurePType))...)
 			}
-			fptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 0))
-			cptr := ctx.Block.NewExtractElement(id.(val).Value, constant.NewInt(types.I32, 1))
-			f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
-			return ctx.Block.NewCall(f, append([]value.Value{cptr}, params...)...)
+			return ctx.callClosureFunction(id.(val).Value, from.Function.Type(), params)
 		} else {
 			fval := compileExp(from.Function, ctx, false)
-			fptr := ctx.Block.NewExtractElement(fval, constant.NewInt(types.I32, 0))
-			cptr := ctx.Block.NewExtractElement(fval, constant.NewInt(types.I32, 1))
-			f := ctx.Block.NewBitCast(fptr, getFunctPtr(from.Function.Type()))
-			return ctx.Block.NewCall(f, append([]value.Value{cptr}, params...)...)
-
+			return ctx.callClosureFunction(fval, from.Function.Type(), params)
 		}
 	}
 }
