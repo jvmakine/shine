@@ -4,13 +4,19 @@
 	"patterns": [
 		{ "include": "#keywords" },
 		{ "include": "#strings" },
-		{ "include": "#comments" }
+		{ "include": "#linecomments" },
+		{ "include": "#blockcomments" }
 	],
 	"repository": {
-		"comments": {
-			"name": "comment",
+		"linecomments": {
+			"name": "comment.line.double-slash",
 			"begin": "//",
 			"end": "\n"
+		},
+		"blockcomments": {
+			"name": "comment.block",
+			"begin": "/\\*",
+			"end": "\\*/"
 		},
 		"keywords": {
 			"patterns": [{
