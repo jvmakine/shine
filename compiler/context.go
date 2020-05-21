@@ -118,6 +118,10 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 	}
 }
 
+func (c *context) freeClosure(fp value.Value) {
+	
+}
+
 func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
 	fptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 0))
 	cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))

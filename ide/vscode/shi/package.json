@@ -1,0 +1,25 @@
+{
+    "name": "shi",
+    "displayName": "Shine",
+    "description": "Shine language support",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.45.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "shine",
+            "aliases": ["Shine", "shine"],
+            "extensions": [".shi"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "shine",
+            "scopeName": "source.shi",
+            "path": "./syntaxes/shine.tmLanguage.json"
+        }]
+    }
+}
