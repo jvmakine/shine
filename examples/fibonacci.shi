@@ -1,3 +1,4 @@
+// Returns the nth fibonacci number
 fibonacci = (n) => if (n <= 2) 1 else fibonacci(n-2) + fibonacci(n-1)
 
 fibonacci(40)

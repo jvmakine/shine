@@ -3,9 +3,15 @@
 	"name": "Shine",
 	"patterns": [
 		{ "include": "#keywords" },
-		{ "include": "#strings" }
+		{ "include": "#strings" },
+		{ "include": "#comments" }
 	],
 	"repository": {
+		"comments": {
+			"name": "comment",
+			"begin": "//",
+			"end": "\n"
+		},
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.shine",

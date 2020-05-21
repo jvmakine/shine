@@ -12,6 +12,7 @@ type Program struct {
 
 func Parse(str string) (*Program, error) {
 	lexer, err := ebnf.New(`
+		LineComment = ("//") { "\u0000"…"\uffff"-"\n" } .
 		Fun = "=>" .
 		Newline = "\n" .
 		Whitespace = " " | "\r" | "\t" .
@@ -31,7 +32,7 @@ func Parse(str string) (*Program, error) {
 		&Program{},
 		participle.UseLookahead(2),
 		participle.Lexer(lexer),
-		participle.Elide("Whitespace"),
+		participle.Elide("Whitespace", "LineComment"),
 	)
 	if err != nil {
 		panic(err)
