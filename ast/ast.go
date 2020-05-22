@@ -97,6 +97,10 @@ func (a *FDef) ParamOf(name string) *FParam {
 	return nil
 }
 
+func (a *FDef) HasClosure() bool {
+	return a.Closure != nil && len(*a.Closure) > 0
+}
+
 func (a *FCall) RootFunc() *Exp {
 	if a.Function.Call != nil {
 		return a.Function.Call.RootFunc()
