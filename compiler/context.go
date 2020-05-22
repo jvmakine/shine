@@ -119,7 +119,9 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 }
 
 func (c *context) freeClosure(fp value.Value) {
-	
+	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
+	// TODO: Reference counting
+	c.free(cptr)
 }
 
 func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
