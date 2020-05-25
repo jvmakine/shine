@@ -17,11 +17,12 @@ type FCat = map[FSign]*ast.FDef
 
 func Collect(exp *ast.Exp) FCat {
 	result := FCat{}
-	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
+	exp.VisitAfter(func(v *ast.Exp, _ *ast.VisitContext) error {
 		if v.Block != nil {
 			for n, a := range v.Block.Assignments {
 				if a.Def != nil {
 					result[n] = a.Def
+					delete(v.Block.Assignments, n)
 				}
 			}
 		}
@@ -60,7 +61,8 @@ func resolveCall(v *ast.FCall) {
 }
 
 func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
-	if block := ctx.BlockOf(v.Id.Name); block != nil {
+	name := v.Id.Name
+	if block := ctx.BlockOf(name); block != nil && block.Assignments[name].Def != nil {
 		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
 		if block.Assignments[fsig] == nil {
 			f := block.Assignments[v.Id.Name]
