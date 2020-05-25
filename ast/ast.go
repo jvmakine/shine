@@ -185,27 +185,32 @@ func (a *Op) copy(ctx *types.TypeCopyCtx) *Op {
 
 func (b *Block) CheckValueCycles() error {
 	names := map[string]*Exp{}
-	verified := map[string]bool{}
+
+	type ToDo struct {
+		id   string
+		path []string
+	}
+	todo := []ToDo{}
+
 	for k, a := range b.Assignments {
 		names[k] = a
+		todo = append(todo, ToDo{id: k, path: []string{}})
 	}
-	for k, a := range b.Assignments {
-		if !verified[k] {
-			todo := a.collectIds()
-			visited := []string{k}
-			visitedb := map[string]bool{k: true}
-			verified[k] = true
-			for len(todo) > 0 {
-				i := todo[0]
-				todo = todo[1:]
-				if names[i] != nil && names[i].Def == nil {
-					if visitedb[i] {
-						return errors.New("recursive value: " + cycleToStr(visited, i))
-					}
-					verified[i] = true
-					visitedb[i] = true
-					visited = append(visited, i)
-					todo = append(todo, names[i].collectIds()...)
+
+	for len(todo) > 0 {
+		i := todo[0]
+		todo = todo[1:]
+		for _, p := range i.path {
+			if p == i.id {
+				return errors.New("recursive value: " + cycleToStr(i.path, i.id))
+			}
+		}
+		exp := b.Assignments[i.id]
+		if exp.Def == nil {
+			ids := exp.collectIds()
+			for _, id := range ids {
+				if names[id] != nil {
+					todo = append(todo, ToDo{id: id, path: append(i.path, i.id)})
 				}
 			}
 		}

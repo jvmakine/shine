@@ -112,7 +112,7 @@ func TestInfer(tes *testing.T) {
 		name: "work on non-recursive values",
 		exp: Block(
 			Assgs{
-				"a": Fcall(Op("+"), Id("b"), Id("b")),
+				"a": Fcall(Op("+"), Id("b"), Id("c")),
 				"b": Fcall(Op("+"), Id("c"), Id("c")),
 				"c": Fcall(Op("+"), IConst(1), IConst(2)),
 			},
