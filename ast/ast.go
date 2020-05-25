@@ -207,7 +207,7 @@ func (b *Block) CheckValueCycles() error {
 		}
 		exp := b.Assignments[i.id]
 		if exp.Def == nil {
-			ids := exp.collectIds()
+			ids := exp.CollectIds()
 			for _, id := range ids {
 				if names[id] != nil {
 					todo = append(todo, ToDo{id: id, path: append(i.path, i.id)})
@@ -218,13 +218,13 @@ func (b *Block) CheckValueCycles() error {
 	return nil
 }
 
-func (exp *Exp) collectIds() []string {
+func (exp *Exp) CollectIds() []string {
 	if exp.Id != nil {
 		return []string{exp.Id.Name}
 	} else if exp.Call != nil {
 		resultM := map[string]bool{}
 		for _, p := range exp.Call.Params {
-			for _, id := range p.collectIds() {
+			for _, id := range p.CollectIds() {
 				resultM[id] = true
 			}
 		}
@@ -234,14 +234,14 @@ func (exp *Exp) collectIds() []string {
 		}
 		return result
 	} else if exp.Def != nil {
-		return exp.Def.Body.collectIds()
+		return exp.Def.Body.CollectIds()
 	} else if exp.Block != nil {
 		resultM := map[string]bool{}
-		for _, id := range exp.Block.Value.collectIds() {
+		for _, id := range exp.Block.Value.CollectIds() {
 			resultM[id] = true
 		}
 		for _, a := range exp.Block.Assignments {
-			for _, id := range a.collectIds() {
+			for _, id := range a.CollectIds() {
 				resultM[id] = true
 			}
 		}

@@ -186,15 +186,37 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 
 func compileBlock(from *ast.Block, ctx *context, funcRoot bool) value.Value {
 	sub := ctx.subContext()
+
+	assigns := map[string]*ast.Exp{}
+	deps := map[string]map[string]bool{}
 	for k, c := range from.Assignments {
-		if c.Def == nil {
-			v := compileExp(c, sub, false)
-			_, err := sub.addId(k, v)
-			if err != nil {
-				panic(err)
+		assigns[k] = c
+		deps[k] = map[string]bool{}
+		for _, i := range c.CollectIds() {
+			deps[k][i] = true
+		}
+	}
+
+	for len(assigns) > 0 {
+		for k, c := range assigns {
+			dependencies := false
+			for d, _ := range deps[k] {
+				if assigns[d] != nil {
+					dependencies = true
+					break
+				}
+			}
+			if !dependencies {
+				v := compileExp(c, sub, false)
+				_, err := sub.addId(k, v)
+				if err != nil {
+					panic(err)
+				}
+				delete(assigns, k)
 			}
 		}
 	}
+
 	res := compileExp(from.Value, sub, funcRoot)
 	ctx.Block = sub.Block
 	return res
