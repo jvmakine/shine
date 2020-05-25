@@ -7,6 +7,7 @@ import (
 )
 
 func makeFDefs(fcat *callresolver.FCat, ctx *context) {
+	ctx.functions = &map[string]function{}
 	for name, fun := range *fcat {
 		rtype := getType(fun.Body.Type())
 		params := []*ir.Param{}
@@ -18,7 +19,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 		compiled := ctx.Module.NewFunc(name, rtype, params...)
 		compiled.Linkage = enum.LinkageInternal
 
-		ctx.addId(name, function{fun, compiled, compiled})
+		(*ctx.functions)[name] = function{fun, compiled, compiled}
 	}
 }
 
@@ -29,7 +30,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 		subCtx := ctx.funcContext(body, f.Fun)
 		for _, p := range f.From.Params {
 			param := ir.NewParam(p.Name, getType(p.Type))
-			_, err := subCtx.addId(p.Name, val{param})
+			_, err := subCtx.addId(p.Name, param)
 			if err != nil {
 				panic(err)
 			}

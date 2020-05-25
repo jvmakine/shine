@@ -23,21 +23,25 @@ type function struct {
 	Call value.Value
 }
 
-type val struct {
-	Value value.Value
-}
-
 type context struct {
-	Module *ir.Module
-	Func   *ir.Func
-	Block  *ir.Block
-	parent *context
-	utils  *utils
-	ids    map[string]interface{}
+	Module    *ir.Module
+	Func      *ir.Func
+	Block     *ir.Block
+	parent    *context
+	functions *map[string]function
+	utils     *utils
+	ids       map[string]value.Value
 }
 
 func (c *context) subContext() *context {
-	return &context{parent: c, Module: c.Module, Block: c.Block, Func: c.Func, utils: c.utils}
+	return &context{
+		parent:    c,
+		Module:    c.Module,
+		Block:     c.Block,
+		Func:      c.Func,
+		utils:     c.utils,
+		functions: c.functions,
+	}
 }
 
 var labels = 0
@@ -49,10 +53,17 @@ func (c *context) newLabel() string {
 }
 
 func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
-	return &context{parent: c, Module: c.Module, Block: block, Func: fun, utils: c.utils}
+	return &context{
+		parent:    c,
+		Module:    c.Module,
+		Block:     block,
+		Func:      fun,
+		utils:     c.utils,
+		functions: c.functions,
+	}
 }
 
-func (c *context) resolveId(name string) (interface{}, error) {
+func (c *context) resolveId(name string) (value.Value, error) {
 	if c.ids[name] != nil {
 		return c.ids[name], nil
 	} else if c.parent != nil {
@@ -61,9 +72,9 @@ func (c *context) resolveId(name string) (interface{}, error) {
 	return nil, errors.New("undefined id " + name)
 }
 
-func (c *context) addId(name string, val interface{}) (*context, error) {
+func (c *context) addId(name string, val value.Value) (*context, error) {
 	if c.ids == nil {
-		c.ids = map[string]interface{}{}
+		c.ids = map[string]value.Value{}
 	}
 	if c.ids[name] != nil {
 		return nil, errors.New("redefinition of " + name)
@@ -73,15 +84,11 @@ func (c *context) addId(name string, val interface{}) (*context, error) {
 }
 
 func (c *context) resolveFun(name string) function {
-	i, err := c.resolveId(name)
-	if err != nil {
+	i := (*c.functions)[name]
+	if i.Fun == nil {
 		panic(name + " is not a function")
 	}
-	switch i.(type) {
-	case function:
-		return i.(function)
-	}
-	panic(name + " is not a function")
+	return i
 }
 
 func (c *context) makeClosure(closure *Closure) value.Value {
@@ -99,7 +106,7 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 		if err != nil {
 			panic(err)
 		}
-		c.Block.NewStore(res.(val).Value, ptr)
+		c.Block.NewStore(res, ptr)
 	}
 	return c.Block.NewBitCast(mem, types.I8Ptr)
 }
@@ -114,7 +121,7 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 	for i, clj := range *closure {
 		ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
 		r := c.Block.NewLoad(getType(clj.Type), ptr)
-		c.addId(clj.Name, val{r})
+		c.addId(clj.Name, r)
 	}
 }
 

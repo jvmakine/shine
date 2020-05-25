@@ -37,18 +37,20 @@ func compileConst(from *ast.Const, ctx *context) value.Value {
 }
 
 func compileID(exp *ast.Exp, ctx *context) value.Value {
-	id, err := ctx.resolveId(exp.Id.Name)
-	if err != nil {
-		panic(err)
-	}
-	if f, ok := id.(function); ok {
+	name := exp.Id.Name
+	if (*ctx.functions)[name].Fun != nil {
+		f := (*ctx.functions)[name]
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
 		clj := ctx.makeClosure(f.From.Closure)
 		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
 		vec = ctx.Block.NewInsertElement(vec, clj, constant.NewInt(types.I32, 1))
 		return vec
 	}
-	return id.(val).Value
+	id, err := ctx.resolveId(name)
+	if err != nil {
+		panic(err)
+	}
+	return id
 }
 
 func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) value.Value {
@@ -166,14 +168,15 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) value.Value {
 		}
 		if from.Function.Id != nil {
 			name := from.Function.Id.Name
+			if (*ctx.functions)[name].Fun != nil {
+				f := (*ctx.functions)[name]
+				return ctx.Block.NewCall(f.Call, append(params, constant.NewNull(ClosurePType))...)
+			}
 			id, err := ctx.resolveId(name)
 			if err != nil {
 				panic(err)
 			}
-			if f, ok := id.(function); ok {
-				return ctx.Block.NewCall(f.Call, append(params, constant.NewNull(ClosurePType))...)
-			}
-			return ctx.call(id.(val).Value, from.Function.Type(), params)
+			return ctx.call(id, from.Function.Type(), params)
 		} else {
 			fval := compileExp(from.Function, ctx, false)
 			return ctx.call(fval, from.Function.Type(), params)
@@ -186,7 +189,7 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) value.Value {
 	for k, c := range from.Assignments {
 		if c.Def == nil {
 			v := compileExp(c, sub, false)
-			_, err := sub.addId(k, val{v})
+			_, err := sub.addId(k, v)
 			if err != nil {
 				panic(err)
 			}
