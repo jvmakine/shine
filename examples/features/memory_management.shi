@@ -1,0 +1,15 @@
+times = (n, f, res) => {
+    if (n > 0) {
+        times(n-1, f, f(n))
+    } else {
+        res
+    }
+}
+
+a = (x) => (y) => { x + y }
+b = (x) => {
+    r = a(1)
+    r(x)
+}
+
+times(500000000, b, 0)
