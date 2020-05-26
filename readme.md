@@ -20,9 +20,7 @@ Interpret
 > ./run.sh examples/fibonacci.shi
 
 Compile into executable and run it
-> ./compile.sh examples/fibonacci.shi > fibonacci
-
-> chmod u+x fibonacci
+> ./compile.sh examples/fibonacci.shi fibonacci
 
 > ./fibonacci
 
