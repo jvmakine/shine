@@ -1,9 +1,10 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
 void free_reference(void *cls) {
     if (cls == NULL) {
-        return
+        return;
     }
     int32_t refcount = *((int32_t*)cls);
     if (refcount <= 1) {
@@ -22,9 +23,8 @@ void free_reference(void *cls) {
 }
 
 void increase_refcount(void *cls) {
-    if (cls == NULL) {
-        return
+    if (cls != 0) {
+        int32_t refcount = *((int32_t*)cls);
+        *((int32_t*)cls) = refcount + 1;
     }
-    int32_t refcount = *((int32_t*)cls);
-    *((int32_t*)cls) = refcount + 1;
 }

@@ -19,7 +19,7 @@ func makeUtils(m *ir.Module) *utils {
 	return &utils{
 		malloc:  m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
 		freeRef: m.NewFunc("free_reference", types.Void, ir.NewParam("ptr", types.I8Ptr)),
-		incRef:  m.NewFunc("increase_refcount", types.Void, ir.NewParam("ptr", types.I8Ptr)),
+		incRef:  m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
 	}
 }
 

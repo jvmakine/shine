@@ -16,7 +16,7 @@ rtest "examples/features/sequential_fn.shi" "9"
 rtest "examples/features/real_numbers.shi" "102334155.000000"
 rtest "examples/features/multi_types.shi" "2"
 rtest "examples/features/functions_as_types.shi" "13"
-rtest "examples/features/closures.shi" "13"
+rtest "examples/features/closures.shi" "15"
 
 rtest "examples/euler/001.shi" "233168"
 rtest "examples/euler/002.shi" "4613732"
