@@ -119,10 +119,14 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	for _, clj := range *closure {
 		if clj.Type.IsFunction() {
 			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
+			fptr := c.Block.NewBitCast(ptr, types.NewPointer(FunType))
+			f := c.Block.NewLoad(FunType, fptr)
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
 			}
+			cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))
+			c.Block.NewCall(c.utils.incRef, cptr)
 			c.Block.NewStore(res, ptr)
 			closures++
 		}
