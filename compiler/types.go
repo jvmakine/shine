@@ -15,9 +15,22 @@ var (
 )
 
 func closureType(c *t.Closure) types.Type {
-	ps := make([]types.Type, len(*c))
-	for i, p := range *c {
-		ps[i] = getType(p.Type)
+	ps := make([]types.Type, len(*c)+2)
+	ps[0] = types.I32 // reference count
+	ps[1] = types.I16 // number of closures
+	closures := 0
+	for _, p := range *c {
+		if p.Type.IsFunction() {
+			ps[closures+2] = getType(p.Type)
+			closures++
+		}
+	}
+	nonclosures := 0
+	for _, p := range *c {
+		if !p.Type.IsFunction() {
+			ps[2+closures+nonclosures] = getType(p.Type)
+			nonclosures++
+		}
 	}
 	return types.NewStruct(ps...)
 }

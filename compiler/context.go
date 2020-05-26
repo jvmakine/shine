@@ -100,13 +100,45 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	sp := c.Block.NewGetElementPtr(ctyp, constant.NewNull(ctypp), constant.NewInt(types.I32, 1))
 	size := c.Block.NewPtrToInt(sp, types.I32)
 	mem := c.Block.NewBitCast(c.malloc(size), ctypp)
-	for i, clj := range *closure {
-		ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
-		res, err := c.resolveId(clj.Name)
-		if err != nil {
-			panic(err)
+
+	// reference count
+	refcp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
+	c.Block.NewStore(constant.NewInt(types.I32, 1), refcp)
+
+	// closure count
+	closures := 0
+	for _, clj := range *closure {
+		if clj.Type.IsFunction() {
+			closures++
 		}
-		c.Block.NewStore(res, ptr)
+	}
+	clscp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
+	c.Block.NewStore(constant.NewInt(types.I16, int64(closures)), clscp)
+
+	closures = 0
+	for _, clj := range *closure {
+		if clj.Type.IsFunction() {
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
+			res, err := c.resolveId(clj.Name)
+			if err != nil {
+				panic(err)
+			}
+			c.Block.NewStore(res, ptr)
+			closures++
+		}
+	}
+
+	nonclosures := 0
+	for _, clj := range *closure {
+		if !clj.Type.IsFunction() {
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+2+closures)))
+			res, err := c.resolveId(clj.Name)
+			if err != nil {
+				panic(err)
+			}
+			c.Block.NewStore(res, ptr)
+			nonclosures++
+		}
 	}
 	return c.Block.NewBitCast(mem, types.I8Ptr)
 }
@@ -118,10 +150,25 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 	ctyp := closureType(closure)
 	ctypp := types.NewPointer(ctyp)
 	cptr := c.Block.NewBitCast(ptr, ctypp)
-	for i, clj := range *closure {
-		ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(i)))
-		r := c.Block.NewLoad(getType(clj.Type), ptr)
-		c.addId(clj.Name, r)
+
+	closures := 0
+	for _, clj := range *closure {
+		if clj.Type.IsFunction() {
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
+			r := c.Block.NewLoad(getType(clj.Type), ptr)
+			c.addId(clj.Name, r)
+			closures++
+		}
+	}
+
+	nonclosures := 0
+	for _, clj := range *closure {
+		if !clj.Type.IsFunction() {
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+closures+2)))
+			r := c.Block.NewLoad(getType(clj.Type), ptr)
+			c.addId(clj.Name, r)
+			nonclosures++
+		}
 	}
 }
 
