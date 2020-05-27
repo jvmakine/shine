@@ -23,7 +23,7 @@ void free_reference(void *cls) {
 }
 
 void increase_refcount(void *cls) {
-    if (cls != 0) {
+    if (cls != NULL) {
         int32_t refcount = *((int32_t*)cls);
         *((int32_t*)cls) = refcount + 1;
     }

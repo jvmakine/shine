@@ -212,6 +212,9 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) value.Value {
 				if err != nil {
 					panic(err)
 				}
+				if c.Type().IsFunction() {
+					sub.increfClosure(v)
+				}
 				delete(assigns, k)
 			}
 		}
