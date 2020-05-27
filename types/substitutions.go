@@ -28,6 +28,10 @@ func (s Substitutions) Apply(t Type) Type {
 }
 
 func (s Substitutions) Update(from *TypeVar, to Type) error {
+	if from == to.Variable {
+		return nil
+	}
+
 	result := s.Apply(to)
 
 	if p := s.substitutions[from]; p.IsDefined() {
