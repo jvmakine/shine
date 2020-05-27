@@ -175,7 +175,7 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 
 func (c *context) freeClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.Block.NewCall(c.utils.freeRef, cptr)
+	c.Block.NewCall(c.utils.freeClosure, cptr)
 }
 
 func (c *context) increfClosure(fp value.Value) {

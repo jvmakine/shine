@@ -10,16 +10,16 @@ import (
 )
 
 type utils struct {
-	malloc  *ir.Func
-	freeRef *ir.Func
-	incRef  *ir.Func
+	malloc      *ir.Func
+	freeClosure *ir.Func
+	incRef      *ir.Func
 }
 
 func makeUtils(m *ir.Module) *utils {
 	return &utils{
-		malloc:  m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
-		freeRef: m.NewFunc("free_reference", types.Void, ir.NewParam("ptr", types.I8Ptr)),
-		incRef:  m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
+		malloc:      m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
+		freeClosure: m.NewFunc("free_closure", types.Void, ir.NewParam("ptr", types.I8Ptr)),
+		incRef:      m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
 	}
 }
 
