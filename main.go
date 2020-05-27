@@ -34,12 +34,12 @@ func Compile(text string) (*ir.Module, error) {
 	}
 	ast := parsed.ToAst()
 
+	optimisation.SequentialFunctionPass(ast)
 	err = typeinference.Infer(ast)
 	if err != nil {
 		return nil, err
 	}
 
-	optimisation.SequentialFunctionPass(ast)
 	callresolver.ResolveFunctions(ast)
 	closureresolver.CollectClosures(ast)
 	optimisation.ClosureRemoval(ast)

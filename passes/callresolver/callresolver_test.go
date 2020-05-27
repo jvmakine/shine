@@ -76,7 +76,6 @@ func TestResolveFunctions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			typeinference.Infer(tt.before)
 			ResolveFunctions(tt.before)
-
 			eraseType(tt.after)
 			eraseType(tt.before)
 			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
