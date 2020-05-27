@@ -6,7 +6,6 @@ import (
 
 // Optimise sequential function definitions into one when called with multiple arguments
 func SequentialFunctionPass(exp *ast.Exp) {
-	//copyCtx := types.NewTypeCopyCtx()
 	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Call != nil && v.Call.Function.Call != nil {
 			root := v.Call.RootFunc()
