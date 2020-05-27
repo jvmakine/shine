@@ -183,22 +183,32 @@ func (c *context) increfClosure(fp value.Value) {
 	c.Block.NewCall(c.utils.incRef, cptr)
 }
 
-func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
-	fptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 0))
-	cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))
+func (c *context) call(f cresult, typ t.Type, params []cresult) cresult {
+	fptr := c.Block.NewExtractElement(f.value, constant.NewInt(types.I32, 0))
+	cptr := c.Block.NewExtractElement(f.value, constant.NewInt(types.I32, 1))
 	fun := c.Block.NewBitCast(fptr, getFunctPtr(typ))
-	return c.Block.NewCall(fun, append(params, cptr)...)
+
+	vparams := make([]value.Value, len(params))
+	for i, p := range params {
+		vparams[i] = p.value
+	}
+
+	res := makeCR(c.Block.NewCall(fun, append(vparams, cptr)...))
+	for _, p := range params {
+		res = res.cmb(p)
+	}
+	return res.cmb(f)
 }
 
-func (c *context) ret(v value.Value) {
-	_, isfunc := v.Type().(*types.FuncType)
+func (c *context) ret(v cresult) {
+	_, isfunc := v.value.Type().(*types.FuncType)
 	block := c.Block
 	if isfunc {
-		nv := block.NewBitCast(v, types.I8Ptr)
+		nv := block.NewBitCast(v.value, types.I8Ptr)
 		vec := block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
 		block.NewRet(vec)
 	} else {
-		block.NewRet(v)
+		block.NewRet(v.value)
 	}
 }
 

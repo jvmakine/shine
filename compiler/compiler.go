@@ -52,10 +52,10 @@ func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 
 	if prg.Type().AsPrimitive() == t.Int {
 		printf, ptr := iPrintF(module, ctx.Block)
-		ctx.Block.NewCall(printf, ptr, v)
+		ctx.Block.NewCall(printf, ptr, v.value)
 	} else if prg.Type().AsPrimitive() == t.Real {
 		printf, ptr := fPrintF(module, ctx.Block)
-		ctx.Block.NewCall(printf, ptr, v)
+		ctx.Block.NewCall(printf, ptr, v.value)
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
 	return module
