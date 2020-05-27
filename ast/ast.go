@@ -71,10 +71,10 @@ type Block struct {
 }
 
 func (a *Exp) Copy() *Exp {
-	return a.copy(types.NewTypeCopyCtx())
+	return a.CopyWithCtx(types.NewTypeCopyCtx())
 }
 
-func (a *Exp) copy(ctx *types.TypeCopyCtx) *Exp {
+func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 	if a == nil {
 		return nil
 	}
@@ -114,11 +114,11 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	}
 	ac := map[string]*Exp{}
 	for k, v := range a.Assignments {
-		ac[k] = v.copy(ctx)
+		ac[k] = v.CopyWithCtx(ctx)
 	}
 	return &Block{
 		Assignments: ac,
-		Value:       a.Value.copy(ctx),
+		Value:       a.Value.CopyWithCtx(ctx),
 		ID:          a.ID,
 	}
 }
@@ -129,10 +129,10 @@ func (a *FCall) copy(ctx *types.TypeCopyCtx) *FCall {
 	}
 	pc := make([]*Exp, len(a.Params))
 	for i, p := range a.Params {
-		pc[i] = p.copy(ctx)
+		pc[i] = p.CopyWithCtx(ctx)
 	}
 	return &FCall{
-		Function: a.Function.copy(ctx),
+		Function: a.Function.CopyWithCtx(ctx),
 		Params:   pc,
 		Type:     a.Type.Copy(ctx),
 	}
@@ -148,7 +148,7 @@ func (a *FDef) copy(ctx *types.TypeCopyCtx) *FDef {
 	}
 	return &FDef{
 		Params:  pc,
-		Body:    a.Body.copy(ctx),
+		Body:    a.Body.CopyWithCtx(ctx),
 		Closure: a.Closure.Copy(ctx),
 	}
 }
