@@ -67,30 +67,22 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 
 	ctx.Block = trueB
 	truev := compileExp(t, ctx, funcRoot)
-	if t.Type().IsFunction() && t.Id == nil {
-		ctx.freeClosure(truev.value)
-	}
-	if cond.ast.Type().IsFunction() && cond.ast.Id == nil {
-		ctx.freeClosure(cond.value)
-	}
+	ctx.freeIfUnboundRef(truev)
+	ctx.freeIfUnboundRef(cond)
 
 	trueB = ctx.Block
 	if funcRoot && truev.value != nil {
-		ctx.ret(makeCR(c, truev.value).cmb(cond))
+		ctx.ret(makeCR(c, truev.value))
 	}
 
 	ctx.Block = falseB
 	falsev := compileExp(f, ctx, funcRoot)
 	falseB = ctx.Block
-	if f.Type().IsFunction() && f.Id == nil {
-		ctx.freeClosure(falsev.value)
-	}
-	if cond.ast.Type().IsFunction() && cond.ast.Id == nil {
-		ctx.freeClosure(cond.value)
-	}
+	ctx.freeIfUnboundRef(falsev)
+	ctx.freeIfUnboundRef(cond)
 
 	if funcRoot && falsev.value != nil {
-		ctx.ret(makeCR(c, falsev.value).cmb(cond))
+		ctx.ret(makeCR(c, falsev.value))
 	}
 
 	if !funcRoot {
@@ -102,7 +94,7 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 		falseB.NewBr(continueB)
 
 		ctx.Block = continueB
-		return makeCR(c, continueB.NewLoad(typ, resV)).cmb(cond)
+		return makeCR(c, continueB.NewLoad(typ, resV))
 	} else { // optimise root ifs at functions for tail recursion elimination
 		return cresult{}
 	}
@@ -123,54 +115,54 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 		switch name {
 		case "*":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFMul(params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFMul(params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewMul(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewMul(params[0].value, params[1].value))
 		case "/":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFDiv(params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFDiv(params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewUDiv(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewUDiv(params[0].value, params[1].value))
 		case "%":
-			return makeCR(exp, ctx.Block.NewURem(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewURem(params[0].value, params[1].value))
 		case "+":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFAdd(params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFAdd(params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewAdd(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewAdd(params[0].value, params[1].value))
 		case "-":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFSub(params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFSub(params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewSub(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewSub(params[0].value, params[1].value))
 		case ">":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value))
 		case "<":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value))
 		case ">=":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value))
 		case "<=":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
-				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value)).cmb(params...)
+				return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value))
 			}
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
 		case "==":
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value))
 		case "!=":
-			return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value))
 		case "||":
-			return makeCR(exp, ctx.Block.NewOr(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewOr(params[0].value, params[1].value))
 		case "&&":
-			return makeCR(exp, ctx.Block.NewAnd(params[0].value, params[1].value)).cmb(params...)
+			return makeCR(exp, ctx.Block.NewAnd(params[0].value, params[1].value))
 		default:
 			panic("unknown op " + name)
 		}
@@ -196,9 +188,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 				}
 				res := ctx.Block.NewCall(f.Call, append(vps, constant.NewNull(ClosurePType))...)
 				for _, p := range params {
-					if p.ast.Type().IsFunction() && p.ast.Id == nil {
-						ctx.freeClosure(p.value)
-					}
+					ctx.freeIfUnboundRef(p)
 				}
 				return makeCR(exp, res)
 			}
@@ -208,20 +198,16 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			}
 			res := ctx.call(id, from.Function.Type(), vparams)
 			for _, p := range params {
-				if p.ast.Type().IsFunction() && p.ast.Id == nil {
-					ctx.freeClosure(p.value)
-				}
+				ctx.freeIfUnboundRef(p)
 			}
 			return makeCR(exp, res)
 		}
 		fval := compileExp(from.Function, ctx, false)
 		res := ctx.call(fval.value, from.Function.Type(), vparams)
 		for _, p := range params {
-			if p.ast.Type().IsFunction() && p.ast.Id == nil {
-				ctx.freeClosure(p.value)
-			}
+			ctx.freeIfUnboundRef(p)
 		}
-		ctx.freeClosure(fval.value)
+		ctx.freeIfUnboundRef(fval)
 		return makeCR(exp, res)
 	}
 }

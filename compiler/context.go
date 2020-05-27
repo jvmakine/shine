@@ -202,3 +202,9 @@ func (c *context) ret(v cresult) {
 func (c *context) malloc(size value.Value) value.Value {
 	return c.Block.NewCall(c.utils.malloc, size)
 }
+
+func (c *context) freeIfUnboundRef(res cresult) {
+	if res.ast != nil && res.ast.Type().IsFunction() && res.ast.Id == nil {
+		c.freeClosure(res.value)
+	}
+}
