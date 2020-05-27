@@ -219,39 +219,18 @@ func (b *Block) CheckValueCycles() error {
 }
 
 func (exp *Exp) CollectIds() []string {
-	if exp.Id != nil {
-		return []string{exp.Id.Name}
-	} else if exp.Call != nil {
-		resultM := map[string]bool{}
-		for _, p := range exp.Call.Params {
-			for _, id := range p.CollectIds() {
-				resultM[id] = true
-			}
+	ids := map[string]bool{}
+	exp.Visit(func(v *Exp, _ *VisitContext) error {
+		if v.Id != nil {
+			ids[v.Id.Name] = true
 		}
-		result := []string{}
-		for k := range resultM {
-			result = append(result, k)
-		}
-		return result
-	} else if exp.Def != nil {
-		return exp.Def.Body.CollectIds()
-	} else if exp.Block != nil {
-		resultM := map[string]bool{}
-		for _, id := range exp.Block.Value.CollectIds() {
-			resultM[id] = true
-		}
-		for _, a := range exp.Block.Assignments {
-			for _, id := range a.CollectIds() {
-				resultM[id] = true
-			}
-		}
-		result := []string{}
-		for k := range resultM {
-			result = append(result, k)
-		}
-		return result
+		return nil
+	})
+	result := []string{}
+	for k := range ids {
+		result = append(result, k)
 	}
-	return []string{}
+	return result
 }
 
 func cycleToStr(arr []string, v string) string {
