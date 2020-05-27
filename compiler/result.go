@@ -7,18 +7,21 @@ import (
 
 type cresult struct {
 	value value.Value
-	ids   map[string]value.Value
+	ast   *ast.Exp
 	exp   map[*ast.Exp]value.Value
 }
 
-func makeCR(v value.Value) cresult {
-	return cresult{value: v}
+func makeCR(e *ast.Exp, v value.Value) cresult {
+	if e.Type().IsFunction() && e.Id == nil {
+		return cresult{value: v, exp: map[*ast.Exp]value.Value{e: v}, ast: e}
+	}
+	return cresult{value: v, ast: e}
 }
 
 func (c cresult) cmb(os ...cresult) cresult {
 	for _, o := range os {
-		for k, v := range o.ids {
-			c.ids[k] = v
+		if c.exp == nil {
+			c.exp = map[*ast.Exp]value.Value{}
 		}
 		for k, v := range o.exp {
 			c.exp[k] = v

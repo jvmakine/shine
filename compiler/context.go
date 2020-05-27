@@ -175,7 +175,7 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 
 func (c *context) freeClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.freeClosure(cptr)
+	c.Block.NewCall(c.utils.freeRef, cptr)
 }
 
 func (c *context) increfClosure(fp value.Value) {
@@ -183,33 +183,20 @@ func (c *context) increfClosure(fp value.Value) {
 	c.Block.NewCall(c.utils.incRef, cptr)
 }
 
-func (c *context) call(f cresult, typ t.Type, params []cresult) cresult {
-	fptr := c.Block.NewExtractElement(f.value, constant.NewInt(types.I32, 0))
-	cptr := c.Block.NewExtractElement(f.value, constant.NewInt(types.I32, 1))
+func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
+	fptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 0))
+	cptr := c.Block.NewExtractElement(f, constant.NewInt(types.I32, 1))
 	fun := c.Block.NewBitCast(fptr, getFunctPtr(typ))
 
-	vparams := make([]value.Value, len(params))
-	for i, p := range params {
-		vparams[i] = p.value
-	}
-
-	res := makeCR(c.Block.NewCall(fun, append(vparams, cptr)...))
-	for _, p := range params {
-		res = res.cmb(p)
-	}
-	return res.cmb(f)
+	return c.Block.NewCall(fun, append(params, cptr)...)
 }
 
 func (c *context) ret(v cresult) {
-	_, isfunc := v.value.Type().(*types.FuncType)
 	block := c.Block
-	if isfunc {
-		nv := block.NewBitCast(v.value, types.I8Ptr)
-		vec := block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
-		block.NewRet(vec)
-	} else {
-		block.NewRet(v.value)
+	if v.ast.Type().IsFunction() && v.ast.Id != nil && (*c.functions)[v.ast.Id.Name].Fun == nil {
+		c.increfClosure(v.value)
 	}
+	block.NewRet(v.value)
 }
 
 func (c *context) malloc(size value.Value) value.Value {
