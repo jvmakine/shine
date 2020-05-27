@@ -82,6 +82,13 @@ func TestCompile(t *testing.T) {
 				d + one
 			`,
 		err: nil,
+	}, {
+		name: "compiles closures with lambdas",
+		program: `
+			a = (f) => (z) => f(2, z)
+			a((x, y) => {x + y})(1)
+		`,
+		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
