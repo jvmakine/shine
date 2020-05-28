@@ -2,10 +2,12 @@ package optimisation
 
 import (
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/types"
 )
 
 // Optimise sequential function definitions into one when called with multiple arguments
 func SequentialFunctionPass(exp *ast.Exp) {
+	tctx := types.NewTypeCopyCtx()
 	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Call != nil && v.Call.Function.Call != nil {
 			root := v.Call.RootFunc()
@@ -18,10 +20,10 @@ func SequentialFunctionPass(exp *ast.Exp) {
 			if root.Id != nil {
 				id = root.Id.Name
 				if block = ctx.BlockOf(id); block != nil {
-					def = block.Assignments[id].Def
+					def = block.Assignments[id].CopyWithCtx(tctx).Def
 				}
 			} else if root.Def != nil {
-				def = root.Def
+				def = root.CopyWithCtx(tctx).Def
 			}
 
 			params := v.Call.Params
