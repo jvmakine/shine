@@ -177,7 +177,7 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Fcall(t.Fcall(t.Id("a"), t.IConst(1)), t.IConst(2)),
 		),
 	}, {
-		name: "parse explicit type definitions",
+		name: "parse explicit type definitions on functions",
 		input: `
 			a = (x:int, y:real, z:bool): real => if (b && y > 1.0) x else 0
 			a(1, 2.0, true)
@@ -191,6 +191,17 @@ func TestExpressionParsing(tes *testing.T) {
 			), types.RealP), t.Param("x", types.IntP), t.Param("y", types.RealP), t.Param("z", types.BoolP))},
 			t.Fcall(t.Id("a"), t.IConst(1), t.RConst(2.0), t.BConst(true)),
 		),
+	}, {
+		name:  "parse explicit type definitions on generic expression",
+		input: `((1:int) + (2:bool)):real`,
+		want: t.Block(t.Assgs{}, t.TDecl(
+			t.Fcall(
+				t.Op("+"),
+				t.TDecl(t.IConst(1), types.IntP),
+				t.TDecl(t.IConst(2), types.BoolP),
+			),
+			types.RealP,
+		)),
 	},
 	}
 	for _, tt := range tests {

@@ -1,6 +1,11 @@
 package grammar
 
 type Expression struct {
+	Exp  *UTExpression `@@`
+	Type *TypeDef      `(":" @@)?`
+}
+
+type UTExpression struct {
 	Fun  *FunDef         `@@`
 	If   *IfExpression   `| @@`
 	Comp *CompExpression `| @@`

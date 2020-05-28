@@ -68,6 +68,14 @@ func convBlock(from *Block) *ast.Block {
 }
 
 func convExp(from *Expression) *ast.Exp {
+	ut := convUTExp(from.Exp)
+	if from.Type != nil {
+		return &ast.Exp{TDecl: &ast.TypeDecl{Exp: ut, Type: convTypeDef(from.Type)}}
+	}
+	return ut
+}
+
+func convUTExp(from *UTExpression) *ast.Exp {
 	if from.Fun != nil {
 		return &ast.Exp{
 			Def: convFDef(from.Fun),
