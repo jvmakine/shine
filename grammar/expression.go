@@ -80,8 +80,14 @@ type Assignment struct {
 	Value *Expression `@@ Newline+`
 }
 
+type TypeFunc struct {
+	Params []*TypeDef `"(" (@@ ("," @@)*)? ")" "=>"`
+	Return *TypeDef   `@@`
+}
+
 type TypeDef struct {
-	Primitive string `@PrimitiveType`
+	Primitive string    `@PrimitiveType`
+	Function  *TypeFunc `| @@`
 }
 
 type FunParam struct {

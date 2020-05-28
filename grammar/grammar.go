@@ -113,16 +113,26 @@ func convFDef(from *FunDef) *ast.FDef {
 }
 
 func convTypeDef(t *TypeDef) types.Type {
-	switch t.Primitive {
-	case "int":
-		return types.IntP
-	case "real":
-		return types.RealP
-	case "bool":
-		return types.BoolP
-	default:
-		panic("invalid type: " + t.Primitive)
+	if t.Primitive != "" {
+		switch t.Primitive {
+		case "int":
+			return types.IntP
+		case "real":
+			return types.RealP
+		case "bool":
+			return types.BoolP
+		default:
+			panic("invalid type: " + t.Primitive)
+		}
+	} else if t.Function != nil {
+		ps := make([]types.Type, len(t.Function.Params)+1)
+		for i, p := range t.Function.Params {
+			ps[i] = convTypeDef(p)
+		}
+		ps[len(t.Function.Params)] = convTypeDef(t.Function.Return)
+		return types.MakeFunction(ps...)
 	}
+	panic("invalid type")
 }
 
 func convFParam(from *FunParam) *ast.FParam {

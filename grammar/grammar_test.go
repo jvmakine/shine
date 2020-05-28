@@ -202,6 +202,21 @@ func TestExpressionParsing(tes *testing.T) {
 			),
 			types.RealP,
 		)),
+	}, {
+		name: "parse function type definitions",
+		input: `
+			a = (x:int, f:(int)=>bool) => if (f(x)) x else 0
+			a(1, b)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Fdef(t.Fcall(
+				t.Op("if"),
+				t.Fcall(t.Id("f"), t.Id("x")),
+				t.Id("x"),
+				t.IConst(0),
+			), t.Param("x", types.IntP), t.Param("f", types.MakeFunction(types.IntP, types.BoolP)))},
+			t.Fcall(t.Id("a"), t.IConst(1), t.Id("b")),
+		),
 	},
 	}
 	for _, tt := range tests {
