@@ -3,7 +3,6 @@
 	"name": "Shine",
 	"patterns": [
 		{ "include": "#keywords" },
-		{ "include": "#strings" },
 		{ "include": "#linecomments" },
 		{ "include": "#blockcomments" }
 	],
@@ -22,15 +21,9 @@
 			"patterns": [{
 				"name": "keyword.control.shine",
 				"match": "\\b(if|else)\\b"
-			}]
-		},
-		"strings": {
-			"name": "string.quoted.double.shine",
-			"begin": "\"",
-			"end": "\"",
-			"patterns": [{
-				"name": "constant.character.escape.shine",
-				"match": "\\\\."
+			}, {
+				"name": "keyword.type.shine",
+				"match": "\\b(int|real|bool)\\b"
 			}]
 		}
 	},
