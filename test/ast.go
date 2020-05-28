@@ -1,6 +1,10 @@
 package test
 
-import "github.com/jvmakine/shine/ast"
+import (
+	"github.com/jvmakine/shine/types"
+
+	"github.com/jvmakine/shine/ast"
+)
 
 func IConst(v int64) *ast.Exp {
 	return &ast.Exp{
@@ -50,10 +54,21 @@ func Fcall(function *ast.Exp, args ...*ast.Exp) *ast.Exp {
 	}
 }
 
-func Fdef(body *ast.Exp, args ...string) *ast.Exp {
+func Param(name string, typ types.Type) *ast.FParam {
+	return &ast.FParam{
+		Name: name,
+		Type: typ,
+	}
+}
+
+func Fdef(body *ast.Exp, args ...interface{}) *ast.Exp {
 	params := make([]*ast.FParam, len(args))
 	for i, p := range args {
-		params[i] = &ast.FParam{Name: p}
+		if s, ok := p.(string); ok {
+			params[i] = &ast.FParam{Name: s}
+		} else {
+			params[i] = p.(*ast.FParam)
+		}
 	}
 	fdef := &ast.FDef{
 		Body:   body,

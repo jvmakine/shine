@@ -5,6 +5,7 @@ import (
 
 	a "github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
+	"github.com/jvmakine/shine/types"
 	"github.com/roamz/deepdiff"
 )
 
@@ -187,7 +188,7 @@ func TestExpressionParsing(tes *testing.T) {
 				t.Fcall(t.Op("&&"), t.Id("b"), t.Fcall(t.Op(">"), t.Id("y"), t.RConst(1.0))),
 				t.Id("x"),
 				t.IConst(0),
-			), "x", "y", "z")},
+			), t.Param("x", types.IntP), t.Param("y", types.RealP), t.Param("z", types.BoolP))},
 			t.Fcall(t.Id("a"), t.IConst(1), t.RConst(2.0), t.BConst(true)),
 		),
 	},
