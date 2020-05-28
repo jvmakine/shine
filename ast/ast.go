@@ -11,13 +11,13 @@ import (
 // Expressions
 
 type Exp struct {
-	Const *Const
-	Block *Block
-	Id    *Id
-	Op    *Op
-	Call  *FCall
-	Def   *FDef
-	TDecl *TypeDecl
+	Const *Const    // Constant value
+	Block *Block    // Block with assignments and a body
+	Id    *Id       // Id referring to a value or parameter defined elsewhere
+	Op    *Op       // Operator from a set of predefined operations like +, *, etc
+	Call  *FCall    // Call of a function
+	Def   *FDef     // Definition of a function
+	TDecl *TypeDecl // Manually defined type for an expression
 }
 
 type Op struct {
