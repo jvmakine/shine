@@ -44,6 +44,12 @@ func Block(assign Assgs, e *ast.Exp) *ast.Exp {
 	}
 }
 
+func TDecl(e *ast.Exp, t types.Type) *ast.Exp {
+	return &ast.Exp{
+		TDecl: &ast.TypeDecl{Exp: e, Type: t},
+	}
+}
+
 func Fcall(function *ast.Exp, args ...*ast.Exp) *ast.Exp {
 	call := &ast.FCall{
 		Function: function,

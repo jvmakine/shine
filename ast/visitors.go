@@ -131,6 +131,8 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 				return err
 			}
 		}
+	} else if a.TDecl != nil {
+		a.TDecl.Exp.crawl(f, l, ctx, visited)
 	}
 	if err := l(a, ctx); err != nil {
 		return err
@@ -167,6 +169,8 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 				return err
 			}
 		}
+	} else if a.TDecl != nil {
+		a.TDecl.Exp.visit(f, l, ctx)
 	}
 	if err := l(a, ctx); err != nil {
 		return err

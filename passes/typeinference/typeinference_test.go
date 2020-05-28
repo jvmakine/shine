@@ -7,6 +7,7 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/test"
+	"github.com/jvmakine/shine/types"
 )
 
 func TestInfer(tes *testing.T) {
@@ -228,6 +229,14 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "",
 		err: errors.New("redefinition of x"),
+	}, {
+		name: "fails when function return type contradicst explicit type",
+		exp: Block(
+			Assgs{"a": Fdef(TDecl(Fcall(Op("+"), Id("x"), Id("x")), types.BoolP), "x")},
+			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
+		),
+		typ: "",
+		err: errors.New("can not unify bool with V1[int|real]"),
 	},
 	}
 	for _, tt := range tests {

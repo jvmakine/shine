@@ -179,16 +179,16 @@ func TestExpressionParsing(tes *testing.T) {
 	}, {
 		name: "parse explicit type definitions",
 		input: `
-			a = (x:int, y:real, z:bool) => if (b && y > 1.0) x else 0
+			a = (x:int, y:real, z:bool): real => if (b && y > 1.0) x else 0
 			a(1, 2.0, true)
 		`,
 		want: t.Block(
-			t.Assgs{"a": t.Fdef(t.Fcall(
+			t.Assgs{"a": t.Fdef(t.TDecl(t.Fcall(
 				t.Op("if"),
 				t.Fcall(t.Op("&&"), t.Id("b"), t.Fcall(t.Op(">"), t.Id("y"), t.RConst(1.0))),
 				t.Id("x"),
 				t.IConst(0),
-			), t.Param("x", types.IntP), t.Param("y", types.RealP), t.Param("z", types.BoolP))},
+			), types.RealP), t.Param("x", types.IntP), t.Param("y", types.RealP), t.Param("z", types.BoolP))},
 			t.Fcall(t.Id("a"), t.IConst(1), t.RConst(2.0), t.BConst(true)),
 		),
 	},

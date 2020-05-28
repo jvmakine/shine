@@ -85,6 +85,7 @@ type FunParam struct {
 }
 
 type FunDef struct {
-	Params []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")" Newline* "=>" Newline*`
-	Body   *Expression `@@`
+	Params     []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")" Newline*`
+	ReturnType *TypeDef    `(":" @@)?`
+	Body       *Expression `"=>" Newline* @@`
 }

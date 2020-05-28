@@ -21,6 +21,8 @@ func compileExp(from *ast.Exp, ctx *context, funcRoot bool) cresult {
 		panic("non resolved anonymous function: " + from.Type().Signature())
 	} else if from.Block != nil {
 		return compileBlock(from.Block, ctx, funcRoot)
+	} else if from.TDecl != nil {
+		return compileExp(from.TDecl.Exp, ctx, funcRoot)
 	}
 	panic("invalid empty expression")
 }

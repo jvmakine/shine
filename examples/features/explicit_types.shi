@@ -1,4 +1,4 @@
-eq = (x: int, y) => x == y
-a = (b: bool, t: real, f: real) => if (b) t else f
+eq = (x:int, y):bool => x == y
+a = (b:bool, t:real, f:real):real => if (b) t else f
 
 a(eq(1, 2), 1.0, 2.0)

@@ -17,6 +17,7 @@ type Exp struct {
 	Op    *Op
 	Call  *FCall
 	Def   *FDef
+	TDecl *TypeDecl
 }
 
 type Op struct {
@@ -36,6 +37,11 @@ type Const struct {
 	Real *float64
 	Bool *bool
 
+	Type types.Type
+}
+
+type TypeDecl struct {
+	Exp  *Exp
 	Type types.Type
 }
 
@@ -85,6 +91,7 @@ func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 		Op:    a.Op.copy(ctx),
 		Call:  a.Call.copy(ctx),
 		Def:   a.Def.copy(ctx),
+		TDecl: a.TDecl.copy(ctx),
 	}
 }
 
@@ -183,6 +190,16 @@ func (a *Op) copy(ctx *types.TypeCopyCtx) *Op {
 	}
 }
 
+func (a *TypeDecl) copy(ctx *types.TypeCopyCtx) *TypeDecl {
+	if a == nil {
+		return nil
+	}
+	return &TypeDecl{
+		Exp:  a.Exp.CopyWithCtx(ctx),
+		Type: a.Type.Copy(ctx),
+	}
+}
+
 func (b *Block) CheckValueCycles() error {
 	names := map[string]*Exp{}
 
@@ -268,6 +285,8 @@ func (exp *Exp) Type() types.Type {
 		return exp.Id.Type
 	} else if exp.Op != nil {
 		return exp.Op.Type
+	} else if exp.TDecl != nil {
+		return exp.TDecl.Type
 	}
 	panic("invalid exp")
 }
@@ -291,5 +310,8 @@ func (exp *Exp) Convert(s types.Substitutions) {
 		exp.Def.Body.Convert(s)
 	} else if exp.Id != nil {
 		exp.Id.Type = s.Apply(exp.Id.Type)
+	} else if exp.TDecl != nil {
+		exp.TDecl.Type = s.Apply(exp.TDecl.Type)
+		exp.TDecl.Exp.Convert(s)
 	}
 }

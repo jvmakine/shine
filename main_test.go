@@ -91,7 +91,7 @@ func TestCompile(t *testing.T) {
 			`,
 		err: nil,
 	}, {
-		name: "uses predefined types",
+		name: "uses predefined types variable",
 		program: `
 				a = (x:int, y) => x + y
 				a(1.0, 2.0)

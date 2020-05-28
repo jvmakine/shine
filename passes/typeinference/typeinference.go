@@ -139,6 +139,12 @@ func Infer(exp *ast.Exp) error {
 			}
 		} else if v.Def != nil {
 			v.Convert(unifier)
+		} else if v.TDecl != nil {
+			uni, err := v.TDecl.Type.Unifier(v.TDecl.Exp.Type())
+			if err != nil {
+				return err
+			}
+			unifier.Combine(uni)
 		}
 		return nil
 	}

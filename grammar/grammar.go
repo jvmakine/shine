@@ -94,9 +94,13 @@ func convFDef(from *FunDef) *ast.FDef {
 	for i, p := range from.Params {
 		params[i] = convFParam(p)
 	}
+	body := convExp(from.Body)
+	if from.ReturnType != nil {
+		body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDef(from.ReturnType)}}
+	}
 	return &ast.FDef{
 		Params: params,
-		Body:   convExp(from.Body),
+		Body:   body,
 	}
 }
 
