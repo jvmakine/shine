@@ -1,6 +1,8 @@
 package grammar
 
 import (
+	"github.com/jvmakine/shine/types"
+
 	"github.com/alecthomas/participle"
 	"github.com/alecthomas/participle/lexer/ebnf"
 	"github.com/jvmakine/shine/ast"
@@ -22,6 +24,8 @@ func Parse(str string) (*Program, error) {
 		Brackets = "(" | ")" | "{" | "}" .
 		COp = ">=" | "<=" .
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
+		Typ = ":" .
+		PrimitiveType = "int" | "real" | "bool" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
 		Real = "0"…"9" { digit } "." "0"…"9" { digit } .
@@ -96,9 +100,27 @@ func convFDef(from *FunDef) *ast.FDef {
 	}
 }
 
+func convTypeDef(t *TypeDef) types.Type {
+	switch t.Primitive {
+	case "int":
+		return types.IntP
+	case "real":
+		return types.RealP
+	case "bool":
+		return types.BoolP
+	default:
+		panic("invalid type: " + t.Primitive)
+	}
+}
+
 func convFParam(from *FunParam) *ast.FParam {
+	typ := types.Type{}
+	if from.Type != nil {
+		typ = convTypeDef(from.Type)
+	}
 	return &ast.FParam{
 		Name: *from.Name,
+		Type: typ,
 	}
 }
 

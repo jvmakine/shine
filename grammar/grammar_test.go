@@ -1,11 +1,11 @@
 package grammar
 
 import (
-	"reflect"
 	"testing"
 
 	a "github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
+	"github.com/roamz/deepdiff"
 )
 
 func TestExpressionParsing(tes *testing.T) {
@@ -175,6 +175,21 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Assgs{"a": t.Fdef(t.Fdef(t.Fcall(t.Op("+"), t.Id("x"), t.Id("y")), "y"), "x")},
 			t.Fcall(t.Fcall(t.Id("a"), t.IConst(1)), t.IConst(2)),
 		),
+	}, {
+		name: "parse explicit type definitions",
+		input: `
+			a = (x:int, y:real, z:bool) => if (b && y > 1.0) x else 0
+			a(1, 2.0, true)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Fdef(t.Fcall(
+				t.Op("if"),
+				t.Fcall(t.Op("&&"), t.Id("b"), t.Fcall(t.Op(">"), t.Id("y"), t.RConst(1.0))),
+				t.Id("x"),
+				t.IConst(0),
+			), "x", "y", "z")},
+			t.Fcall(t.Id("a"), t.IConst(1), t.RConst(2.0), t.BConst(true)),
+		),
 	},
 	}
 	for _, tt := range tests {
@@ -185,8 +200,9 @@ func TestExpressionParsing(tes *testing.T) {
 				return
 			}
 			got := prog.ToAst()
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Parse() = %v, want %v", *got, *tt.want)
+			ok, err := deepdiff.DeepDiff(got, tt.want)
+			if !ok {
+				t.Error(err)
 			}
 		})
 	}

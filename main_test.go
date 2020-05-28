@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -89,6 +90,13 @@ func TestCompile(t *testing.T) {
 				a((x, y) => {x + y})(1)
 			`,
 		err: nil,
+	}, {
+		name: "uses predefined types",
+		program: `
+				a = (x:int, y) => x + y
+				a(1.0, 2.0)
+			`,
+		err: errors.New("can not unify int with real"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -99,6 +107,8 @@ func TestCompile(t *testing.T) {
 				}
 				t.Errorf("Compile() error = %v, wantErr %v", err, tt.err)
 				return
+			} else if tt.err != nil {
+				t.Errorf("Compile() error = %v, wantErr %v", err, tt.err)
 			}
 		})
 	}

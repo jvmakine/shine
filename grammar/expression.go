@@ -75,8 +75,13 @@ type Assignment struct {
 	Value *Expression `@@ Newline+`
 }
 
+type TypeDef struct {
+	Primitive string `@PrimitiveType`
+}
+
 type FunParam struct {
-	Name *string `@Ident`
+	Name *string  `@Ident`
+	Type *TypeDef `(":" @@)?`
 }
 
 type FunDef struct {

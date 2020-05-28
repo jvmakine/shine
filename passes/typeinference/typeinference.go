@@ -99,7 +99,9 @@ func initialiseVariables(exp *ast.Exp) error {
 				if ctx.BlockOf(name) != nil || ctx.ParamOf(name) != nil {
 					return errors.New("redefinition of " + name)
 				}
-				p.Type = MakeVariable()
+				if !p.Type.IsDefined() {
+					p.Type = MakeVariable()
+				}
 			}
 		} else if v.Block != nil {
 			err := v.Block.CheckValueCycles()
