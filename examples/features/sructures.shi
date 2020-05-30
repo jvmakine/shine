@@ -1,0 +1,9 @@
+Person = (id: int, age: int, height: real) => {
+    older = () => Person(age + 1, height)
+    taller = () => Person(age, height + 1.0)
+}
+
+Transform = (obj, fn) => { next = () => fn(obj) }
+
+ageing = Transform(Person(1, 1, 170.0), (p) => p.older())
+ageing.next().next().next().age
