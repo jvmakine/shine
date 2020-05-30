@@ -23,7 +23,7 @@ func TestType_Signature(t *testing.T) {
 		want: "data{a:int,b:bool}",
 	}, {
 		name: "support recursive structures",
-		typ:  RecursiveStruct(),
+		typ:  recursiveStruct("data", "b", SField{"a", IntP}),
 		want: "data{a:int,b:data}",
 	}}
 	for _, tt := range tests {
@@ -34,10 +34,4 @@ func TestType_Signature(t *testing.T) {
 			}
 		})
 	}
-}
-
-func RecursiveStruct() Type {
-	s := MakeStructure("data", SField{"a", IntP})
-	s.Structure.Fields = append(s.Structure.Fields, SField{"b", s})
-	return s
 }

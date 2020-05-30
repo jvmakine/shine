@@ -149,6 +149,12 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeStructure("s2", SField{"a", IntP}, SField{"b", BoolP}),
 		want: MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
 		err:  nil,
+	}, {
+		name: "unifies identical recursive structures",
+		a:    recursiveStruct("data", "r", SField{"a", IntP}),
+		b:    recursiveStruct("data", "r", SField{"a", IntP}),
+		want: recursiveStruct("data", "r", SField{"a", IntP}),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
