@@ -16,26 +16,38 @@ var (
 
 type Function []Type
 
+type SField struct {
+	Name string
+	Type Type
+}
+
+type Structure []SField
+
 type TypeVar struct {
 	Restrictions Restrictions
 }
 
 type Type struct {
 	Function  *Function
+	Structure *Structure
 	Variable  *TypeVar
 	Primitive *Primitive
+}
+
+func WithType(t Type, f func(t Type) Type) Type {
+	return f(t)
 }
 
 func MakeVariable() Type {
 	return Type{Variable: &TypeVar{}}
 }
 
-func MakePrimitive(p string) Type {
-	return Type{Primitive: &p}
+func MakeRestricted(ps ...Primitive) Type {
+	return Type{Variable: &TypeVar{Restrictions: ps}}
 }
 
-func WithType(t Type, f func(t Type) Type) Type {
-	return f(t)
+func MakePrimitive(p string) Type {
+	return Type{Primitive: &p}
 }
 
 func MakeFunction(ts ...Type) Type {
@@ -43,19 +55,26 @@ func MakeFunction(ts ...Type) Type {
 	return Type{Function: &f}
 }
 
-func MakeRestricted(ps ...Primitive) Type {
-	return Type{Variable: &TypeVar{Restrictions: ps}}
+func MakeStructure(fields ...SField) Type {
+	var f Structure = fields
+	return Type{Structure: &f}
 }
 
 func (t Type) FreeVars() []*TypeVar {
 	if t.Variable != nil {
 		return []*TypeVar{t.Variable}
 	}
-	fun := t.Function
-	if fun != nil {
+	if fun := t.Function; fun != nil {
 		res := []*TypeVar{}
 		for _, p := range *fun {
 			res = append(res, p.FreeVars()...)
+		}
+		return res
+	}
+	if stru := t.Structure; stru != nil {
+		res := []*TypeVar{}
+		for _, p := range *stru {
+			res = append(res, p.Type.FreeVars()...)
 		}
 		return res
 	}
@@ -64,6 +83,10 @@ func (t Type) FreeVars() []*TypeVar {
 
 func (t Type) IsFunction() bool {
 	return t.Function != nil
+}
+
+func (t Type) IsStructure() bool {
+	return t.Structure != nil
 }
 
 func (t Type) FunctTypes() []Type {
@@ -109,7 +132,7 @@ func (t Type) IsRestrictedVariable() bool {
 }
 
 func (t Type) IsDefined() bool {
-	return t.Function != nil || t.Variable != nil || t.Primitive != nil
+	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil
 }
 
 func (t Type) HasFreeVars() bool {
@@ -127,4 +150,5 @@ func (t *Type) AssignFrom(o Type) {
 	t.Variable = o.Variable
 	t.Function = o.Function
 	t.Primitive = o.Primitive
+	t.Structure = o.Structure
 }

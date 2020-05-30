@@ -25,6 +25,16 @@ func (t Type) Copy(ctx *TypeCopyCtx) Type {
 		}
 		return MakeFunction(ps...)
 	}
+	if t.Structure != nil {
+		ps := make([]SField, len(*t.Structure))
+		for i, p := range *t.Structure {
+			ps[i] = SField{
+				Name: p.Name,
+				Type: p.Type.Copy(ctx),
+			}
+		}
+		return MakeStructure(ps...)
+	}
 	return t
 }
 

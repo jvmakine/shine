@@ -29,6 +29,21 @@ func (f Function) sign(ctx *signctx) string {
 	return sb.String()
 }
 
+func (s Structure) sign(ctx *signctx) string {
+	var sb strings.Builder
+	sb.WriteString("{")
+	for i, p := range s {
+		sb.WriteString(p.Name)
+		sb.WriteString(":")
+		sb.WriteString(sign(p.Type, ctx))
+		if i < len(s)-1 {
+			sb.WriteString(",")
+		}
+	}
+	sb.WriteString("}")
+	return sb.String()
+}
+
 func sign(t Type, ctx *signctx) string {
 	if t.IsPrimitive() {
 		return *t.Primitive
@@ -54,6 +69,9 @@ func sign(t Type, ctx *signctx) string {
 	}
 	if t.IsFunction() {
 		return t.Function.sign(ctx)
+	}
+	if t.IsStructure() {
+		return t.Structure.sign(ctx)
 	}
 	if !t.IsDefined() {
 		return "<undefined>"
