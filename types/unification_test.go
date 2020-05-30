@@ -125,6 +125,24 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", MakeVariable()}),
 		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
 		err:  nil,
+	}, {
+		name: "fails to unify structure with a function",
+		a:    MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
+		b:    MakeFunction(IntP, BoolP),
+		want: Type{},
+		err:  errors.New("can not unify (int)=>bool with {a:int,b:bool}"),
+	}, {
+		name: "fails to unify structure with a primitive",
+		a:    MakeStructure("", SField{"a", IntP}),
+		b:    IntP,
+		want: Type{},
+		err:  errors.New("can not unify int with {a:int}"),
+	}, {
+		name: "unifies a structure with a variable",
+		a:    MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
+		b:    MakeVariable(),
+		want: MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
