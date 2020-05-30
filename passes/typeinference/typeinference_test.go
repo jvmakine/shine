@@ -230,7 +230,7 @@ func TestInfer(tes *testing.T) {
 		typ: "",
 		err: errors.New("redefinition of x"),
 	}, {
-		name: "fails when function return type contradicst explicit type",
+		name: "fails when function return type contradicts explicit type",
 		exp: Block(
 			Assgs{"a": Fdef(TDecl(Fcall(Op("+"), Id("x"), Id("x")), types.BoolP), "x")},
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),

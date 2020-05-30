@@ -4,6 +4,8 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+
+	"github.com/roamz/deepdiff"
 )
 
 func TestType_Unify(t *testing.T) {
@@ -105,6 +107,24 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeFunction(var2, var2, RealP),
 		want: Type{},
 		err:  errors.New("can not unify int with real"),
+	}, {
+		name: "unifies matching structures",
+		a:    MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		err:  nil,
+	}, {
+		name: "unifies matching structures with variables",
+		a:    MakeStructure("s1", SField{"a", MakeVariable()}, SField{"b", BoolP}),
+		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", MakeVariable()}),
+		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		err:  nil,
+	}, {
+		name: "unifies matching structures with variables",
+		a:    MakeStructure("s1", SField{"a", MakeVariable()}, SField{"b", BoolP}),
+		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", MakeVariable()}),
+		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -119,9 +139,9 @@ func TestType_Unify(t *testing.T) {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("Type.Unify() = %v, want %v", got, tt.want)
-					return
+				ok, err := deepdiff.DeepDiff(got, tt.want)
+				if !ok {
+					t.Error(err)
 				}
 			}
 		})

@@ -24,6 +24,16 @@ func (s Substitutions) Apply(t Type) Type {
 		}
 		return MakeFunction(ntyps...)
 	}
+	if target.IsStructure() {
+		ntyps := make([]SField, len(target.Structure.Fields))
+		for i, v := range target.Structure.Fields {
+			ntyps[i] = SField{
+				Name: v.Name,
+				Type: s.Apply(v.Type),
+			}
+		}
+		return MakeStructure(target.Structure.Name, ntyps...)
+	}
 	return target
 }
 
