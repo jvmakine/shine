@@ -17,7 +17,13 @@ func (t Type) Unify(o Type) (Type, error) {
 	if err != nil {
 		return t, err
 	}
-	return sub.Apply(t), nil
+	res := sub.Apply(t)
+	if res.IsStructure() && t.IsStructure() && o.IsStructure() {
+		if t.Structure.Name != o.Structure.Name {
+			res.Structure.Name = ""
+		}
+	}
+	return res, nil
 }
 
 func (t Type) Unifier(o Type) (Substitutions, error) {
