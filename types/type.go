@@ -21,7 +21,10 @@ type SField struct {
 	Type Type
 }
 
-type Structure []SField
+type Structure struct {
+	Name   string
+	Fields []SField
+}
 
 type TypeVar struct {
 	Restrictions Restrictions
@@ -55,9 +58,8 @@ func MakeFunction(ts ...Type) Type {
 	return Type{Function: &f}
 }
 
-func MakeStructure(fields ...SField) Type {
-	var f Structure = fields
-	return Type{Structure: &f}
+func MakeStructure(name string, fields ...SField) Type {
+	return Type{Structure: &Structure{Name: name, Fields: fields}}
 }
 
 func (t Type) FreeVars() []*TypeVar {
@@ -73,7 +75,7 @@ func (t Type) FreeVars() []*TypeVar {
 	}
 	if stru := t.Structure; stru != nil {
 		res := []*TypeVar{}
-		for _, p := range *stru {
+		for _, p := range stru.Fields {
 			res = append(res, p.Type.FreeVars()...)
 		}
 		return res

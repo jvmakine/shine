@@ -31,12 +31,15 @@ func (f Function) sign(ctx *signctx) string {
 
 func (s Structure) sign(ctx *signctx) string {
 	var sb strings.Builder
+	if s.Name != "" {
+		sb.WriteString(s.Name)
+	}
 	sb.WriteString("{")
-	for i, p := range s {
+	for i, p := range s.Fields {
 		sb.WriteString(p.Name)
 		sb.WriteString(":")
 		sb.WriteString(sign(p.Type, ctx))
-		if i < len(s)-1 {
+		if i < len(s.Fields)-1 {
 			sb.WriteString(",")
 		}
 	}
