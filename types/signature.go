@@ -6,8 +6,9 @@ import (
 )
 
 type signctx struct {
-	varc int
-	varm map[*TypeVar]string
+	varc            int
+	varm            map[*TypeVar]string
+	definingStructs map[string]bool
 }
 
 func (f Function) sign(ctx *signctx) string {
@@ -30,6 +31,12 @@ func (f Function) sign(ctx *signctx) string {
 }
 
 func (s Structure) sign(ctx *signctx) string {
+	if ctx.definingStructs[s.Name] {
+		return s.Name
+	}
+	if s.Name != "" {
+		ctx.definingStructs[s.Name] = true
+	}
 	var sb strings.Builder
 	if s.Name != "" {
 		sb.WriteString(s.Name)
@@ -84,5 +91,6 @@ func sign(t Type, ctx *signctx) string {
 
 func (t Type) Signature() string {
 	varm := map[*TypeVar]string{}
-	return sign(t, &signctx{varc: 0, varm: varm})
+	ds := map[string]bool{}
+	return sign(t, &signctx{varc: 0, varm: varm, definingStructs: ds})
 }
