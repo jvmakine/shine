@@ -12,7 +12,15 @@ func MakeSubstitutions() Substitutions {
 	}
 }
 
+type substCtx struct {
+	visited map[*Structure]bool
+}
+
 func (s Substitutions) Apply(t Type) Type {
+	return apply(s, t, &substCtx{visited: map[*Structure]bool{}})
+}
+
+func apply(s Substitutions, t Type, ctx *substCtx) Type {
 	target := s.substitutions[t.Variable]
 	if !target.IsDefined() {
 		target = t
@@ -20,16 +28,20 @@ func (s Substitutions) Apply(t Type) Type {
 	if target.IsFunction() {
 		ntyps := make([]Type, len(target.FunctTypes()))
 		for i, v := range target.FunctTypes() {
-			ntyps[i] = s.Apply(v)
+			ntyps[i] = apply(s, v, ctx)
 		}
 		return MakeFunction(ntyps...)
 	}
 	if target.IsStructure() {
+		if ctx.visited[target.Structure] {
+			return target
+		}
+		ctx.visited[target.Structure] = true
 		ntyps := make([]SField, len(target.Structure.Fields))
 		for i, v := range target.Structure.Fields {
 			ntyps[i] = SField{
 				Name: v.Name,
-				Type: s.Apply(v.Type),
+				Type: apply(s, v.Type, ctx),
 			}
 		}
 		return MakeStructure(target.Structure.Name, ntyps...)

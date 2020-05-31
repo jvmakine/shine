@@ -2,6 +2,10 @@ package types
 
 import "errors"
 
+type unificationCtx struct {
+	seenStructures map[*Structure]map[*Structure]bool
+}
+
 func UnificationError(a Type, b Type) error {
 	sa := a.Signature()
 	sb := b.Signature()
@@ -27,6 +31,11 @@ func (t Type) Unify(o Type) (Type, error) {
 }
 
 func (t Type) Unifier(o Type) (Substitutions, error) {
+	ctx := &unificationCtx{seenStructures: map[*Structure]map[*Structure]bool{}}
+	return unifier(t, o, ctx)
+}
+
+func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
 		return Substitutions{}, UnificationError(o, t)
 	}
@@ -40,10 +49,10 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 		return Substitutions{}, UnificationError(o, t)
 	}
 	if t.IsVariable() && o.IsVariable() {
-		return unifyVariables(t, o)
+		return unifyVariables(t, o, ctx)
 	}
 	if o.IsVariable() && !t.IsVariable() {
-		return o.Unifier(t)
+		return unifier(o, t, ctx)
 	}
 	if t.IsVariable() && o.IsFunction() {
 		subs := MakeSubstitutions()
@@ -56,10 +65,10 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 		return subs, nil
 	}
 	if o.IsFunction() && t.IsFunction() {
-		return unifyFunctions(t, o)
+		return unifyFunctions(t, o, ctx)
 	}
 	if o.IsStructure() && t.IsStructure() {
-		return unifyStructures(t, o)
+		return unifyStructures(t, o, ctx)
 	}
 	if o.IsPrimitive() {
 		if t.IsRestrictedVariable() {
@@ -77,9 +86,9 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 	return Substitutions{}, nil
 }
 
-func unifyVariables(t Type, o Type) (Substitutions, error) {
+func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsRestrictedVariable() && !t.IsRestrictedVariable() {
-		return o.Unifier(t)
+		return unifier(o, t, ctx)
 	} else if t.IsRestrictedVariable() && o.IsRestrictedVariable() {
 		resolv, err := t.Variable.Restrictions.Resolve(o.Variable.Restrictions)
 		if len(resolv) == 1 {
@@ -100,7 +109,7 @@ func unifyVariables(t Type, o Type) (Substitutions, error) {
 	return subs, nil
 }
 
-func unifyFunctions(t Type, o Type) (Substitutions, error) {
+func unifyFunctions(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	op := o.FunctTypes()
 	tp := t.FunctTypes()
 	if len(op) != len(tp) {
@@ -108,7 +117,7 @@ func unifyFunctions(t Type, o Type) (Substitutions, error) {
 	}
 	result := MakeSubstitutions()
 	for i, p := range op {
-		s, err := p.Unifier(tp[i])
+		s, err := unifier(p, tp[i], ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
@@ -120,7 +129,16 @@ func unifyFunctions(t Type, o Type) (Substitutions, error) {
 	return result, nil
 }
 
-func unifyStructures(t Type, o Type) (Substitutions, error) {
+func unifyStructures(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
+	// handle recursice structures
+	if ctx.seenStructures[t.Structure] != nil {
+		if ctx.seenStructures[t.Structure][o.Structure] {
+			return MakeSubstitutions(), nil
+		}
+	} else {
+		ctx.seenStructures[t.Structure] = map[*Structure]bool{}
+	}
+	ctx.seenStructures[t.Structure][o.Structure] = true
 	ofs := map[string]Type{}
 	for _, f := range o.Structure.Fields {
 		ofs[f.Name] = f.Type
@@ -134,7 +152,7 @@ func unifyStructures(t Type, o Type) (Substitutions, error) {
 		if !ot.IsDefined() {
 			return MakeSubstitutions(), UnificationError(o, t)
 		}
-		s, err := f.Type.Unifier(ot)
+		s, err := unifier(f.Type, ot, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
