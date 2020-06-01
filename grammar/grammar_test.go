@@ -242,6 +242,13 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Assgs{},
 			t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)),
 		),
+	}, {
+		name:  "parse sequential method calls",
+		input: `a.foo(1).bar(2)`,
+		want: t.Block(
+			t.Assgs{},
+			t.Fcall(t.Faccess(t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)), "bar"), t.IConst(2)),
+		),
 	},
 	}
 	for _, tt := range tests {

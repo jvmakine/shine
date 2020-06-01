@@ -43,13 +43,23 @@ type OpTerm struct {
 }
 
 type Term struct {
-	Left  *FValue     `@@`
+	Left  *Accessor   `@@`
 	Right []*OpFactor `@@*`
 }
 
 type OpFactor struct {
-	Operation *string `@("*" | "/" | "%")`
-	Right     *FValue `@@`
+	Operation *string   `@("*" | "/" | "%")`
+	Right     *Accessor `@@`
+}
+
+type NamedFValue struct {
+	Id    string        `@Ident`
+	Calls []*CallParams `@@*`
+}
+
+type Accessor struct {
+	Left  *FValue        `@@`
+	Right []*NamedFValue `("." @@)*`
 }
 
 type Block struct {
@@ -62,9 +72,8 @@ type CallParams struct {
 }
 
 type FValue struct {
-	Value  *PValue       `@@`
-	Access []string      `("." @Ident)*`
-	Calls  []*CallParams `@@*`
+	Value *PValue       `@@`
+	Calls []*CallParams `@@*`
 }
 
 type PValue struct {

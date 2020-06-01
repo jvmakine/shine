@@ -197,7 +197,36 @@ func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {
 }
 
 func convTerm(from *Term) *ast.Exp {
-	return convOpFact(convFVal(from.Left), from.Right)
+	return convOpFact(convAccessor(from.Left), from.Right)
+}
+
+func convAccessor(from *Accessor) *ast.Exp {
+	acc := from.Right
+	res := convFVal(from.Left)
+	for len(acc) > 0 {
+		res = &ast.Exp{
+			FAccess: &ast.FieldAccessor{
+				Exp:   res,
+				Field: acc[0].Id,
+			},
+		}
+		calls := acc[0].Calls
+		for len(calls) > 0 {
+			call := calls[0]
+			calls = calls[1:]
+			params := make([]*ast.Exp, len(call.Params))
+			for i, p := range call.Params {
+				params[i] = convExp(p)
+			}
+			res = &ast.Exp{
+				Call: &ast.FCall{
+					Function: res,
+					Params:   params,
+				}}
+		}
+		acc = acc[1:]
+	}
+	return res
 }
 
 func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
@@ -207,7 +236,7 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 	res := &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
-			Params:   []*ast.Exp{left, convFVal(right[0].Right)},
+			Params:   []*ast.Exp{left, convAccessor(right[0].Right)},
 		},
 	}
 	return convOpFact(res, right[1:])
@@ -215,17 +244,6 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 
 func convFVal(from *FValue) *ast.Exp {
 	pval := convPVal(from.Value)
-	accessors := from.Access
-	for len(accessors) > 0 {
-		t := accessors[0]
-		accessors = accessors[1:]
-		pval = &ast.Exp{
-			FAccess: &ast.FieldAccessor{
-				Exp:   pval,
-				Field: t,
-			},
-		}
-	}
 	if len(from.Calls) > 0 {
 		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]*ast.Exp, len(call.Params))
