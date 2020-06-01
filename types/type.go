@@ -2,6 +2,8 @@ package types
 
 type Primitive = string
 
+type Named = string
+
 const (
 	Int  Primitive = "int"
 	Bool Primitive = "bool"
@@ -35,6 +37,7 @@ type Type struct {
 	Structure *Structure
 	Variable  *TypeVar
 	Primitive *Primitive
+	Named     *Named
 }
 
 func WithType(t Type, f func(t Type) Type) Type {
@@ -51,6 +54,10 @@ func MakeRestricted(ps ...Primitive) Type {
 
 func MakePrimitive(p string) Type {
 	return Type{Primitive: &p}
+}
+
+func MakeNamed(name string) Type {
+	return Type{Named: &name}
 }
 
 func MakeFunction(ts ...Type) Type {

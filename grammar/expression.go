@@ -98,6 +98,7 @@ type TypeFunc struct {
 type TypeDef struct {
 	Primitive string    `@PrimitiveType`
 	Function  *TypeFunc `| @@`
+	Named     string    `| @Ident`
 }
 
 type FunParam struct {

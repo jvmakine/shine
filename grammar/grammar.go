@@ -151,6 +151,8 @@ func convTypeDef(t *TypeDef) types.Type {
 		}
 		ps[len(t.Function.Params)] = convTypeDef(t.Function.Return)
 		return types.MakeFunction(ps...)
+	} else if t.Named != "" {
+		return types.MakeNamed(t.Named)
 	}
 	panic("invalid type")
 }

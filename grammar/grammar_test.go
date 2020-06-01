@@ -249,6 +249,16 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Assgs{},
 			t.Fcall(t.Faccess(t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)), "bar"), t.IConst(2)),
 		),
+	}, {
+		name: "parse custom types in functions",
+		input: `
+			a = (x: A) => x
+			a(b)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Fdef(t.Id("x"), t.Param("x", types.MakeNamed("A")))},
+			t.Fcall(t.Id("a"), t.Id("b")),
+		),
 	},
 	}
 	for _, tt := range tests {
