@@ -58,11 +58,18 @@ func (prg *Program) ToAst() *ast.Exp {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
+	defins := map[string]*ast.Struct{}
 	for _, a := range from.Assignments {
-		assigns[*a.Name] = convExp(a.Value)
+		e := convExp(a.Value)
+		if e.Struct != nil {
+			defins[*a.Name] = e.Struct
+		} else {
+			assigns[*a.Name] = e
+		}
 	}
 	return &ast.Block{
 		Assignments: assigns,
+		Definitions: defins,
 		Value:       convExp(from.Value),
 	}
 }
@@ -76,10 +83,8 @@ func convExp(from *Expression) *ast.Exp {
 }
 
 func convUTExp(from *UTExpression) *ast.Exp {
-	if from.Fun != nil {
-		return &ast.Exp{
-			Def: convFDef(from.Fun),
-		}
+	if from.Def != nil {
+		return convDef(from.Def)
 	} else if from.If != nil {
 		return convIf(from.If)
 	} else if from.Comp != nil {
@@ -97,18 +102,39 @@ func convIf(from *IfExpression) *ast.Exp {
 	}
 }
 
-func convFDef(from *FunDef) *ast.FDef {
-	params := make([]*ast.FParam, len(from.Params))
-	for i, p := range from.Params {
-		params[i] = convFParam(p)
-	}
-	body := convExp(from.Body)
-	if from.ReturnType != nil {
-		body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDef(from.ReturnType)}}
-	}
-	return &ast.FDef{
-		Params: params,
-		Body:   body,
+func convDef(from *Definition) *ast.Exp {
+	if fd := from.Funct; fd != nil {
+		params := make([]*ast.FParam, len(from.Params))
+		for i, p := range from.Params {
+			params[i] = convFParam(p)
+		}
+		body := convExp(fd.Body)
+		if fd.ReturnType != nil {
+			body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDef(fd.ReturnType)}}
+		}
+		return &ast.Exp{
+			Def: &ast.FDef{
+				Params: params,
+				Body:   body,
+			},
+		}
+	} else {
+		fields := make([]*ast.StructField, len(from.Params))
+		for i, p := range from.Params {
+			td := types.Type{}
+			if p.Type != nil {
+				td = convTypeDef(p.Type)
+			}
+			fields[i] = &ast.StructField{
+				Name: *p.Name,
+				Type: td,
+			}
+		}
+		return &ast.Exp{
+			Struct: &ast.Struct{
+				Fields: fields,
+			},
+		}
 	}
 }
 

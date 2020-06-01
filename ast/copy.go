@@ -29,10 +29,27 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
+	dt := map[string]*Struct{}
+	for k, v := range a.Definitions {
+		dt[k] = v.copy(ctx)
+	}
 	return &Block{
 		Assignments: ac,
 		Value:       a.Value.CopyWithCtx(ctx),
 		ID:          a.ID,
+	}
+}
+
+func (a *Struct) copy(ctx *types.TypeCopyCtx) *Struct {
+	fs := make([]*StructField, len(a.Fields))
+	for i, f := range a.Fields {
+		fs[i] = &StructField{
+			Name: f.Name,
+			Type: f.Type.Copy(ctx),
+		}
+	}
+	return &Struct{
+		Fields: fs,
 	}
 }
 

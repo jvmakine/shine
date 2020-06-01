@@ -6,7 +6,7 @@ type Expression struct {
 }
 
 type UTExpression struct {
-	Fun  *FunDef         `@@`
+	Def  *Definition     `@@`
 	If   *IfExpression   `| @@`
 	Comp *CompExpression `| @@`
 }
@@ -95,8 +95,12 @@ type FunParam struct {
 	Type *TypeDef `(":" @@)?`
 }
 
-type FunDef struct {
-	Params     []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")" Newline*`
+type Definition struct {
+	Params []*FunParam  `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
+	Funct  *FunctionDef `(Newline* @@)?`
+}
+
+type FunctionDef struct {
 	ReturnType *TypeDef    `(":" @@)?`
 	Body       *Expression `"=>" Newline* @@`
 }

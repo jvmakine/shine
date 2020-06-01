@@ -1,0 +1,28 @@
+Person = (id: int, age: int, height: real) ~> {
+    older = () => Person(age + 1, height)
+    taller = () => Person(age, height + 1.0)
+}
+
+Monad[A] = {
+    >>= = (f: (A) => Monad[A]): Monad[A]
+}
+
+List[A] = Monad[A] with {
+    >>= = (f: (A) => List[A]): List[A]
+    append = (o: A): List[A]
+}
+
+NonEmpty[A] = (v: A, rest: List[A])
+Empty[A] = ()
+
+NonEmpty ~> List {
+    >>= = (f) => f(v).append(rest >>= f)
+    append = (o) => if (o == empty) self else NonEmpty(v, rest.append(o))
+}
+
+Empty ~> List {
+    >>= = (f) => empty
+    append = (o) => NonEmpty(o, empty)
+}
+
+Empty.append(1).append(2) >>= ((i) => Empty.append(i).append(i+1))

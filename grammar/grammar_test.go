@@ -3,6 +3,7 @@ package grammar
 import (
 	"testing"
 
+	"github.com/jvmakine/shine/ast"
 	a "github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
@@ -216,6 +217,16 @@ func TestExpressionParsing(tes *testing.T) {
 				t.IConst(0),
 			), t.Param("x", types.IntP), t.Param("f", types.MakeFunction(types.IntP, types.BoolP)))},
 			t.Fcall(t.Id("a"), t.IConst(1), t.Id("b")),
+		),
+	}, {
+		name: "parse structure definitions",
+		input: `
+			a = (x:int, c)
+			a(1, true)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Struct(ast.StructField{"x", types.IntP}, ast.StructField{"c", types.Type{}})},
+			t.Fcall(t.Id("a"), t.IConst(1), t.BConst(true)),
 		),
 	},
 	}
