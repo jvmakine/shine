@@ -136,6 +136,10 @@ func (t Type) IsVariable() bool {
 	return t.Variable != nil
 }
 
+func (t Type) IsNamed() bool {
+	return t.Named != nil
+}
+
 func (t Type) IsRestrictedVariable() bool {
 	return t.IsVariable() && len(t.Variable.Restrictions) > 0
 }

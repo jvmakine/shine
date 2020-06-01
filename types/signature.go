@@ -83,6 +83,9 @@ func sign(t Type, ctx *signctx) string {
 	if t.IsStructure() {
 		return t.Structure.sign(ctx)
 	}
+	if t.IsNamed() {
+		return *t.Named
+	}
 	if !t.IsDefined() {
 		return "<undefined>"
 	}
