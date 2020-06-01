@@ -11,13 +11,14 @@ func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 		return nil
 	}
 	return &Exp{
-		Const: a.Const,
-		Block: a.Block.copy(ctx),
-		Id:    a.Id.copy(ctx),
-		Op:    a.Op.copy(ctx),
-		Call:  a.Call.copy(ctx),
-		Def:   a.Def.copy(ctx),
-		TDecl: a.TDecl.copy(ctx),
+		Const:  a.Const,
+		Block:  a.Block.copy(ctx),
+		Id:     a.Id.copy(ctx),
+		Op:     a.Op.copy(ctx),
+		Call:   a.Call.copy(ctx),
+		Def:    a.Def.copy(ctx),
+		TDecl:  a.TDecl.copy(ctx),
+		Struct: a.Struct.copy(ctx),
 	}
 }
 
@@ -29,10 +30,6 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
-	dt := map[string]*Struct{}
-	for k, v := range a.Definitions {
-		dt[k] = v.copy(ctx)
-	}
 	return &Block{
 		Assignments: ac,
 		Value:       a.Value.CopyWithCtx(ctx),
@@ -41,6 +38,9 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 }
 
 func (a *Struct) copy(ctx *types.TypeCopyCtx) *Struct {
+	if a == nil {
+		return nil
+	}
 	fs := make([]*StructField, len(a.Fields))
 	for i, f := range a.Fields {
 		fs[i] = &StructField{

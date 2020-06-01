@@ -58,18 +58,11 @@ func (prg *Program) ToAst() *ast.Exp {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
-	defins := map[string]*ast.Struct{}
 	for _, a := range from.Assignments {
-		e := convExp(a.Value)
-		if e.Struct != nil {
-			defins[*a.Name] = e.Struct
-		} else {
-			assigns[*a.Name] = e
-		}
+		assigns[*a.Name] = convExp(a.Value)
 	}
 	return &ast.Block{
 		Assignments: assigns,
-		Definitions: defins,
 		Value:       convExp(from.Value),
 	}
 }

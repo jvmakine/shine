@@ -36,37 +36,31 @@ func Op(name string) *ast.Exp {
 	}
 }
 
-type Assgs = map[string]interface{}
+type Assgs = map[string]*ast.Exp
 
 func Block(a Assgs, e *ast.Exp) *ast.Exp {
 	assign := map[string]*ast.Exp{}
-	defin := map[string]*ast.Struct{}
 	for k, v := range a {
-		if e, ok := v.(*ast.Exp); ok {
-			assign[k] = e
-		} else if d, ok := v.(*ast.Struct); ok {
-			defin[k] = d
-		} else {
-			panic("invalid assignemnt")
-		}
+		assign[k] = v
 	}
 	return &ast.Exp{
 		Block: &ast.Block{
 			Value:       e,
 			Assignments: assign,
-			Definitions: defin,
 		},
 	}
 }
 
-func Struct(fields ...ast.StructField) *ast.Struct {
+func Struct(fields ...ast.StructField) *ast.Exp {
 	fs := make([]*ast.StructField, len(fields))
 	for i, f := range fields {
 		v := f
 		fs[i] = &v
 	}
-	return &ast.Struct{
-		Fields: fs,
+	return &ast.Exp{
+		Struct: &ast.Struct{
+			Fields: fs,
+		},
 	}
 }
 

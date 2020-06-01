@@ -72,7 +72,6 @@ type FDef struct {
 
 type Block struct {
 	Assignments map[string]*Exp
-	Definitions map[string]*Struct
 	Value       *Exp
 
 	ID int
