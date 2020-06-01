@@ -11,14 +11,15 @@ import (
 // Expressions
 
 type Exp struct {
-	Const  *Const    // Constant value
-	Block  *Block    // Block with assignments and a body
-	Id     *Id       // Id referring to a value or parameter defined elsewhere
-	Op     *Op       // Operator from a set of predefined operations like +, *, etc
-	Call   *FCall    // Call of a function
-	Def    *FDef     // Definition of a function
-	TDecl  *TypeDecl // Manually defined type for an expression
-	Struct *Struct   // Definition of a structure
+	Const   *Const         // Constant value
+	Block   *Block         // Block with assignments and a body
+	Id      *Id            // Id referring to a value or parameter defined elsewhere
+	Op      *Op            // Operator from a set of predefined operations like +, *, etc
+	Call    *FCall         // Call of a function
+	Def     *FDef          // Definition of a function
+	TDecl   *TypeDecl      // Manually defined type for an expression
+	FAccess *FieldAccessor // Accessing a field / method of a structure
+	Struct  *Struct        // Definition of a structure
 }
 
 type Op struct {
@@ -44,6 +45,11 @@ type Const struct {
 type TypeDecl struct {
 	Exp  *Exp
 	Type types.Type
+}
+
+type FieldAccessor struct {
+	Exp   *Exp
+	Field string
 }
 
 // Functions

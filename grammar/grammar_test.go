@@ -228,6 +228,20 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Assgs{"a": t.Struct(ast.StructField{"x", types.IntP}, ast.StructField{"c", types.Type{}})},
 			t.Fcall(t.Id("a"), t.IConst(1), t.BConst(true)),
 		),
+	}, {
+		name:  "parse simple field accessors",
+		input: `a.foo.bar`,
+		want: t.Block(
+			t.Assgs{},
+			t.Faccess(t.Faccess(t.Id("a"), "foo"), "bar"),
+		),
+	}, {
+		name:  "parse method calls",
+		input: `a.foo(1)`,
+		want: t.Block(
+			t.Assgs{},
+			t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)),
+		),
 	},
 	}
 	for _, tt := range tests {

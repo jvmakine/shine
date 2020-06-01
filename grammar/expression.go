@@ -62,8 +62,9 @@ type CallParams struct {
 }
 
 type FValue struct {
-	Value *PValue       `@@`
-	Calls []*CallParams `@@*`
+	Value  *PValue       `@@`
+	Access []string      `("." @Ident)*`
+	Calls  []*CallParams `@@*`
 }
 
 type PValue struct {

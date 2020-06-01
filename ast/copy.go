@@ -11,14 +11,15 @@ func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 		return nil
 	}
 	return &Exp{
-		Const:  a.Const,
-		Block:  a.Block.copy(ctx),
-		Id:     a.Id.copy(ctx),
-		Op:     a.Op.copy(ctx),
-		Call:   a.Call.copy(ctx),
-		Def:    a.Def.copy(ctx),
-		TDecl:  a.TDecl.copy(ctx),
-		Struct: a.Struct.copy(ctx),
+		Const:   a.Const,
+		Block:   a.Block.copy(ctx),
+		Id:      a.Id.copy(ctx),
+		Op:      a.Op.copy(ctx),
+		Call:    a.Call.copy(ctx),
+		Def:     a.Def.copy(ctx),
+		TDecl:   a.TDecl.copy(ctx),
+		FAccess: a.FAccess.copy(ctx),
+		Struct:  a.Struct.copy(ctx),
 	}
 }
 
@@ -34,6 +35,16 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 		Assignments: ac,
 		Value:       a.Value.CopyWithCtx(ctx),
 		ID:          a.ID,
+	}
+}
+
+func (a *FieldAccessor) copy(ctx *types.TypeCopyCtx) *FieldAccessor {
+	if a == nil {
+		return nil
+	}
+	return &FieldAccessor{
+		Exp:   a.Exp.CopyWithCtx(ctx),
+		Field: a.Field,
 	}
 }
 

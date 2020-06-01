@@ -91,6 +91,10 @@ func (e *Exp) stringer(b *strings.Builder, indent int, options *Options) {
 		e.Block.Value.stringer(b, indent+2, options)
 		newline(b, indent)
 		b.WriteString("}")
+	} else if e.FAccess != nil {
+		e.FAccess.Exp.stringer(b, indent, options)
+		b.WriteString(".")
+		b.WriteString(e.FAccess.Field)
 	}
 	if e.Op == nil && options.Types {
 		b.WriteString(":")

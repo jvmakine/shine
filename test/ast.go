@@ -70,6 +70,15 @@ func TDecl(e *ast.Exp, t types.Type) *ast.Exp {
 	}
 }
 
+func Faccess(r *ast.Exp, field string) *ast.Exp {
+	return &ast.Exp{
+		FAccess: &ast.FieldAccessor{
+			Exp:   r,
+			Field: field,
+		},
+	}
+}
+
 func Fcall(function *ast.Exp, args ...*ast.Exp) *ast.Exp {
 	call := &ast.FCall{
 		Function: function,

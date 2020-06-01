@@ -21,6 +21,7 @@ func Parse(str string) (*Program, error) {
 		Whitespace = " " | "\r" | "\t" .
 		Reserved = "if" | "else" | "true" | "false" .
 		Comma = "," .
+		Dot = "." .
 		Brackets = "(" | ")" | "{" | "}" .
 		COp = ">=" | "<=" .
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
@@ -213,6 +214,18 @@ func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
 }
 
 func convFVal(from *FValue) *ast.Exp {
+	pval := convPVal(from.Value)
+	accessors := from.Access
+	for len(accessors) > 0 {
+		t := accessors[0]
+		accessors = accessors[1:]
+		pval = &ast.Exp{
+			FAccess: &ast.FieldAccessor{
+				Exp:   pval,
+				Field: t,
+			},
+		}
+	}
 	if len(from.Calls) > 0 {
 		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]*ast.Exp, len(call.Params))
@@ -220,7 +233,7 @@ func convFVal(from *FValue) *ast.Exp {
 			params[i] = convExp(p)
 		}
 		res := &ast.FCall{
-			Function: convPVal(from.Value),
+			Function: pval,
 			Params:   params,
 		}
 		for len(calls) > 0 {
@@ -238,7 +251,7 @@ func convFVal(from *FValue) *ast.Exp {
 			Call: res,
 		}
 	}
-	return convPVal(from.Value)
+	return pval
 }
 
 func convPVal(from *PValue) *ast.Exp {
