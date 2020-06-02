@@ -50,6 +50,7 @@ type TypeDecl struct {
 type FieldAccessor struct {
 	Exp   *Exp
 	Field string
+	Type  types.Type
 }
 
 // Functions
@@ -201,6 +202,8 @@ func (exp *Exp) Type() types.Type {
 		return exp.Op.Type
 	} else if exp.TDecl != nil {
 		return exp.TDecl.Type
+	} else if exp.FAccess != nil {
+		return exp.FAccess.Type
 	}
 	panic("invalid exp")
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/types"
 	. "github.com/jvmakine/shine/types"
 )
 
@@ -113,6 +114,32 @@ func initialiseVariables(exp *ast.Exp) error {
 	})
 }
 
+func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
+	block := ctx.BlockOf(name)
+	if block == nil {
+		return Type{}, errors.New("type " + name + " is undefined")
+	}
+	exp := block.Assignments[name]
+	if exp.Struct == nil {
+		return Type{}, errors.New(name + " is not a type")
+	}
+	fs := make([]types.SField, len(exp.Struct.Fields))
+	for i, f := range exp.Struct.Fields {
+		if !f.Type.IsDefined() {
+			fs[i] = types.SField{
+				Name: f.Name,
+				Type: types.MakeVariable(),
+			}
+		} else {
+			fs[i] = types.SField{
+				Name: f.Name,
+				Type: f.Type,
+			}
+		}
+	}
+	return types.MakeStructure(name, fs...), nil
+}
+
 func Infer(exp *ast.Exp) error {
 	blockCount := 0
 	if err := initialiseVariables(exp); err != nil {
@@ -145,6 +172,24 @@ func Infer(exp *ast.Exp) error {
 				return err
 			}
 			unifier.Combine(uni)
+		} else if v.FAccess != nil {
+			typ := v.FAccess.Exp.Type()
+			if !typ.IsNamed() {
+				return errors.New(typ.Signature() + " has no field " + v.FAccess.Field)
+			}
+			name := *typ.Named
+			resolved, err := resolveNamed(name, ctx)
+			if err != nil {
+				return err
+			}
+			if !resolved.IsStructure() {
+				return errors.New(resolved.Signature() + " has no field " + v.FAccess.Field)
+			}
+			field := resolved.Structure.GetField(v.FAccess.Field)
+			if field == nil {
+				return errors.New(name + " has no field " + v.FAccess.Field)
+			}
+			v.FAccess.Type = *field
 		}
 		return nil
 	}

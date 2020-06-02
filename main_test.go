@@ -97,6 +97,15 @@ func TestCompile(t *testing.T) {
 				a(1.0, 2.0)
 			`,
 		err: errors.New("can not unify int with real"),
+	}, {
+		name: "compile structure programs",
+		program: `
+			Person = (age: int, height: real, weight: real)
+			bmi = (p: Person) => p.weight / (p.height * p.height) * 703.0
+			person = Person(38, 173.0, 60.0)
+			bmi(person)
+		`,
+		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

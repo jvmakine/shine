@@ -45,6 +45,7 @@ func (a *FieldAccessor) copy(ctx *types.TypeCopyCtx) *FieldAccessor {
 	return &FieldAccessor{
 		Exp:   a.Exp.CopyWithCtx(ctx),
 		Field: a.Field,
+		Type:  a.Type.Copy(ctx),
 	}
 }
 

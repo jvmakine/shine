@@ -145,7 +145,7 @@ func (t Type) IsRestrictedVariable() bool {
 }
 
 func (t Type) IsDefined() bool {
-	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil
+	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil || t.Named != nil
 }
 
 func (t Type) HasFreeVars() bool {
@@ -164,4 +164,13 @@ func (t *Type) AssignFrom(o Type) {
 	t.Function = o.Function
 	t.Primitive = o.Primitive
 	t.Structure = o.Structure
+}
+
+func (s *Structure) GetField(name string) *Type {
+	for _, f := range s.Fields {
+		if f.Name == name {
+			return &f.Type
+		}
+	}
+	return nil
 }
