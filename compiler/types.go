@@ -8,6 +8,7 @@ import (
 var (
 	ClosurePType = types.I8Ptr
 	FunType      = types.NewVector(2, types.I8Ptr)
+	StruType     = types.I8Ptr
 
 	IntType  = types.I64
 	BoolType = types.I1
@@ -65,6 +66,10 @@ func getType(typ t.Type) types.Type {
 		return rtype
 	} else if typ.IsFunction() {
 		return FunType
+	} else if typ.IsStructure() {
+		return StruType
+	} else if typ.IsNamed() {
+		panic("trying to use named type at compilation")
 	}
 	panic("invalid type: " + typ.Signature())
 }

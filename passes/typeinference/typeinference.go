@@ -158,9 +158,21 @@ func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
 	return types.MakeStructure(name, fs...), nil
 }
 
+func rewriteNamed(exp *ast.Exp) error {
+	return exp.RewriteTypes(func(t Type, ctx *ast.VisitContext) (Type, error) {
+		if t.IsNamed() {
+			return resolveNamed(*t.Named, ctx)
+		}
+		return t, nil
+	})
+}
+
 func Infer(exp *ast.Exp) error {
 	blockCount := 0
 	if err := initialiseVariables(exp); err != nil {
+		return err
+	}
+	if err := rewriteNamed(exp); err != nil {
 		return err
 	}
 	unifier := MakeSubstitutions()
@@ -192,20 +204,12 @@ func Infer(exp *ast.Exp) error {
 			unifier.Combine(uni)
 		} else if v.FAccess != nil {
 			typ := v.FAccess.Exp.Type()
-			if !typ.IsNamed() {
+			if !typ.IsStructure() {
 				return errors.New(typ.Signature() + " has no field " + v.FAccess.Field)
 			}
-			name := *typ.Named
-			resolved, err := resolveNamed(name, ctx)
-			if err != nil {
-				return err
-			}
-			if !resolved.IsStructure() {
-				return errors.New(resolved.Signature() + " has no field " + v.FAccess.Field)
-			}
-			field := resolved.Structure.GetField(v.FAccess.Field)
+			field := typ.Structure.GetField(v.FAccess.Field)
 			if field == nil {
-				return errors.New(name + " has no field " + v.FAccess.Field)
+				return errors.New(typ.Structure.Name + " has no field " + v.FAccess.Field)
 			}
 			v.FAccess.Type = *field
 		}

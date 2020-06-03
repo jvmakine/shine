@@ -1,5 +1,7 @@
 package ast
 
+import "github.com/jvmakine/shine/types"
+
 type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
@@ -180,4 +182,68 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 		return err
 	}
 	return nil
+}
+
+func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, error)) error {
+	return a.VisitAfter(func(v *Exp, ctx *VisitContext) error {
+		if v.Op != nil {
+			t, err := f(v.Op.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.Op.Type = t
+		} else if v.Id != nil {
+			t, err := f(v.Id.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.Id.Type = t
+		} else if v.Const != nil {
+			t, err := f(v.Const.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.Const.Type = t
+		} else if v.TDecl != nil {
+			t, err := f(v.TDecl.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.TDecl.Type = t
+		} else if v.FAccess != nil {
+			t, err := f(v.FAccess.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.FAccess.Type = t
+		} else if v.Call != nil {
+			t, err := f(v.Call.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.Call.Type = t
+		} else if v.Def != nil {
+			for _, p := range v.Def.Params {
+				t, err := f(p.Type, ctx)
+				if err != nil {
+					return err
+				}
+				p.Type = t
+			}
+		} else if v.Struct != nil {
+			t, err := f(v.Struct.Type, ctx)
+			if err != nil {
+				return err
+			}
+			v.Struct.Type = t
+			for _, p := range v.Struct.Fields {
+				t, err := f(p.Type, ctx)
+				if err != nil {
+					return err
+				}
+				p.Type = t
+			}
+		}
+		return nil
+	})
 }

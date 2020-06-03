@@ -250,6 +250,19 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "",
 		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
+	}, {
+		name: "fail on unknown named type",
+		exp:  Block(Assgs{}, TDecl(Id("a"), types.MakeNamed("t"))),
+		typ:  "",
+		err:  errors.New("type t is undefined"),
+	}, {
+		name: "work on known named type",
+		exp: Block(
+			Assgs{"t": Struct(ast.StructField{"x", types.IntP})},
+			TDecl(Id("a"), types.MakeNamed("t")),
+		),
+		typ: "t{x:int}",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
