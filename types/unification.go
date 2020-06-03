@@ -130,6 +130,9 @@ func unifyFunctions(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 }
 
 func unifyStructures(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
+	if t.Structure.Name != o.Structure.Name {
+		return MakeSubstitutions(), UnificationError(o, t)
+	}
 	// handle recursice structures
 	if ctx.seenStructures[t.Structure] != nil {
 		if ctx.seenStructures[t.Structure][o.Structure] {

@@ -144,11 +144,11 @@ func TestType_Unify(t *testing.T) {
 		want: MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
 		err:  nil,
 	}, {
-		name: "makes an anonymous structure on name mismatch",
-		a:    MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
-		b:    MakeStructure("s2", SField{"a", IntP}, SField{"b", BoolP}),
-		want: MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
-		err:  nil,
+		name: "fails to unify on name mismatch",
+		a:    MakeStructure("s1", SField{"a", IntP}),
+		b:    MakeStructure("s2", SField{"a", IntP}),
+		want: Type{},
+		err:  errors.New("can not unify s1{a:int} with s2{a:int}"),
 	}, {
 		name: "unifies identical recursive structures",
 		a:    recursiveStruct("data", "r", SField{"a", IntP}),

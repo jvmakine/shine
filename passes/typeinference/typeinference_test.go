@@ -237,6 +237,19 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "",
 		err: errors.New("can not unify bool with V1[int|real]"),
+	}, {
+		name: "fail to unify two different named types",
+		exp: Block(
+			Assgs{
+				"a":  Struct(ast.StructField{"a1", types.IntP}),
+				"b":  Struct(ast.StructField{"a1", types.IntP}),
+				"ai": Fcall(Id("a"), IConst(1)),
+				"bi": Fcall(Id("b"), IConst(1)),
+			},
+			Fcall(Op("if"), BConst(true), Id("ai"), Id("bi")),
+		),
+		typ: "",
+		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
 	},
 	}
 	for _, tt := range tests {
