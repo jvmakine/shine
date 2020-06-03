@@ -93,6 +93,7 @@ type StructField struct {
 
 type Struct struct {
 	Fields []*StructField
+	Type   types.Type
 }
 
 func (a *FDef) ParamOf(name string) *FParam {
@@ -204,6 +205,8 @@ func (exp *Exp) Type() types.Type {
 		return exp.TDecl.Type
 	} else if exp.FAccess != nil {
 		return exp.FAccess.Type
+	} else if exp.Struct != nil {
+		return exp.Struct.Type
 	}
 	panic("invalid exp")
 }

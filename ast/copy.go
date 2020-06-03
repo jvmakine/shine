@@ -62,6 +62,7 @@ func (a *Struct) copy(ctx *types.TypeCopyCtx) *Struct {
 	}
 	return &Struct{
 		Fields: fs,
+		Type:   a.Type.Copy(ctx),
 	}
 }
 

@@ -109,6 +109,24 @@ func initialiseVariables(exp *ast.Exp) error {
 			if err != nil {
 				return err
 			}
+			for name, value := range v.Block.Assignments {
+				if value.Struct != nil {
+					ts := make([]types.Type, len(value.Struct.Fields)+1)
+					sf := make([]types.SField, len(value.Struct.Fields))
+					for i, v := range value.Struct.Fields {
+						ts[i] = v.Type
+						sf[i] = SField{
+							Name: v.Name,
+							Type: v.Type,
+						}
+					}
+
+					stru := types.MakeStructure(name, sf...)
+					ts[len(value.Struct.Fields)] = stru
+
+					value.Struct.Type = types.MakeFunction(ts...)
+				}
+			}
 		}
 		return nil
 	})
