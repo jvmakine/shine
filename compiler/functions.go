@@ -40,7 +40,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 				panic(err)
 			}
 		}
-		subCtx.loadClosure(f.From.Closure, ir.NewParam("+cls", ClosurePType))
+		subCtx.loadStructure(f.From.Closure, ir.NewParam("+cls", ClosurePType))
 		result := compileExp(f.From.Body, subCtx, true)
 		if result.value != nil { // result can be nil if it has already been returned from the function
 			subCtx.ret(result)

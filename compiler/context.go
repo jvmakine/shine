@@ -91,11 +91,11 @@ func (c *context) resolveFun(name string) function {
 	return i
 }
 
-func (c *context) makeClosure(closure *Closure) value.Value {
-	if closure == nil || len(*closure) == 0 {
+func (c *context) makeStructure(struc *Structure) value.Value {
+	if struc == nil || len(struc.Fields) == 0 {
 		return constant.NewNull(types.I8Ptr)
 	}
-	ctyp := closureType(closure)
+	ctyp := structureType(struc)
 	ctypp := types.NewPointer(ctyp)
 	sp := c.Block.NewGetElementPtr(ctyp, constant.NewNull(ctypp), constant.NewInt(types.I32, 1))
 	size := c.Block.NewPtrToInt(sp, types.I32)
@@ -107,7 +107,7 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 
 	// closure count
 	closures := 0
-	for _, clj := range *closure {
+	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
 			closures++
 		}
@@ -116,7 +116,7 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	c.Block.NewStore(constant.NewInt(types.I16, int64(closures)), clscp)
 
 	closures = 0
-	for _, clj := range *closure {
+	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
 			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
 			res, err := c.resolveId(clj.Name)
@@ -130,7 +130,7 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	}
 
 	nonclosures := 0
-	for _, clj := range *closure {
+	for _, clj := range struc.Fields {
 		if !clj.Type.IsFunction() {
 			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+2+closures)))
 			res, err := c.resolveId(clj.Name)
@@ -144,16 +144,16 @@ func (c *context) makeClosure(closure *Closure) value.Value {
 	return c.Block.NewBitCast(mem, types.I8Ptr)
 }
 
-func (c *context) loadClosure(closure *Closure, ptr value.Value) {
-	if closure == nil || len(*closure) == 0 {
+func (c *context) loadStructure(struc *Structure, ptr value.Value) {
+	if struc == nil || len(struc.Fields) == 0 {
 		return
 	}
-	ctyp := closureType(closure)
+	ctyp := structureType(struc)
 	ctypp := types.NewPointer(ctyp)
 	cptr := c.Block.NewBitCast(ptr, ctypp)
 
 	closures := 0
-	for _, clj := range *closure {
+	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
 			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
@@ -163,7 +163,7 @@ func (c *context) loadClosure(closure *Closure, ptr value.Value) {
 	}
 
 	nonclosures := 0
-	for _, clj := range *closure {
+	for _, clj := range struc.Fields {
 		if !clj.Type.IsFunction() {
 			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+closures+2)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)

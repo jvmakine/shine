@@ -26,7 +26,7 @@ func CollectClosures(exp *ast.Exp) {
 				if b.Assignments[v.Id.Name].Type().IsFunction() &&
 					b.Assignments[v.Id.Name].Def != nil &&
 					b.Assignments[v.Id.Name].Def.Closure != nil {
-					for _, c := range *b.Assignments[v.Id.Name].Def.Closure {
+					for _, c := range b.Assignments[v.Id.Name].Def.Closure.Fields {
 						closureAt[v][c.Name] = c.Type
 					}
 				}
@@ -67,10 +67,10 @@ func CollectClosures(exp *ast.Exp) {
 					closureAt[v][k] = b
 				}
 			}
-			result := Closure{}
+			result := Structure{Name: "", Fields: []SField{}}
 			for n, t := range closureAt[v] {
 				if block := ctx.BlockOf(n); block == nil || !block.Assignments[n].Type().IsFunction() {
-					result = append(result, ClosureParam{Name: n, Type: t})
+					result.Fields = append(result.Fields, SField{Name: n, Type: t})
 				}
 			}
 			v.Def.Closure = &result

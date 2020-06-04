@@ -99,7 +99,7 @@ func compileID(exp *ast.Exp, ctx *context) cresult {
 	if (*ctx.functions)[name].Fun != nil {
 		f := (*ctx.functions)[name]
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
-		clj := ctx.makeClosure(f.From.Closure)
+		clj := ctx.makeStructure(f.From.Closure)
 		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
 		vec = ctx.Block.NewInsertElement(vec, clj, constant.NewInt(types.I32, 1))
 		return makeCR(exp, vec)

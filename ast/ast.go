@@ -72,7 +72,7 @@ type FDef struct {
 	Params []*FParam
 	Body   *Exp
 
-	Closure *types.Closure
+	Closure *types.Structure
 }
 
 // Blocks
@@ -106,7 +106,7 @@ func (a *FDef) ParamOf(name string) *FParam {
 }
 
 func (a *FDef) HasClosure() bool {
-	return a.Closure != nil && len(*a.Closure) > 0
+	return a.Closure != nil && len(a.Closure.Fields) > 0
 }
 
 func (a *FCall) RootFunc() *Exp {

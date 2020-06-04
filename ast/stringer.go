@@ -65,13 +65,13 @@ func (e *Exp) stringer(b *strings.Builder, indent int, options *Options) {
 		}
 		if e.Def.HasClosure() {
 			b.WriteString("[")
-			for i, p := range *e.Def.Closure {
+			for i, p := range e.Def.Closure.Fields {
 				b.WriteString(p.Name)
 				if options.Types {
 					b.WriteString(":")
 					b.WriteString(p.Type.Signature())
 				}
-				if i < len(*e.Def.Closure)-1 {
+				if i < len(e.Def.Closure.Fields)-1 {
 					b.WriteString(",")
 				}
 			}
