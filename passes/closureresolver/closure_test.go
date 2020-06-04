@@ -109,7 +109,7 @@ func collectClosures(cat *callresolver.FCat) map[string]map[string]Type {
 		if v.Def != nil {
 			if v.Def.Closure != nil {
 				res[k] = map[string]Type{}
-				for _, c := range *v.Def.Closure {
+				for _, c := range v.Def.Closure.Fields {
 					res[k][c.Name] = c.Type
 				}
 			}
