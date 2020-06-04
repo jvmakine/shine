@@ -1,7 +1,6 @@
 package compiler
 
 import (
-	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/callresolver"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/enum"
@@ -68,8 +67,8 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			s := subCtx.makeStructure(v.Struct.Type.Structure)
-			subCtx.ret(makeCR(&ast.Exp{Struct: v.Struct}, s))
+			s := subCtx.makeStructure(v.Struct.Type.FunctReturn().Structure)
+			subCtx.Block.NewRet(s)
 		}
 	}
 }
