@@ -15,10 +15,33 @@ var (
 	RealType = types.Double
 )
 
+func structureType(s *t.Structure) types.Type {
+	ps := make([]types.Type, len(s.Fields)+2)
+	ps[0] = types.I32 // reference count
+	ps[1] = types.I16 // number of closures
+	// TODO: handle structures
+	closures := 0
+	for _, p := range s.Fields {
+		if p.Type.IsFunction() {
+			ps[closures+2] = getType(p.Type)
+			closures++
+		}
+	}
+	nonclosures := 0
+	for _, p := range s.Fields {
+		if !p.Type.IsFunction() {
+			ps[2+closures+nonclosures] = getType(p.Type)
+			nonclosures++
+		}
+	}
+	return types.NewStruct(ps...)
+}
+
 func closureType(c *t.Closure) types.Type {
 	ps := make([]types.Type, len(*c)+2)
 	ps[0] = types.I32 // reference count
 	ps[1] = types.I16 // number of closures
+	// TODO: handle structures
 	closures := 0
 	for _, p := range *c {
 		if p.Type.IsFunction() {

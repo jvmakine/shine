@@ -26,9 +26,61 @@ func compileExp(from *ast.Exp, ctx *context, funcRoot bool) cresult {
 	} else if from.Struct != nil {
 		panic("non resolved struct at compilation")
 	} else if from.FAccess != nil {
-		panic("TODO: implement FAccess")
+		return compileFAccess(from, ctx)
 	}
 	panic("invalid empty expression")
+}
+
+func getStructFieldIndex(s *t.Structure, name string) int {
+	index := 0
+	found := false
+	for _, v := range s.Fields {
+		if v.Type.IsFunction() {
+			if v.Name == name {
+				found = true
+				break
+			}
+			index++
+		}
+	}
+	if !found {
+		for _, v := range s.Fields {
+			if v.Type.IsStructure() {
+				if v.Name == name {
+					found = true
+					break
+				}
+				index++
+			}
+		}
+	}
+	if !found {
+		for _, v := range s.Fields {
+			if !v.Type.IsStructure() && !v.Type.IsFunction() {
+				if v.Name == name {
+					found = true
+					break
+				}
+				index++
+			}
+		}
+	}
+	if !found {
+		panic("field not found: " + name)
+	}
+	return index
+}
+
+func compileFAccess(from *ast.Exp, ctx *context) cresult {
+	fa := from.FAccess
+	cstru := compileExp(fa.Exp, ctx, false)
+	tstru := fa.Exp.Type()
+	typ := types.NewPointer(structureType(tstru.Structure))
+	bc := ctx.Block.NewBitCast(cstru.value, typ)
+	index := getStructFieldIndex(tstru.Structure, fa.Field)
+	ptr := ctx.Block.NewGetElementPtr(typ, bc, constant.NewInt(types.I32, int64(index+2)))
+	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
+	return makeCR(from, res)
 }
 
 func compileConst(from *ast.Exp, ctx *context) cresult {
