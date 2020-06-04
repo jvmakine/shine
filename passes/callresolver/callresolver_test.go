@@ -71,6 +71,19 @@ func TestResolveFunctions(t *testing.T) {
 			},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
+	}, {
+		name: "resolves simple structures",
+		before: Block(
+			Assgs{"a": Struct(ast.StructField{"x", types.IntP})},
+			Fcall(Id("a"), IConst(1)),
+		),
+		after: Block(
+			Assgs{
+				"a":                     Struct(ast.StructField{"x", types.IntP}),
+				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
+			},
+			Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1)),
+		),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,21 +100,11 @@ func TestResolveFunctions(t *testing.T) {
 }
 
 func eraseType(e *ast.Exp) {
-	e.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
-		if v.Id != nil {
-			v.Id.Type = types.IntP
-		} else if v.Op != nil {
-			v.Op.Type = types.IntP
-		} else if v.Const != nil {
-			v.Const.Type = types.IntP
-		} else if v.Call != nil {
-			v.Call.Type = types.IntP
-		} else if v.Def != nil {
-			for _, p := range v.Def.Params {
-				p.Type = types.IntP
-			}
-			v.Def.Closure = nil
-		} else if v.Block != nil {
+	e.RewriteTypes(func(t types.Type, ctx *ast.VisitContext) (types.Type, error) {
+		return types.IntP, nil
+	})
+	e.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
+		if v.Block != nil {
 			v.Block.ID = 0
 		}
 		return nil

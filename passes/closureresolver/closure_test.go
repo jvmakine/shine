@@ -106,10 +106,12 @@ func TestResolveFunctionDef(tes *testing.T) {
 func collectClosures(cat *callresolver.FCat) map[string]map[string]Type {
 	res := map[string]map[string]Type{}
 	for k, v := range *cat {
-		if v.Closure != nil {
-			res[k] = map[string]Type{}
-			for _, c := range *v.Closure {
-				res[k][c.Name] = c.Type
+		if v.Def != nil {
+			if v.Def.Closure != nil {
+				res[k] = map[string]Type{}
+				for _, c := range *v.Def.Closure {
+					res[k][c.Name] = c.Type
+				}
 			}
 		}
 	}
