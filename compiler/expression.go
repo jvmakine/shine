@@ -75,10 +75,11 @@ func compileFAccess(from *ast.Exp, ctx *context) cresult {
 	fa := from.FAccess
 	cstru := compileExp(fa.Exp, ctx, false)
 	tstru := fa.Exp.Type()
-	typ := types.NewPointer(structureType(tstru.Structure))
+	ctyp := structureType(tstru.Structure)
+	typ := types.NewPointer(ctyp)
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
 	index := getStructFieldIndex(tstru.Structure, fa.Field)
-	ptr := ctx.Block.NewGetElementPtr(typ, bc, constant.NewInt(types.I32, int64(index+2)))
+	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+2)))
 	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
 	return makeCR(from, res)
 }

@@ -30,8 +30,8 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 				param := ir.NewParam(p.Name, getType(p.Type))
 				params = append(params, param)
 			}
-			rtype := getType(stru.Type)
-			compiled := ctx.Module.NewFunc(name, rtype, params...)
+			params = append(params, ir.NewParam("+cls", ClosurePType))
+			compiled := ctx.Module.NewFunc(name, StruType, params...)
 			compiled.Linkage = enum.LinkageInternal
 
 			(*ctx.functions)[name] = function{nil, compiled, compiled}
