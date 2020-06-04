@@ -115,10 +115,20 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	clscp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
 	c.Block.NewStore(constant.NewInt(types.I16, int64(closures)), clscp)
 
+	// structure count
+	structures := 0
+	for _, clj := range struc.Fields {
+		if clj.Type.IsStructure() {
+			structures++
+		}
+	}
+	scp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 2))
+	c.Block.NewStore(constant.NewInt(types.I16, int64(structures)), scp)
+
 	closures = 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
@@ -129,16 +139,30 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 		}
 	}
 
-	nonclosures := 0
+	structures = 0
 	for _, clj := range struc.Fields {
-		if !clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+2+closures)))
+		if clj.Type.IsStructure() {
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+structures+3)))
+			res, err := c.resolveId(clj.Name)
+			if err != nil {
+				panic(err)
+			}
+			c.increfStructure(res)
+			c.Block.NewStore(res, ptr)
+			structures++
+		}
+	}
+
+	primitives := 0
+	for _, clj := range struc.Fields {
+		if !clj.Type.IsFunction() && !clj.Type.IsStructure() {
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+3+closures)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
 			}
 			c.Block.NewStore(res, ptr)
-			nonclosures++
+			primitives++
 		}
 	}
 	return c.Block.NewBitCast(mem, types.I8Ptr)
@@ -155,27 +179,45 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 	closures := 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+2)))
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
 			closures++
 		}
 	}
 
-	nonclosures := 0
+	structures := 0
 	for _, clj := range struc.Fields {
-		if !clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(nonclosures+closures+2)))
+		if clj.Type.IsStructure() {
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3+structures)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
-			nonclosures++
+			structures++
+		}
+	}
+
+	primitives := 0
+	for _, clj := range struc.Fields {
+		if !clj.Type.IsFunction() && !clj.Type.IsStructure() {
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+closures+3)))
+			r := c.Block.NewLoad(getType(clj.Type), ptr)
+			c.addId(clj.Name, r)
+			primitives++
 		}
 	}
 }
 
+func (c *context) freeStructure(fp value.Value) {
+	c.Block.NewCall(c.utils.freeStructure, fp)
+}
+
 func (c *context) freeClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.Block.NewCall(c.utils.freeClosure, cptr)
+	c.Block.NewCall(c.utils.freeStructure, cptr)
+}
+
+func (c *context) increfStructure(fp value.Value) {
+	c.Block.NewCall(c.utils.incRef, fp)
 }
 
 func (c *context) increfClosure(fp value.Value) {
@@ -195,6 +237,8 @@ func (c *context) ret(v cresult) {
 	block := c.Block
 	if v.ast.Type().IsFunction() && v.ast.Id != nil && (*c.functions)[v.ast.Id.Name].Fun == nil {
 		c.increfClosure(v.value)
+	} else if v.ast.Type().IsStructure() {
+		c.increfStructure(v.value)
 	}
 	block.NewRet(v.value)
 }
@@ -204,7 +248,11 @@ func (c *context) malloc(size value.Value) value.Value {
 }
 
 func (c *context) freeIfUnboundRef(res cresult) {
-	if res.ast != nil && res.ast.Type().IsFunction() && res.ast.Id == nil {
-		c.freeClosure(res.value)
+	if res.ast != nil {
+		if res.ast.Type().IsFunction() && res.ast.Id == nil {
+			c.freeClosure(res.value)
+		} else if res.ast.Type().IsStructure() {
+			c.freeStructure(res.value)
+		}
 	}
 }

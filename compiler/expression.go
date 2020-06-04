@@ -79,7 +79,7 @@ func compileFAccess(from *ast.Exp, ctx *context) cresult {
 	typ := types.NewPointer(ctyp)
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
 	index := getStructFieldIndex(tstru.Structure, fa.Field)
-	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+2)))
+	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+3)))
 	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
 	return makeCR(from, res)
 }
@@ -284,7 +284,8 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 		}
 	}
 
-	memids := map[string]value.Value{}
+	closureids := map[string]value.Value{}
+	structids := map[string]value.Value{}
 
 	for len(assigns) > 0 {
 		for k, c := range assigns {
@@ -302,10 +303,14 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 					panic(err)
 				}
 				if c.Type().IsFunction() {
-					memids[k] = v.value
-
+					closureids[k] = v.value
 					if c.Id != nil { // TODO: Optimise renames away
 						sub.increfClosure(v.value)
+					}
+				} else if c.Type().IsStructure() {
+					structids[k] = v.value
+					if c.Id != nil { // TODO: Optimise renames away
+						sub.increfStructure(v.value)
 					}
 				}
 				delete(assigns, k)
@@ -314,9 +319,14 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	}
 
 	res := compileExp(from.Value, sub, funcRoot)
-	for id, v := range memids {
+	for id, v := range closureids {
 		if from.Value.Id == nil || from.Value.Id.Name != id {
 			sub.freeClosure(v)
+		}
+	}
+	for id, v := range structids {
+		if from.Value.Id == nil || from.Value.Id.Name != id {
+			sub.freeStructure(v)
 		}
 	}
 	ctx.Block = sub.Block

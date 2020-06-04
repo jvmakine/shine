@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-void free_closure(void *cls) {
+void free_structure(void *cls) {
     if (cls == NULL) {
         return;
     }
@@ -13,7 +13,7 @@ void free_closure(void *cls) {
         int8_t** ptr = (int8_t**)(cptr + 1);
         while (clscount > 0) {
             ptr++; // pass the function pointer
-            free_closure(*ptr);
+            free_structure(*ptr);
             ptr++;
             clscount--;
         }

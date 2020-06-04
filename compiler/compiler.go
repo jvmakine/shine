@@ -10,22 +10,22 @@ import (
 )
 
 type utils struct {
-	malloc      *ir.Func
-	freeClosure *ir.Func
-	incRef      *ir.Func
-	printInt    *ir.Func
-	printReal   *ir.Func
-	printBool   *ir.Func
+	malloc        *ir.Func
+	freeStructure *ir.Func
+	incRef        *ir.Func
+	printInt      *ir.Func
+	printReal     *ir.Func
+	printBool     *ir.Func
 }
 
 func makeUtils(m *ir.Module) *utils {
 	return &utils{
-		malloc:      m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
-		freeClosure: m.NewFunc("free_closure", types.Void, ir.NewParam("ptr", types.I8Ptr)),
-		incRef:      m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
-		printInt:    m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
-		printReal:   m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
-		printBool:   m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
+		malloc:        m.NewFunc("malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
+		freeStructure: m.NewFunc("free_structure", types.Void, ir.NewParam("ptr", types.I8Ptr)),
+		incRef:        m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
+		printInt:      m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
+		printReal:     m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
+		printBool:     m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
 	}
 }
 
