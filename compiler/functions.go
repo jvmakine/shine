@@ -22,6 +22,8 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 			compiled.Linkage = enum.LinkageInternal
 
 			(*ctx.functions)[name] = function{def, compiled, compiled}
+		} else if fun.Struct != nil {
+			panic("TODO: Implement struct construction")
 		}
 	}
 }
