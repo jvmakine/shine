@@ -114,10 +114,15 @@ func initialiseVariables(exp *ast.Exp) error {
 					ts := make([]types.Type, len(value.Struct.Fields)+1)
 					sf := make([]types.SField, len(value.Struct.Fields))
 					for i, v := range value.Struct.Fields {
-						ts[i] = v.Type
+						typ := v.Type
+						if !typ.IsDefined() {
+							typ = MakeVariable()
+						}
+
+						ts[i] = typ
 						sf[i] = SField{
 							Name: v.Name,
-							Type: v.Type,
+							Type: typ,
 						}
 					}
 

@@ -1,5 +1,4 @@
-Person = (age: int, height: real, weight: real)
+Person = (age: int, height: real, weight: real, parent)
 bmi = (p: Person) => p.weight / (p.height * p.height)
 
-person = Person(38, 1.73, 60.0)
-bmi(person)
+bmi(Person(38, 1.73, 60.0, Person(60, 1.6, 80.0, 0)))

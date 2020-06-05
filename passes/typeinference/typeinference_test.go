@@ -263,6 +263,16 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "t{x:int}",
 		err: nil,
+	}, {
+		name: "unify recursive types",
+		exp: Block(
+			Assgs{
+				"a": Struct(ast.StructField{"a1", types.Type{}}),
+			},
+			Fcall(Id("a"), Fcall(Id("a"), IConst(0))),
+		),
+		typ: "a{a1:a}",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {
