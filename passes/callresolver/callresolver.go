@@ -72,7 +72,7 @@ func resolveCall(v *ast.FCall) {
 func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 	name := v.Id.Name
 	if block := ctx.BlockOf(name); block != nil && (block.Assignments[name].Def != nil || block.Assignments[name].Struct != nil) {
-		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().Signature())
+		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
 		if block.Assignments[fsig] == nil {
 			f := block.Assignments[v.Id.Name]
 			cop := f.Copy()
