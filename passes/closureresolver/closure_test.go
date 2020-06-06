@@ -75,7 +75,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 		),
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=><fn>": map[string]Type{},
-			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
+			"<anon1>%%1%%(int)=><fn>": map[string]Type{
 				"x": types.IntP,
 			},
 			"<anon2>%%1%%(int)=>int": map[string]Type{

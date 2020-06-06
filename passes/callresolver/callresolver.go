@@ -51,7 +51,7 @@ func ResolveFunctions(exp *ast.Exp) {
 		} else if v.Def != nil && ctx.NameOf(v) == "" {
 			anonCount++
 			typ := v.Type()
-			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, v.Type().Signature())
+			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, v.Type().TSignature())
 			ctx.Block().Assignments[fsig] = v.Copy()
 			v.Def = nil
 			v.Id = &ast.Id{Name: fsig, Type: typ}
