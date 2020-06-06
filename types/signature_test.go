@@ -25,6 +25,10 @@ func TestType_Signature(t *testing.T) {
 		name: "support recursive structures",
 		typ:  recursiveStruct("data", "b", SField{"a", IntP}),
 		want: "data{a:int,b:data}",
+	}, {
+		name: "support structural variables",
+		typ:  MakeStructuralVar(map[string]Type{"x": IntP}),
+		want: "V1{x:int}",
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

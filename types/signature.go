@@ -80,6 +80,21 @@ func sign(t Type, ctx *signctx, level int) string {
 				}
 				sb.WriteString("]")
 				ctx.varm[t.Variable] += sb.String()
+			} else if t.IsStructurealVar() {
+				var sb strings.Builder
+				sb.WriteString("{")
+				i := 0
+				for k, v := range t.Variable.Structural {
+					sb.WriteString(k)
+					sb.WriteString(":")
+					sb.WriteString(sign(v, ctx, level))
+					if i < len(t.Variable.Union)-1 {
+						sb.WriteString(",")
+					}
+					i++
+				}
+				sb.WriteString("}")
+				ctx.varm[t.Variable] += sb.String()
 			}
 		}
 		return ctx.varm[t.Variable]

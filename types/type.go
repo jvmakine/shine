@@ -29,7 +29,8 @@ type Structure struct {
 }
 
 type TypeVar struct {
-	Union Union
+	Union      Union
+	Structural map[string]Type
 }
 
 type Type struct {
@@ -50,6 +51,10 @@ func MakeVariable() Type {
 
 func MakeUnionVar(ps ...Primitive) Type {
 	return Type{Variable: &TypeVar{Union: ps}}
+}
+
+func MakeStructuralVar(s map[string]Type) Type {
+	return Type{Variable: &TypeVar{Structural: s}}
 }
 
 func MakePrimitive(p string) Type {
@@ -142,6 +147,10 @@ func (t Type) IsNamed() bool {
 
 func (t Type) IsUnionVar() bool {
 	return t.IsVariable() && len(t.Variable.Union) > 0
+}
+
+func (t Type) IsStructurealVar() bool {
+	return t.IsVariable() && len(t.Variable.Structural) > 0
 }
 
 func (t Type) IsDefined() bool {

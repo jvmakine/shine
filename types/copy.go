@@ -46,7 +46,12 @@ func (s *Structure) Copy(ctx *TypeCopyCtx) *Structure {
 }
 
 func (t *TypeVar) Copy(ctx *TypeCopyCtx) *TypeVar {
+	structural := map[string]Type{}
+	for k, v := range t.Structural {
+		structural[k] = v.Copy(ctx)
+	}
 	return &TypeVar{
-		Union: t.Union,
+		Union:      t.Union,
+		Structural: structural,
 	}
 }
