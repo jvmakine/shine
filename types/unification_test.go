@@ -155,6 +155,30 @@ func TestType_Unify(t *testing.T) {
 		b:    recursiveStruct("data", "r", SField{"a", IntP}),
 		want: recursiveStruct("data", "r", SField{"a", IntP}),
 		err:  nil,
+	}, {
+		name: "unifies structural variables with generic variables",
+		a:    MakeVariable(),
+		b:    MakeStructuralVar(map[string]Type{"x": IntP}),
+		want: MakeStructuralVar(map[string]Type{"x": IntP}),
+		err:  nil,
+	}, {
+		name: "fails to unify union var with a structural var",
+		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
+		b:    MakeUnionVar(Int, Real),
+		want: Type{},
+		err:  errors.New("can not unify V1[int|real] with V1{x:int}"),
+	}, {
+		name: "combines non conflicting structural variables",
+		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
+		b:    MakeStructuralVar(map[string]Type{"y": RealP}),
+		want: MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
+		err:  nil,
+	}, {
+		name: "fails on conflicting structural variables",
+		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
+		b:    MakeStructuralVar(map[string]Type{"x": RealP}),
+		want: Type{},
+		err:  errors.New("can not unify int with real"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

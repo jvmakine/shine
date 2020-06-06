@@ -80,7 +80,7 @@ func sign(t Type, ctx *signctx, level int) string {
 				}
 				sb.WriteString("]")
 				ctx.varm[t.Variable] += sb.String()
-			} else if t.IsStructurealVar() {
+			} else if t.IsStructuralVar() {
 				var sb strings.Builder
 				sb.WriteString("{")
 				i := 0

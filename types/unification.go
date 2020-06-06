@@ -87,7 +87,11 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 }
 
 func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if o.IsUnionVar() && !t.IsUnionVar() {
+	if o.IsStructuralVar() && !t.IsStructuralVar() {
+		return unifier(o, t, ctx)
+	} else if o.IsUnionVar() && t.IsStructuralVar() {
+		return Substitutions{}, UnificationError(o, t)
+	} else if o.IsUnionVar() && !t.IsUnionVar() {
 		return unifier(o, t, ctx)
 	} else if t.IsUnionVar() && o.IsUnionVar() {
 		resolv, err := t.Variable.Union.Resolve(o.Variable.Union)
@@ -103,6 +107,28 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 		subs.Update(t.Variable, rv)
 		subs.Update(o.Variable, rv)
 		return subs, err
+	} else if t.IsStructuralVar() && o.IsStructuralVar() {
+		ts := t.Variable.Structural
+		os := o.Variable.Structural
+		res := map[string]Type{}
+
+		for k, v := range ts {
+			res[k] = v
+		}
+		for k, v := range os {
+			if res[k].IsDefined() {
+				_, err := res[k].Unifier(v)
+				if err != nil {
+					return Substitutions{}, err
+				}
+			}
+			res[k] = v
+		}
+		rv := MakeStructuralVar(res)
+		subs := MakeSubstitutions()
+		subs.Update(t.Variable, rv)
+		subs.Update(o.Variable, rv)
+		return subs, nil
 	}
 	subs := MakeSubstitutions()
 	subs.Update(o.Variable, t)

@@ -149,7 +149,7 @@ func (t Type) IsUnionVar() bool {
 	return t.IsVariable() && len(t.Variable.Union) > 0
 }
 
-func (t Type) IsStructurealVar() bool {
+func (t Type) IsStructuralVar() bool {
 	return t.IsVariable() && len(t.Variable.Structural) > 0
 }
 
