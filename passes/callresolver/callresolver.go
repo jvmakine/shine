@@ -85,6 +85,13 @@ func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
 			block.Assignments[fsig] = cop
+		} else {
+			f := block.Assignments[v.Id.Name]
+			cop := f.Copy()
+			_, err := cop.Type().Unifier(v.Type())
+			if err != nil {
+				panic(err)
+			}
 		}
 		v.Id.Name = fsig
 	}

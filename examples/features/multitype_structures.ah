@@ -1,0 +1,3 @@
+A = (a, b)
+f = (a: A) => if (a.a <= 0) a.b else f(A(a.a - 1, true))
+f(A(5, 3))
