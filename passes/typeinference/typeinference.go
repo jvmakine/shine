@@ -118,6 +118,7 @@ func initialiseVariables(exp *ast.Exp) error {
 						if !typ.IsDefined() {
 							typ = MakeVariable()
 						}
+						v.Type = typ
 
 						ts[i] = typ
 						sf[i] = SField{

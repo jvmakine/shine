@@ -88,14 +88,15 @@ func TestResolveFunctions(t *testing.T) {
 		name: "resolves multitype structures",
 		before: Block(
 			Assgs{"a": Struct(ast.StructField{"x", types.MakeVariable()})},
-			Fcall(Id("a"), IConst(1)),
+			Fcall(Id("a"), Fcall(Id("a"), IConst(1))),
 		),
 		after: Block(
 			Assgs{
 				"a":                     Struct(ast.StructField{"x", types.MakeVariable()}),
 				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
+				"a%%1%%(a{x:int})=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
 			},
-			Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1)),
+			Fcall(Id("a%%1%%(a{x:int})=>a"), Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1))),
 		),
 	}}
 	for _, tt := range tests {
