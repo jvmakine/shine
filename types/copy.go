@@ -47,6 +47,6 @@ func (s *Structure) Copy(ctx *TypeCopyCtx) *Structure {
 
 func (t *TypeVar) Copy(ctx *TypeCopyCtx) *TypeVar {
 	return &TypeVar{
-		Restrictions: t.Restrictions,
+		Union: t.Union,
 	}
 }

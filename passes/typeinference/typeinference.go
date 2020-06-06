@@ -13,7 +13,7 @@ func fun(ts ...Type) *ast.Exp {
 }
 
 func union(un ...Primitive) Type {
-	return Type{Variable: &TypeVar{Restrictions: un}}
+	return Type{Variable: &TypeVar{Union: un}}
 }
 
 func function(ts ...Type) Type {

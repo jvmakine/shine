@@ -29,7 +29,7 @@ type Structure struct {
 }
 
 type TypeVar struct {
-	Restrictions Restrictions
+	Union Union
 }
 
 type Type struct {
@@ -48,8 +48,8 @@ func MakeVariable() Type {
 	return Type{Variable: &TypeVar{}}
 }
 
-func MakeRestricted(ps ...Primitive) Type {
-	return Type{Variable: &TypeVar{Restrictions: ps}}
+func MakeUnionVar(ps ...Primitive) Type {
+	return Type{Variable: &TypeVar{Union: ps}}
 }
 
 func MakePrimitive(p string) Type {
@@ -140,8 +140,8 @@ func (t Type) IsNamed() bool {
 	return t.Named != nil
 }
 
-func (t Type) IsRestrictedVariable() bool {
-	return t.IsVariable() && len(t.Variable.Restrictions) > 0
+func (t Type) IsUnionVar() bool {
+	return t.IsVariable() && len(t.Variable.Union) > 0
 }
 
 func (t Type) IsDefined() bool {

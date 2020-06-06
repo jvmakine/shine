@@ -31,32 +31,32 @@ func TestType_Unify(t *testing.T) {
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "unifies union variables to subsets",
-		a:    MakeRestricted("int", "bool", "real"),
-		b:    MakeRestricted("bool", "real", "foo"),
-		want: MakeRestricted("bool", "real"),
+		a:    MakeUnionVar("int", "bool", "real"),
+		b:    MakeUnionVar("bool", "real", "foo"),
+		want: MakeUnionVar("bool", "real"),
 		err:  nil,
 	}, {
 		name: "unifies union variables to primitives",
-		a:    MakeRestricted("int", "bool"),
-		b:    MakeRestricted("bool", "real"),
+		a:    MakeUnionVar("int", "bool"),
+		b:    MakeUnionVar("bool", "real"),
 		want: MakePrimitive("bool"),
 		err:  nil,
 	}, {
 		name: "fails to unify disjoint restricted primitives",
-		a:    MakeRestricted("int", "bool"),
-		b:    MakeRestricted("bar", "foo"),
+		a:    MakeUnionVar("int", "bool"),
+		b:    MakeUnionVar("bar", "foo"),
 		want: Type{},
 		err:  errors.New("can not unify V1[bar|foo] with V1[int|bool]"),
 	}, {
 		name: "unifies restricted variables with primitives",
 		a:    MakePrimitive("bool"),
-		b:    MakeRestricted("int", "bool"),
+		b:    MakeUnionVar("int", "bool"),
 		want: MakePrimitive("bool"),
 		err:  nil,
 	}, {
 		name: "fails to unify restricted variables with incompatible primitives",
 		a:    MakePrimitive("real"),
-		b:    MakeRestricted("int", "bool"),
+		b:    MakeUnionVar("int", "bool"),
 		want: Type{},
 		err:  errors.New("can not unify real with V1[int|bool]"),
 	}, {
@@ -92,8 +92,8 @@ func TestType_Unify(t *testing.T) {
 	}, {
 		name: "unifies variables with restricted variables",
 		a:    MakeVariable(),
-		b:    MakeRestricted("int", "real"),
-		want: MakeRestricted("int", "real"),
+		b:    MakeUnionVar("int", "real"),
+		want: MakeUnionVar("int", "real"),
 		err:  nil,
 	}, {
 		name: "unifies functions with overlapping variables",

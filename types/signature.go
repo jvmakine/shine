@@ -69,12 +69,12 @@ func sign(t Type, ctx *signctx, level int) string {
 		if ctx.varm[t.Variable] == "" {
 			ctx.varc++
 			ctx.varm[t.Variable] = "V" + strconv.Itoa(ctx.varc)
-			if t.IsRestrictedVariable() {
+			if t.IsUnionVar() {
 				var sb strings.Builder
 				sb.WriteString("[")
-				for i, r := range t.Variable.Restrictions {
+				for i, r := range t.Variable.Union {
 					sb.WriteString(r)
-					if i < len(t.Variable.Restrictions)-1 {
+					if i < len(t.Variable.Union)-1 {
 						sb.WriteString("|")
 					}
 				}

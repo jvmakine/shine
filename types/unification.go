@@ -71,8 +71,8 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return unifyStructures(t, o, ctx)
 	}
 	if o.IsPrimitive() {
-		if t.IsRestrictedVariable() {
-			err := t.Variable.Restrictions.Unifies(*o.Primitive)
+		if t.IsUnionVar() {
+			err := t.Variable.Union.Unifies(*o.Primitive)
 			subs := MakeSubstitutions()
 			subs.Update(t.Variable, o)
 			return subs, err
@@ -87,10 +87,10 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 }
 
 func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if o.IsRestrictedVariable() && !t.IsRestrictedVariable() {
+	if o.IsUnionVar() && !t.IsUnionVar() {
 		return unifier(o, t, ctx)
-	} else if t.IsRestrictedVariable() && o.IsRestrictedVariable() {
-		resolv, err := t.Variable.Restrictions.Resolve(o.Variable.Restrictions)
+	} else if t.IsUnionVar() && o.IsUnionVar() {
+		resolv, err := t.Variable.Union.Resolve(o.Variable.Union)
 		if len(resolv) == 1 {
 			prim := MakePrimitive(resolv[0])
 			subs := MakeSubstitutions()
@@ -98,7 +98,7 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 			subs.Update(o.Variable, prim)
 			return subs, err
 		}
-		rv := MakeRestricted(resolv...)
+		rv := MakeUnionVar(resolv...)
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, rv)
 		subs.Update(o.Variable, rv)
