@@ -209,15 +209,14 @@ func Infer(exp *ast.Exp) error {
 			}
 			unifier.Combine(uni)
 		} else if v.FAccess != nil {
-			typ := v.FAccess.Exp.Type()
-			if !typ.IsStructure() {
-				return errors.New(typ.Signature() + " has no field " + v.FAccess.Field)
+			vari := MakeVariable()
+			typ := MakeStructuralVar(map[string]Type{v.FAccess.Field: vari})
+			uni, err := v.FAccess.Exp.Type().Unifier(typ)
+			if err != nil {
+				return err
 			}
-			field := typ.Structure.GetField(v.FAccess.Field)
-			if field == nil {
-				return errors.New(typ.Structure.Name + " has no field " + v.FAccess.Field)
-			}
-			v.FAccess.Type = *field
+			unifier.Combine(uni)
+			v.FAccess.Type = vari
 		}
 		return nil
 	}

@@ -88,7 +88,7 @@ func sign(t Type, ctx *signctx, level int) string {
 					sb.WriteString(k)
 					sb.WriteString(":")
 					sb.WriteString(sign(v, ctx, level))
-					if i < len(t.Variable.Union)-1 {
+					if i < len(t.Variable.Structural)-1 {
 						sb.WriteString(",")
 					}
 					i++

@@ -55,11 +55,19 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return unifier(o, t, ctx)
 	}
 	if t.IsVariable() && o.IsFunction() {
+		if t.IsUnionVar() || t.IsUnionVar() {
+			return Substitutions{}, UnificationError(o, t)
+		}
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, o)
 		return subs, nil
 	}
 	if t.IsVariable() && o.IsStructure() {
+		if t.IsUnionVar() {
+			return Substitutions{}, UnificationError(o, t)
+		} else if t.IsStructuralVar() {
+			return unifyStructureWithStructuralVar(t, o)
+		}
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, o)
 		return subs, nil
@@ -84,6 +92,31 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return Substitutions{}, nil
 	}
 	return Substitutions{}, nil
+}
+
+func unifyStructureWithStructuralVar(v Type, s Type) (Substitutions, error) {
+	tres := MakeSubstitutions()
+	smap := map[string]Type{}
+	for _, f := range s.Structure.Fields {
+		smap[f.Name] = f.Type
+	}
+
+	for n, t := range v.Variable.Structural {
+		sv := smap[n]
+		if !sv.IsDefined() {
+			return Substitutions{}, UnificationError(v, s)
+		}
+		sub, err := t.Unifier(sv)
+		if err != nil {
+			return Substitutions{}, err
+		}
+		err = tres.Combine(sub)
+		if err != nil {
+			return Substitutions{}, err
+		}
+	}
+	tres.Update(v.Variable, s)
+	return tres, nil
 }
 
 func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
