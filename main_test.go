@@ -100,11 +100,11 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile structure programs",
 		program: `
-				Person = (age: int, height: real, weight: real)
-				bmi = (p) => p.weight / (p.height * p.height) * 703.0
-				person = Person(38, 173.0, 60.0)
-				bmi(person)
-			`,
+			Person = (age, height, weight)
+			bmi = (p) => p.weight / (p.height * p.height)
+			person = Person(38, 1.73, 60.0)
+			bmi(person)
+		`,
 		err: nil,
 	}}
 	for _, tt := range tests {

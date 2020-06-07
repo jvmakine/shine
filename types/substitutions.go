@@ -46,6 +46,11 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		}
 		return MakeStructure(target.Structure.Name, ntyps...)
 	}
+	if target.IsStructuralVar() {
+		for k, v := range target.Variable.Structural {
+			target.Variable.Structural[k] = apply(s, v, ctx)
+		}
+	}
 	return target
 }
 

@@ -273,6 +273,14 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "a{a1:a}",
 		err: nil,
+	}, {
+		name: "infer function types from structure fields",
+		exp: Block(
+			Assgs{},
+			Fdef(Fcall(Op("+"), Faccess(Id("x"), "a"), IConst(1)), "x"),
+		),
+		typ: "(V1{a:int})=>int",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {

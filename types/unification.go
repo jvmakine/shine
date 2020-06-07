@@ -148,9 +148,14 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 		for k, v := range ts {
 			res[k] = v
 		}
+		subs := MakeSubstitutions()
 		for k, v := range os {
 			if res[k].IsDefined() {
-				_, err := res[k].Unifier(v)
+				s, err := res[k].Unifier(v)
+				if err != nil {
+					return Substitutions{}, err
+				}
+				err = subs.Combine(s)
 				if err != nil {
 					return Substitutions{}, err
 				}
@@ -158,7 +163,6 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 			res[k] = v
 		}
 		rv := MakeStructuralVar(res)
-		subs := MakeSubstitutions()
 		subs.Update(t.Variable, rv)
 		subs.Update(o.Variable, rv)
 		return subs, nil

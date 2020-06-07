@@ -76,7 +76,14 @@ func MakeStructure(name string, fields ...SField) Type {
 
 func (t Type) FreeVars() []*TypeVar {
 	if t.Variable != nil {
-		return []*TypeVar{t.Variable}
+		stru := t.Variable.Structural
+		res := []*TypeVar{t.Variable}
+		if len(stru) > 0 {
+			for _, v := range stru {
+				res = append(res, v.FreeVars()...)
+			}
+		}
+		return res
 	}
 	if fun := t.Function; fun != nil {
 		res := []*TypeVar{}

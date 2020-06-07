@@ -191,6 +191,12 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeStructuralVar(map[string]Type{"y": MakeVariable()}),
 		want: Type{},
 		err:  errors.New("can not unify V1{y:V2} with a{x:int}"),
+	}, {
+		name: "unifies variables wthin structural variables",
+		a:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Bool)}),
+		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Real)}),
+		want: MakeStructuralVar(map[string]Type{"x": IntP}),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
