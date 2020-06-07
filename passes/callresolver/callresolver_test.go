@@ -48,12 +48,12 @@ func TestResolveFunctions(t *testing.T) {
 		),
 		after: Block(
 			Assgs{
-				"a":                    Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b":                    Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-				"a%%1%%(<fn>)=>int":    Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b%%1%%(int,int)=>int": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
+				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"b":                           Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"b%%1%%(int,int)=>int":        Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall(Id("a%%1%%(<fn>)=>int"), Id("b%%1%%(int,int)=>int")),
+			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
 		),
 	}, {
 		name: "resolves anonymous functions",
@@ -65,11 +65,11 @@ func TestResolveFunctions(t *testing.T) {
 		),
 		after: Block(
 			Assgs{
-				"a":                          Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"a%%1%%(<fn>)=>int":          Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"<anon1>%%1%%(int,int)=>int": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
+				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
+				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Fcall(Id("a%%1%%(<fn>)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
+			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
 	}, {
 		name: "resolves simple structures",
@@ -79,10 +79,10 @@ func TestResolveFunctions(t *testing.T) {
 		),
 		after: Block(
 			Assgs{
-				"a":                 Struct(ast.StructField{"x", types.IntP}),
-				"a%%1%%(int)=><st>": Struct(ast.StructField{"x", types.IntP}),
+				"a":                     Struct(ast.StructField{"x", types.IntP}),
+				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
 			},
-			Fcall(Id("a%%1%%(int)=><st>"), IConst(1)),
+			Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1)),
 		),
 	}, {
 		name: "resolves multitype structures",
@@ -92,11 +92,11 @@ func TestResolveFunctions(t *testing.T) {
 		),
 		after: Block(
 			Assgs{
-				"a":                  Struct(ast.StructField{"x", types.MakeVariable()}),
-				"a%%1%%(int)=><st>":  Struct(ast.StructField{"x", types.IntP}),
-				"a%%1%%(<st>)=><st>": Struct(ast.StructField{"x", types.MakeNamed("a")}),
+				"a":                     Struct(ast.StructField{"x", types.MakeVariable()}),
+				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
+				"a%%1%%(a{x:int})=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
 			},
-			Fcall(Id("a%%1%%(<st>)=><st>"), Fcall(Id("a%%1%%(int)=><st>"), IConst(1))),
+			Fcall(Id("a%%1%%(a{x:int})=>a"), Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1))),
 		),
 	}}
 	for _, tt := range tests {

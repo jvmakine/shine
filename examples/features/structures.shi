@@ -1,4 +1,5 @@
 Person = (age, height, weight)
+Animal = (height, weight)
 bmi = (p) => p.weight / (p.height * p.height)
 
-bmi(Person(38, 1.73, 60.0))
+bmi(Person(38, 1.73, 60.0)) + bmi(Animal(1.73, 60.0))

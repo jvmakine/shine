@@ -6,16 +6,12 @@ import (
 )
 
 type signctx struct {
-	deepSign        bool
 	varc            int
 	varm            map[*TypeVar]string
 	definingStructs map[string]bool
 }
 
 func (f Function) sign(ctx *signctx, level int) string {
-	if level > 0 && !ctx.deepSign {
-		return "<fn>"
-	}
 	var sb strings.Builder
 	sb.WriteString("(")
 	if len(f) > 1 {
@@ -35,9 +31,6 @@ func (f Function) sign(ctx *signctx, level int) string {
 }
 
 func (s Structure) sign(ctx *signctx, level int) string {
-	if level > 0 && !ctx.deepSign {
-		return "<st>"
-	}
 	if ctx.definingStructs[s.Name] {
 		return s.Name
 	}
@@ -117,16 +110,11 @@ func sign(t Type, ctx *signctx, level int) string {
 func (t Type) Signature() string {
 	varm := map[*TypeVar]string{}
 	ds := map[string]bool{}
-	ctx := signctx{varc: 0, varm: varm, definingStructs: ds, deepSign: true}
+	ctx := signctx{varc: 0, varm: varm, definingStructs: ds}
 	return sign(t, &ctx, 0)
 }
 
-// technical signature that does not differentiate between
-// structure or function types. Used to ientify actual generated
-// functions
+// TODO: Remove
 func (t Type) TSignature() string {
-	varm := map[*TypeVar]string{}
-	ds := map[string]bool{}
-	ctx := signctx{varc: 0, varm: varm, definingStructs: ds, deepSign: false}
-	return sign(t, &ctx, 0)
+	return t.Signature()
 }

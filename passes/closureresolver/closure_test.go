@@ -63,9 +63,9 @@ func TestResolveFunctionDef(tes *testing.T) {
 			Fcall(Id("a"), IConst(1)),
 		),
 		want: map[string]map[string]Type{
-			"a%%1%%(int)=>int":      map[string]Type{},
-			"b%%1%%(int,<fn>)=>int": map[string]Type{},
-			"s%%1%%(int)=>int":      map[string]Type{},
+			"a%%1%%(int)=>int":            map[string]Type{},
+			"b%%1%%(int,(int)=>int)=>int": map[string]Type{},
+			"s%%1%%(int)=>int":            map[string]Type{},
 		},
 	}, {
 		name: "resolves closures for sequential functions",
@@ -74,8 +74,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 			Fcall(Fcall(Fcall(Id("a"), IConst(1)), IConst(2)), IConst(3)),
 		),
 		want: map[string]map[string]Type{
-			"a%%1%%(int)=><fn>": map[string]Type{},
-			"<anon1>%%1%%(int)=><fn>": map[string]Type{
+			"a%%1%%(int)=>(int)=>(int)=>int": map[string]Type{},
+			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
 				"x": types.IntP,
 			},
 			"<anon2>%%1%%(int)=>int": map[string]Type{

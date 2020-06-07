@@ -39,27 +39,3 @@ func TestType_Signature(t *testing.T) {
 		})
 	}
 }
-
-func TestType_TSignature(t *testing.T) {
-	tests := []struct {
-		name string
-		typ  Type
-		want string
-	}{{
-		name: "support recursive structures",
-		typ:  recursiveStruct("data", "b", SField{"a", IntP}),
-		want: "data{a:int,b:<st>}",
-	}, {
-		name: "support functions",
-		typ:  MakeFunction(IntP, MakeFunction(IntP, IntP), MakeFunction(RealP)),
-		want: "(int,<fn>)=><fn>",
-	}}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tr := tt.typ
-			if got := tr.TSignature(); got != tt.want {
-				t.Errorf("Type.TSignature() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
