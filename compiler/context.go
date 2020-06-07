@@ -128,13 +128,18 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	closures = 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
 			}
-			c.increfClosure(res)
-			c.Block.NewStore(res, ptr)
+			fptr := c.Block.NewExtractElement(res, constant.NewInt(types.I32, 0))
+			cptr := c.Block.NewExtractElement(res, constant.NewInt(types.I32, 1))
+			c.increfStructure(cptr)
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			c.Block.NewStore(fptr, ptr)
+			closures++
+			ptr = c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			c.Block.NewStore(cptr, ptr)
 			closures++
 		}
 	}
@@ -179,10 +184,16 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 	closures := 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
-			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
-			r := c.Block.NewLoad(getType(clj.Type), ptr)
-			c.addId(clj.Name, r)
+			fptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			fun := c.Block.NewLoad(FunPType, fptr)
 			closures++
+			cptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			cls := c.Block.NewLoad(ClosurePType, cptr)
+			closures++
+			vec := c.Block.NewInsertElement(constant.NewUndef(FunType), fun, constant.NewInt(types.I32, 0))
+			vec = c.Block.NewInsertElement(vec, cls, constant.NewInt(types.I32, 1))
+
+			c.addId(clj.Name, vec)
 		}
 	}
 

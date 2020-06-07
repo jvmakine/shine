@@ -7,6 +7,7 @@ import (
 
 var (
 	ClosurePType = types.I8Ptr
+	FunPType     = types.I8Ptr
 	FunType      = types.NewVector(2, types.I8Ptr)
 	StruType     = types.I8Ptr
 
@@ -16,7 +17,14 @@ var (
 )
 
 func structureType(s *t.Structure) types.Type {
-	ps := make([]types.Type, len(s.Fields)+3)
+	cc := 0
+	for _, p := range s.Fields {
+		if p.Type.IsFunction() {
+			cc++
+		}
+	}
+
+	ps := make([]types.Type, len(s.Fields)+3+cc)
 	ps[0] = types.I32 // reference count
 	ps[1] = types.I16 // number of closures
 	ps[2] = types.I16 // number of structures
@@ -24,7 +32,9 @@ func structureType(s *t.Structure) types.Type {
 	closures := 0
 	for _, p := range s.Fields {
 		if p.Type.IsFunction() {
-			ps[closures+3] = getType(p.Type)
+			ps[closures+3] = FunPType
+			closures++
+			ps[closures+3] = ClosurePType
 			closures++
 		}
 	}

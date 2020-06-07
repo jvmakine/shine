@@ -13,9 +13,9 @@ void free_structure(void *cls) {
         uint16_t strucount = *(uint16_t*)(cptr + 6);
         int8_t** ptr = (int8_t**)(cptr + 8);
         while (clscount > 0) {
+            ptr++; // pass the function pointer
             free_structure(*ptr);
             ptr++;
-            ptr++; // pass the function pointer
             clscount--;
         }
         while (strucount > 0) {
