@@ -97,7 +97,7 @@ func compileConst(from *ast.Exp, ctx *context) cresult {
 
 func compileID(exp *ast.Exp, ctx *context) cresult {
 	name := exp.Id.Name
-	if (*ctx.functions)[name].Fun != nil {
+	if ctx.isFun(name) {
 		f := (*ctx.functions)[name]
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
 		clj := ctx.makeStructure(f.From.Closure)

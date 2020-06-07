@@ -83,6 +83,10 @@ func (c *context) addId(name string, val value.Value) (*context, error) {
 	return c, nil
 }
 
+func (c *context) isFun(name string) bool {
+	return (*c.functions)[name].From != nil
+}
+
 func (c *context) resolveFun(name string) function {
 	i := (*c.functions)[name]
 	if i.Fun == nil {
@@ -262,6 +266,13 @@ func (c *context) freeIfUnboundRef(res cresult) {
 	if res.ast != nil {
 		if res.ast.Type().IsFunction() && res.ast.Id == nil {
 			c.freeClosure(res.value)
+		} else if res.ast.Type().IsFunction() {
+			if c.isFun(res.ast.Id.Name) {
+				f := c.resolveFun(res.ast.Id.Name)
+				if f.From.HasClosure() {
+					c.freeClosure(res.value)
+				}
+			}
 		} else if res.ast.Type().IsStructure() {
 			c.freeStructure(res.value)
 		}
