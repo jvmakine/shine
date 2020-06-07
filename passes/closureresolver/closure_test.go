@@ -83,8 +83,22 @@ func TestResolveFunctionDef(tes *testing.T) {
 				"y": types.IntP,
 			},
 		},
-	},
-	}
+	}, {
+		name: "resolves structures as closures",
+		exp: Block(
+			Assgs{
+				"S": Struct(ast.StructField{"x", IntP}),
+				"a": Fcall(Id("S"), IConst(1)),
+				"f": Fdef(Fcall(Op("+"), Id("y"), Faccess(Id("a"), "x")), "y"),
+			},
+			Fcall(Id("f"), IConst(2)),
+		),
+		want: map[string]map[string]Type{
+			"f%%1%%(int)=>int": map[string]Type{
+				"a": types.MakeStructure("S", SField{"x", IntP}),
+			},
+		},
+	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
 			err := typeinference.Infer(tt.exp)

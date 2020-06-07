@@ -74,6 +74,8 @@ func CollectClosures(exp *ast.Exp) {
 				}
 			}
 			v.Def.Closure = &result
+		} else if v.FAccess != nil {
+			closureAt[v] = closureAt[v.FAccess.Exp]
 		}
 		return nil
 	})
