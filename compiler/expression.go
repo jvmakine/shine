@@ -279,7 +279,7 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	for k, c := range from.Assignments {
 		assigns[k] = c
 		deps[k] = map[string]bool{}
-		for _, i := range c.CollectIds() {
+		for _, i := range collectDeps(c, ctx) {
 			deps[k][i] = true
 		}
 	}
@@ -331,4 +331,28 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	}
 	ctx.Block = sub.Block
 	return res
+}
+
+func collectDeps(exp *ast.Exp, c *context) []string {
+	ids := map[string]bool{}
+	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
+		if v.Id != nil {
+			name := v.Id.Name
+			ids[name] = true
+			if v.Type().IsFunction() && c.isFun(name) {
+				f := c.resolveFun(name)
+				if f.From.HasClosure() {
+					for _, c := range f.From.Closure.Fields {
+						ids[c.Name] = true
+					}
+				}
+			}
+		}
+		return nil
+	})
+	result := []string{}
+	for k := range ids {
+		result = append(result, k)
+	}
+	return result
 }

@@ -153,9 +153,10 @@ func (b *Block) CheckValueCycles() error {
 
 func (exp *Exp) CollectIds() []string {
 	ids := map[string]bool{}
-	exp.Visit(func(v *Exp, _ *VisitContext) error {
+	exp.Visit(func(v *Exp, c *VisitContext) error {
 		if v.Id != nil {
-			ids[v.Id.Name] = true
+			name := v.Id.Name
+			ids[name] = true
 		}
 		return nil
 	})
