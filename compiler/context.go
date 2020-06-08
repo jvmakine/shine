@@ -23,24 +23,27 @@ type function struct {
 	Call value.Value
 }
 
-type context struct {
-	Module    *ir.Module
-	Func      *ir.Func
-	Block     *ir.Block
-	parent    *context
+type globalc struct {
 	functions *map[string]function
 	utils     *utils
-	ids       map[string]value.Value
+}
+
+type context struct {
+	Module *ir.Module
+	Func   *ir.Func
+	Block  *ir.Block
+	parent *context
+	global *globalc
+	ids    map[string]value.Value
 }
 
 func (c *context) subContext() *context {
 	return &context{
-		parent:    c,
-		Module:    c.Module,
-		Block:     c.Block,
-		Func:      c.Func,
-		utils:     c.utils,
-		functions: c.functions,
+		parent: c,
+		Module: c.Module,
+		Block:  c.Block,
+		Func:   c.Func,
+		global: c.global,
 	}
 }
 
@@ -54,12 +57,11 @@ func (c *context) newLabel() string {
 
 func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
 	return &context{
-		parent:    c,
-		Module:    c.Module,
-		Block:     block,
-		Func:      fun,
-		utils:     c.utils,
-		functions: c.functions,
+		parent: c,
+		Module: c.Module,
+		Block:  block,
+		Func:   fun,
+		global: c.global,
 	}
 }
 
@@ -84,11 +86,11 @@ func (c *context) addId(name string, val value.Value) (*context, error) {
 }
 
 func (c *context) isFun(name string) bool {
-	return (*c.functions)[name].From != nil
+	return (*c.global.functions)[name].From != nil
 }
 
 func (c *context) resolveFun(name string) function {
-	i := (*c.functions)[name]
+	i := (*c.global.functions)[name]
 	if i.Fun == nil {
 		panic(name + " is not a function")
 	}
@@ -223,21 +225,21 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 }
 
 func (c *context) freeStructure(fp value.Value) {
-	c.Block.NewCall(c.utils.freeStructure, fp)
+	c.Block.NewCall(c.global.utils.freeStructure, fp)
 }
 
 func (c *context) freeClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.Block.NewCall(c.utils.freeStructure, cptr)
+	c.Block.NewCall(c.global.utils.freeStructure, cptr)
 }
 
 func (c *context) increfStructure(fp value.Value) {
-	c.Block.NewCall(c.utils.incRef, fp)
+	c.Block.NewCall(c.global.utils.incRef, fp)
 }
 
 func (c *context) increfClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.Block.NewCall(c.utils.incRef, cptr)
+	c.Block.NewCall(c.global.utils.incRef, cptr)
 }
 
 func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Value {
@@ -250,7 +252,7 @@ func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Va
 
 func (c *context) ret(v cresult) {
 	block := c.Block
-	if v.ast.Type().IsFunction() && v.ast.Id != nil && (*c.functions)[v.ast.Id.Name].Fun == nil {
+	if v.ast.Type().IsFunction() && v.ast.Id != nil && (*c.global.functions)[v.ast.Id.Name].Fun == nil {
 		c.increfClosure(v.value)
 	} else if v.ast.Type().IsStructure() {
 		c.increfStructure(v.value)
@@ -259,7 +261,7 @@ func (c *context) ret(v cresult) {
 }
 
 func (c *context) malloc(size value.Value) value.Value {
-	return c.Block.NewCall(c.utils.malloc, size)
+	return c.Block.NewCall(c.global.utils.malloc, size)
 }
 
 func (c *context) freeIfUnboundRef(res cresult) {

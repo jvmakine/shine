@@ -98,7 +98,7 @@ func compileConst(from *ast.Exp, ctx *context) cresult {
 func compileID(exp *ast.Exp, ctx *context) cresult {
 	name := exp.Id.Name
 	if ctx.isFun(name) {
-		f := (*ctx.functions)[name]
+		f := (*ctx.global.functions)[name]
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
 		clj := ctx.makeStructure(f.From.Closure)
 		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
@@ -239,8 +239,8 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 
 		if from.Function.Id != nil {
 			name := from.Function.Id.Name
-			if (*ctx.functions)[name].Fun != nil {
-				f := (*ctx.functions)[name]
+			if (*ctx.global.functions)[name].Fun != nil {
+				f := (*ctx.global.functions)[name]
 				vps := make([]value.Value, len(params))
 				for i, p := range params {
 					vps[i] = p.value

@@ -7,7 +7,7 @@ import (
 )
 
 func makeFDefs(fcat *callresolver.FCat, ctx *context) {
-	ctx.functions = &map[string]function{}
+	ctx.global.functions = &map[string]function{}
 	for name, fun := range *fcat {
 		if fun.Def != nil {
 			def := fun.Def
@@ -21,7 +21,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 			compiled := ctx.Module.NewFunc(name, rtype, params...)
 			compiled.Linkage = enum.LinkageInternal
 
-			(*ctx.functions)[name] = function{def, compiled, compiled}
+			(*ctx.global.functions)[name] = function{def, compiled, compiled}
 		} else if fun.Struct != nil {
 			stru := fun.Struct
 			params := []*ir.Param{}
@@ -33,7 +33,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 			compiled := ctx.Module.NewFunc(name, StruType, params...)
 			compiled.Linkage = enum.LinkageInternal
 
-			(*ctx.functions)[name] = function{nil, compiled, compiled}
+			(*ctx.global.functions)[name] = function{nil, compiled, compiled}
 		}
 	}
 }
