@@ -17,6 +17,7 @@ type utils struct {
 	printInt      *ir.Func
 	printReal     *ir.Func
 	printBool     *ir.Func
+	printString   *ir.Func
 }
 
 func makeUtils(m *ir.Module) *utils {
@@ -27,6 +28,7 @@ func makeUtils(m *ir.Module) *utils {
 		printInt:      m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
 		printReal:     m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
 		printBool:     m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
+		printString:   m.NewFunc("print_string", types.Void, ir.NewParam("p", StringType)),
 	}
 }
 
@@ -48,6 +50,8 @@ func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 		ctx.Block.NewCall(utils.printReal, v.value)
 	} else if prg.Type().AsPrimitive() == t.Bool {
 		ctx.Block.NewCall(utils.printBool, v.value)
+	} else if prg.Type().AsPrimitive() == t.String {
+		ctx.Block.NewCall(utils.printString, v.value)
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
 	return module

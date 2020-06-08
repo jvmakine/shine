@@ -286,7 +286,10 @@ func (c *context) makeStringRef(str string) value.Value {
 	}
 	mod := c.global.Module
 	name := "const_string_" + strconv.Itoa(len(c.global.strings))
-	def := mod.NewGlobalDef(name, constant.NewCharArrayFromString(str))
+	array := constant.NewCharArrayFromString(str)
+	array.X = append(array.X, 0)
+	array.Typ.Len++
+	def := mod.NewGlobalDef(name, array)
 	c.global.strings[str] = def
 	return def
 }

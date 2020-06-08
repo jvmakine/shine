@@ -16,3 +16,8 @@ void print_bool(int8_t b) {
        printf("false\n");
     }
 }
+
+void print_string(int8_t *b) {
+    char *cptr = (char*)b;
+    printf("%s\n", cptr);
+}
