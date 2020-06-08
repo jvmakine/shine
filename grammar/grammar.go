@@ -303,8 +303,10 @@ func convPVal(from *PValue) *ast.Exp {
 			Const: &ast.Const{Bool: &value},
 		}
 	} else if from.String != nil {
+		str := *from.String
+		str = str[1:(len(str) - 1)]
 		return &ast.Exp{
-			Const: &ast.Const{String: from.String},
+			Const: &ast.Const{String: &str},
 		}
 	} else if from.Sub != nil {
 		return convExp(from.Sub)
