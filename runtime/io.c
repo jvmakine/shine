@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include "typedef.h"
 
 void print_int(long i) {
     printf("%ld\n", i);
@@ -17,9 +18,6 @@ void print_bool(int8_t b) {
     }
 }
 
-void print_string(void *b) {
-    char *cptr = (char*)b;
-    // TODO: do not assume 16 byte pointers
-    char **pptr = (char**)(cptr + 16);
-    printf("%s\n", *pptr);
+void print_string(struct String *b) {
+    printf("%s\n", b->base);
 }
