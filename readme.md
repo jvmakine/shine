@@ -44,20 +44,26 @@ The language supports full type inference. Explicitly declaring the types is com
 
 The primitive types supported are
 
-`int`: integer values supporting arithmetic operations
+integer values supporting arithmetic operations
 ```
 a: int = 1 + 2
 ```
 
-`real`: real numbers supporting arithmetic operations
+real numbers supporting arithmetic operations
 ```
 a: real = 1.0 + 2.0
 ```
 
-`bool` boolean values that can be used as conditions in if expressions. Supports and and or operations
+boolean values that can be used as conditions in if expressions. Supports and and or operations
 ```
 a: bool = true || false
 if (a) 1 else 2
+```
+
+strings can be used as output values
+```
+a: string = "Hello world!"
+a
 ```
 
 #### Functions
