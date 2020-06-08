@@ -91,6 +91,10 @@ func compileConst(from *ast.Exp, ctx *context) cresult {
 		return makeCR(from, constant.NewBool(*from.Const.Bool))
 	} else if from.Const.Real != nil {
 		return makeCR(from, constant.NewFloat(RealType, *from.Const.Real))
+	} else if from.Const.String != nil {
+		sref := ctx.makeStringRef(*from.Const.String)
+		bc := ctx.Block.NewBitCast(sref, StringType)
+		return makeCR(from, bc)
 	}
 	panic("invalid constant at compilation")
 }
@@ -98,7 +102,7 @@ func compileConst(from *ast.Exp, ctx *context) cresult {
 func compileID(exp *ast.Exp, ctx *context) cresult {
 	name := exp.Id.Name
 	if ctx.isFun(name) {
-		f := (*ctx.global.functions)[name]
+		f := ctx.global.functions[name]
 		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
 		clj := ctx.makeStructure(f.From.Closure)
 		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
@@ -239,8 +243,8 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 
 		if from.Function.Id != nil {
 			name := from.Function.Id.Name
-			if (*ctx.global.functions)[name].Fun != nil {
-				f := (*ctx.global.functions)[name]
+			if ctx.global.functions[name].Fun != nil {
+				f := ctx.global.functions[name]
 				vps := make([]value.Value, len(params))
 				for i, p := range params {
 					vps[i] = p.value

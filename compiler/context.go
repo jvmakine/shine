@@ -24,7 +24,8 @@ type function struct {
 }
 
 type globalc struct {
-	functions *map[string]function
+	functions map[string]function
+	strings   map[string]value.Value
 	utils     *utils
 	Module    *ir.Module
 }
@@ -84,11 +85,11 @@ func (c *context) addId(name string, val value.Value) (*context, error) {
 }
 
 func (c *context) isFun(name string) bool {
-	return (*c.global.functions)[name].From != nil
+	return c.global.functions[name].From != nil
 }
 
 func (c *context) resolveFun(name string) function {
-	i := (*c.global.functions)[name]
+	i := c.global.functions[name]
 	if i.Fun == nil {
 		panic(name + " is not a function")
 	}
@@ -250,7 +251,7 @@ func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Va
 
 func (c *context) ret(v cresult) {
 	block := c.Block
-	if v.ast.Type().IsFunction() && v.ast.Id != nil && (*c.global.functions)[v.ast.Id.Name].Fun == nil {
+	if v.ast.Type().IsFunction() && v.ast.Id != nil && c.global.functions[v.ast.Id.Name].Fun == nil {
 		c.increfClosure(v.value)
 	} else if v.ast.Type().IsStructure() {
 		c.increfStructure(v.value)
@@ -277,4 +278,15 @@ func (c *context) freeIfUnboundRef(res cresult) {
 			c.freeStructure(res.value)
 		}
 	}
+}
+
+func (c *context) makeStringRef(str string) value.Value {
+	if c.global.strings[str] != nil {
+		return c.global.strings[str]
+	}
+	mod := c.global.Module
+	name := "const_string_" + strconv.Itoa(len(c.global.strings))
+	def := mod.NewGlobalDef(name, constant.NewCharArrayFromString(str))
+	c.global.strings[str] = def
+	return def
 }

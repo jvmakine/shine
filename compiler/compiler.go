@@ -7,6 +7,7 @@ import (
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/types"
+	"github.com/llir/llvm/ir/value"
 )
 
 type utils struct {
@@ -34,7 +35,7 @@ func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	utils := makeUtils(module)
 
 	mainfun := module.NewFunc("main", types.I32)
-	global := globalc{Module: module, utils: utils}
+	global := globalc{Module: module, utils: utils, strings: map[string]value.Value{}}
 	ctx := context{Block: mainfun.NewBlock(""), Func: mainfun, global: &global}
 	makeFDefs(fcat, &ctx)
 	compileFDefs(fcat, &ctx)
