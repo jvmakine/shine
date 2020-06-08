@@ -86,8 +86,9 @@ type PValue struct {
 }
 
 type Assignment struct {
-	Name  *string     `Newline* @Ident "="`
-	Value *Expression `@@ Newline+`
+	Name  *string     `Newline* @Ident`
+	Type  *TypeDef    `(":" @@)?`
+	Value *Expression `"=" @@ Newline+`
 }
 
 type TypeFunc struct {

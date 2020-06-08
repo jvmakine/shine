@@ -259,6 +259,15 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Assgs{"a": t.Fdef(t.Id("x"), t.Param("x", types.MakeNamed("A")))},
 			t.Fcall(t.Id("a"), t.Id("b")),
 		),
+	}, {
+		name: "parse typed constants",
+		input: `a:int = 5
+				a
+			`,
+		want: t.Block(
+			t.Assgs{"a": t.TDecl(t.IConst(5), types.IntP)},
+			t.Id("a"),
+		),
 	},
 	}
 	for _, tt := range tests {

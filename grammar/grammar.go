@@ -61,6 +61,10 @@ func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
 	for _, a := range from.Assignments {
 		assigns[*a.Name] = convExp(a.Value)
+		if a.Type != nil {
+			t := convTypeDef(a.Type)
+			assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+		}
 	}
 	return &ast.Block{
 		Assignments: assigns,
