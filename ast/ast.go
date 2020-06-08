@@ -35,9 +35,10 @@ type Id struct {
 }
 
 type Const struct {
-	Int  *int64
-	Real *float64
-	Bool *bool
+	Int    *int64
+	Real   *float64
+	Bool   *bool
+	String *string
 
 	Type types.Type
 }

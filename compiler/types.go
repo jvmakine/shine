@@ -11,9 +11,10 @@ var (
 	FunType      = types.NewVector(2, types.I8Ptr)
 	StruType     = types.I8Ptr
 
-	IntType  = types.I64
-	BoolType = types.I1
-	RealType = types.Double
+	IntType    = types.I64
+	BoolType   = types.I1
+	RealType   = types.Double
+	StringType = types.I8Ptr
 )
 
 func structureType(s *t.Structure) types.Type {
@@ -79,6 +80,8 @@ func getType(typ t.Type) types.Type {
 			rtype = BoolType
 		case t.Real:
 			rtype = RealType
+		case t.String:
+			rtype = StringType
 		default:
 			panic("unsupported type at compilation")
 		}

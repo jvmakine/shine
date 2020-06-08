@@ -38,6 +38,10 @@ func (e *Exp) stringer(b *strings.Builder, indent int, options *Options) {
 			} else {
 				b.WriteString("false")
 			}
+		} else if e.Const.String != nil {
+			b.WriteString("\"")
+			b.WriteString(*e.Const.String)
+			b.WriteString("\"")
 		} else {
 			panic("invalid const")
 		}

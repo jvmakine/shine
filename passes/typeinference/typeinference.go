@@ -48,6 +48,8 @@ func typeConstant(constant *ast.Const) {
 		constant.Type = BoolP
 	} else if constant.Real != nil {
 		constant.Type = RealP
+	} else if constant.String != nil {
+		constant.Type = StringP
 	} else {
 		panic("invalid const")
 	}
