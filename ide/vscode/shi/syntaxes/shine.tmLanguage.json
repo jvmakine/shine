@@ -24,6 +24,9 @@
 			}, {
 				"name": "keyword.type.shine",
 				"match": "\\b(int|real|bool)\\b"
+			}, {
+				"name": "keyword.bool.shine",
+				"match": "\\b(true|false)\\b"
 			}]
 		}
 	},
