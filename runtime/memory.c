@@ -8,7 +8,7 @@ void free_structure(void *cls) {
     }
     char *cptr = cls;
     uint32_t refcount = *(uint32_t*)cptr;
-    if (refcount <= 1) {
+    if (refcount == 1) {
         uint16_t clscount = *(uint16_t*)(cptr + 4);
         uint16_t strucount = *(uint16_t*)(cptr + 6);
         int8_t** ptr = (int8_t**)(cptr + 8);
@@ -24,7 +24,7 @@ void free_structure(void *cls) {
             strucount--;
         }
         free(cls);
-    } else {
+    } else if (refcount > 1) {
         *((uint32_t*)cls) = refcount - 1;
     }
 }
@@ -32,6 +32,8 @@ void free_structure(void *cls) {
 void increase_refcount(void *ref) {
     if (ref != NULL) {
         uint32_t refcount = *((uint32_t*)ref);
-        *((uint32_t*)ref) = refcount + 1;
+        if (refcount >= 1) {
+            *((uint32_t*)ref) = refcount + 1;
+        }
     }
 }
