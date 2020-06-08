@@ -34,8 +34,8 @@ func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
 	utils := makeUtils(module)
 
 	mainfun := module.NewFunc("main", types.I32)
-	global := globalc{utils: utils}
-	ctx := context{Module: module, Block: mainfun.NewBlock(""), Func: mainfun, global: &global}
+	global := globalc{Module: module, utils: utils}
+	ctx := context{Block: mainfun.NewBlock(""), Func: mainfun, global: &global}
 	makeFDefs(fcat, &ctx)
 	compileFDefs(fcat, &ctx)
 

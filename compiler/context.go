@@ -26,10 +26,10 @@ type function struct {
 type globalc struct {
 	functions *map[string]function
 	utils     *utils
+	Module    *ir.Module
 }
 
 type context struct {
-	Module *ir.Module
 	Func   *ir.Func
 	Block  *ir.Block
 	parent *context
@@ -40,7 +40,6 @@ type context struct {
 func (c *context) subContext() *context {
 	return &context{
 		parent: c,
-		Module: c.Module,
 		Block:  c.Block,
 		Func:   c.Func,
 		global: c.global,
@@ -58,7 +57,6 @@ func (c *context) newLabel() string {
 func (c *context) funcContext(block *ir.Block, fun *ir.Func) *context {
 	return &context{
 		parent: c,
-		Module: c.Module,
 		Block:  block,
 		Func:   fun,
 		global: c.global,

@@ -18,7 +18,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 				params = append(params, param)
 			}
 			params = append(params, ir.NewParam("+cls", ClosurePType))
-			compiled := ctx.Module.NewFunc(name, rtype, params...)
+			compiled := ctx.global.Module.NewFunc(name, rtype, params...)
 			compiled.Linkage = enum.LinkageInternal
 
 			(*ctx.global.functions)[name] = function{def, compiled, compiled}
@@ -30,7 +30,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 				params = append(params, param)
 			}
 			params = append(params, ir.NewParam("+cls", ClosurePType))
-			compiled := ctx.Module.NewFunc(name, StruType, params...)
+			compiled := ctx.global.Module.NewFunc(name, StruType, params...)
 			compiled.Linkage = enum.LinkageInternal
 
 			(*ctx.global.functions)[name] = function{nil, compiled, compiled}
