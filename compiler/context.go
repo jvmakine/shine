@@ -123,7 +123,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	// structure count
 	structures := 0
 	for _, clj := range struc.Fields {
-		if clj.Type.IsStructure() {
+		if clj.Type.IsStructure() || clj.Type.IsString() {
 			structures++
 		}
 	}
@@ -151,7 +151,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 
 	structures = 0
 	for _, clj := range struc.Fields {
-		if clj.Type.IsStructure() {
+		if clj.Type.IsStructure() || clj.Type.IsString() {
 			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+structures+3)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
@@ -165,7 +165,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 
 	primitives := 0
 	for _, clj := range struc.Fields {
-		if !clj.Type.IsFunction() && !clj.Type.IsStructure() {
+		if !clj.Type.IsFunction() && !clj.Type.IsStructure() && !clj.Type.IsString() {
 			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+3+closures)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
@@ -204,7 +204,7 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 
 	structures := 0
 	for _, clj := range struc.Fields {
-		if clj.Type.IsStructure() {
+		if clj.Type.IsStructure() || clj.Type.IsString() {
 			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3+structures)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
@@ -214,7 +214,7 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 
 	primitives := 0
 	for _, clj := range struc.Fields {
-		if !clj.Type.IsFunction() && !clj.Type.IsStructure() {
+		if !clj.Type.IsFunction() && !clj.Type.IsStructure() && !clj.Type.IsString() {
 			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+closures+3)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
@@ -253,7 +253,7 @@ func (c *context) ret(v cresult) {
 	block := c.Block
 	if v.ast.Type().IsFunction() && v.ast.Id != nil && c.global.functions[v.ast.Id.Name].Fun == nil {
 		c.increfClosure(v.value)
-	} else if v.ast.Type().IsStructure() {
+	} else if v.ast.Type().IsStructure() || v.ast.Type().IsString() {
 		c.increfStructure(v.value)
 	}
 	block.NewRet(v.value)
@@ -274,22 +274,39 @@ func (c *context) freeIfUnboundRef(res cresult) {
 					c.freeClosure(res.value)
 				}
 			}
-		} else if res.ast.Type().IsStructure() {
+		} else if res.ast.Type().IsStructure() || res.ast.Type().IsString() {
 			c.freeStructure(res.value)
 		}
 	}
 }
 
-func (c *context) makeStringRef(str string) value.Value {
+func (c *context) makeStringRefRoot(str string) value.Value {
+	var rootVal value.Value
 	if c.global.strings[str] != nil {
-		return c.global.strings[str]
+		rootVal = c.global.strings[str]
+	} else {
+		mod := c.global.Module
+		name := "const_string_" + strconv.Itoa(len(c.global.strings))
+		array := constant.NewCharArrayFromString(str)
+		array.X = append(array.X, 0)
+		array.Typ.Len++
+		rootVal = mod.NewGlobalDef(name, array)
+		c.global.strings[str] = rootVal
 	}
-	mod := c.global.Module
-	name := "const_string_" + strconv.Itoa(len(c.global.strings))
-	array := constant.NewCharArrayFromString(str)
-	array.X = append(array.X, 0)
-	array.Typ.Len++
-	def := mod.NewGlobalDef(name, array)
-	c.global.strings[str] = def
-	return def
+	ptrt := types.NewPointer(StringType)
+	sp := c.Block.NewGetElementPtr(StringType, constant.NewNull(ptrt), constant.NewInt(types.I32, 1))
+	size := c.Block.NewPtrToInt(sp, types.I32)
+	mem := c.Block.NewBitCast(c.malloc(size), ptrt)
+
+	refcountp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
+	c.Block.NewStore(constant.NewInt(types.I32, 1), refcountp)
+	clsp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
+	c.Block.NewStore(constant.NewInt(types.I16, 0), clsp)
+	strup := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 2))
+	c.Block.NewStore(constant.NewInt(types.I16, 0), strup)
+	staticstrp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 4))
+	bc := c.Block.NewBitCast(rootVal, StringPType)
+	c.Block.NewStore(bc, staticstrp)
+
+	return mem
 }

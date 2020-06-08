@@ -45,7 +45,7 @@ func getStructFieldIndex(s *t.Structure, name string) int {
 	}
 	if !found {
 		for _, v := range s.Fields {
-			if v.Type.IsStructure() {
+			if v.Type.IsStructure() || v.Type.IsString() {
 				if v.Name == name {
 					found = true
 					break
@@ -92,8 +92,8 @@ func compileConst(from *ast.Exp, ctx *context) cresult {
 	} else if from.Const.Real != nil {
 		return makeCR(from, constant.NewFloat(RealType, *from.Const.Real))
 	} else if from.Const.String != nil {
-		sref := ctx.makeStringRef(*from.Const.String)
-		bc := ctx.Block.NewBitCast(sref, StringType)
+		sref := ctx.makeStringRefRoot(*from.Const.String)
+		bc := ctx.Block.NewBitCast(sref, StringPType)
 		return makeCR(from, bc)
 	}
 	panic("invalid constant at compilation")
@@ -219,6 +219,11 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			}
 			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
 		case "==":
+			if from.Params[0].Type().IsString() {
+				v := ctx.Block.NewCall(ctx.global.utils.stringsEqual, params[0].value, params[1].value)
+				r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
+				return makeCR(exp, r)
+			}
 			return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value))
 		case "!=":
 			return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value))
@@ -311,7 +316,7 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 					if c.Id != nil { // TODO: Optimise renames away
 						sub.increfClosure(v.value)
 					}
-				} else if c.Type().IsStructure() {
+				} else if c.Type().IsStructure() || c.Type().IsString() {
 					structids[k] = v.value
 					if c.Id != nil { // TODO: Optimise renames away
 						sub.increfStructure(v.value)

@@ -1,6 +1,5 @@
 SAME:string = "same"
-NOT_SAME:string = "not same"
 
-isSame = (x, y) => if (x == y) SAME else NOT_SAME
+isSame = (x, y) => if (x == y) SAME else "not same"
 
 isSame("a", "a")

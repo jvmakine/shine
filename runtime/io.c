@@ -17,7 +17,9 @@ void print_bool(int8_t b) {
     }
 }
 
-void print_string(int8_t *b) {
+void print_string(void *b) {
     char *cptr = (char*)b;
-    printf("%s\n", cptr);
+    // TODO: do not assume 16 byte pointers
+    char **pptr = (char**)(cptr + 16);
+    printf("%s\n", *pptr);
 }

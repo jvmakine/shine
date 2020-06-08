@@ -112,6 +112,10 @@ func (t Type) IsStructure() bool {
 	return t.Structure != nil
 }
 
+func (t Type) IsString() bool {
+	return t.IsPrimitive() && *(t.Primitive) == String
+}
+
 func (t Type) FunctTypes() []Type {
 	if !t.IsFunction() {
 		panic("can not get params from a non-function")

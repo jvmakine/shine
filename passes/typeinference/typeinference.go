@@ -25,7 +25,7 @@ func withVar(v Type, f func(t Type) *ast.Exp) *ast.Exp {
 }
 
 var global map[string]*ast.Exp = map[string]*ast.Exp{
-	"+":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
+	"+":  withVar(union(Int, Real, String), func(t Type) *ast.Exp { return fun(t, t, t) }),
 	"-":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
 	"*":  withVar(union(Int, Real), func(t Type) *ast.Exp { return fun(t, t, t) }),
 	"%":  fun(IntP, IntP, IntP),

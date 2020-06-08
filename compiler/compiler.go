@@ -14,10 +14,13 @@ type utils struct {
 	malloc        *ir.Func
 	freeStructure *ir.Func
 	incRef        *ir.Func
-	printInt      *ir.Func
-	printReal     *ir.Func
-	printBool     *ir.Func
-	printString   *ir.Func
+
+	printInt    *ir.Func
+	printReal   *ir.Func
+	printBool   *ir.Func
+	printString *ir.Func
+
+	stringsEqual *ir.Func
 }
 
 func makeUtils(m *ir.Module) *utils {
@@ -28,7 +31,8 @@ func makeUtils(m *ir.Module) *utils {
 		printInt:      m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
 		printReal:     m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
 		printBool:     m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
-		printString:   m.NewFunc("print_string", types.Void, ir.NewParam("p", StringType)),
+		printString:   m.NewFunc("print_string", types.Void, ir.NewParam("p", StringPType)),
+		stringsEqual:  m.NewFunc("strings_equal", types.I8, ir.NewParam("s1", StringPType), ir.NewParam("s2", StringPType)),
 	}
 }
 
