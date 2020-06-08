@@ -77,12 +77,13 @@ type FValue struct {
 }
 
 type PValue struct {
-	Int   *int64      `@Int`
-	Real  *float64    `| @Real`
-	Bool  *string     `| @("true" | "false")`
-	Id    *string     `| @Ident`
-	Block *Block      `| "{" Newline* @@ Newline* "}"`
-	Sub   *Expression `| "(" @@ ")"`
+	Int    *int64      `@Int`
+	Real   *float64    `| @Real`
+	Bool   *string     `| @("true" | "false")`
+	String *string     `| @String`
+	Id     *string     `| @Ident`
+	Block  *Block      `| "{" Newline* @@ Newline* "}"`
+	Sub    *Expression `| "(" @@ ")"`
 }
 
 type Assignment struct {

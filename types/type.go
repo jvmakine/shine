@@ -5,15 +5,17 @@ type Primitive = string
 type Named = string
 
 const (
-	Int  Primitive = "int"
-	Bool Primitive = "bool"
-	Real Primitive = "real"
+	Int    Primitive = "int"
+	Bool   Primitive = "bool"
+	Real   Primitive = "real"
+	String Primitive = "string"
 )
 
 var (
-	IntP  = MakePrimitive(Int)
-	BoolP = MakePrimitive(Bool)
-	RealP = MakePrimitive(Real)
+	IntP    = MakePrimitive(Int)
+	BoolP   = MakePrimitive(Bool)
+	RealP   = MakePrimitive(Real)
+	StringP = MakePrimitive(String)
 )
 
 type Function []Type

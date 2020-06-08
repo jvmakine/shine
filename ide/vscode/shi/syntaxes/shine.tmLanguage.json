@@ -4,7 +4,8 @@
 	"patterns": [
 		{ "include": "#keywords" },
 		{ "include": "#linecomments" },
-		{ "include": "#blockcomments" }
+		{ "include": "#blockcomments" },
+		{ "include": "#strings" }
 	],
 	"repository": {
 		"linecomments": {
@@ -17,13 +18,18 @@
 			"begin": "/\\*",
 			"end": "\\*/"
 		},
+		"strings": {
+			"name": "string.doublequote",
+			"begin": "\"",
+			"end": "\""
+		},
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.shine",
 				"match": "\\b(if|else)\\b"
 			}, {
 				"name": "keyword.type.shine",
-				"match": "\\b(int|real|bool)\\b"
+				"match": "\\b(int|real|bool|string)\\b"
 			}, {
 				"name": "keyword.bool.shine",
 				"match": "\\b(true|false)\\b"

@@ -26,11 +26,12 @@ func Parse(str string) (*Program, error) {
 		COp = ">=" | "<=" .
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
 		Typ = ":" .
-		PrimitiveType = "int" | "real" | "bool" .
+		PrimitiveType = "int" | "real" | "bool" | "string" .
 		Eq = "=" .
 		Ident = alpha { alpha | digit } .
 		Real = "0"…"9" { digit } "." "0"…"9" { digit } .
 		Int = "0" | "1"…"9" { digit } .
+		String = "\"" { "\u0000"…"\uffff"-"\n"-"\""} "\"" .
 		alpha = "a"…"z" | "A"…"Z" | "_" .
 		digit = "0"…"9" .
 	`)
@@ -145,6 +146,8 @@ func convTypeDef(t *TypeDef) types.Type {
 			return types.RealP
 		case "bool":
 			return types.BoolP
+		case "string":
+			return types.StringP
 		default:
 			panic("invalid type: " + t.Primitive)
 		}

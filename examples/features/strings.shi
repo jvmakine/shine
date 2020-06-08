@@ -1,0 +1,6 @@
+BIG:string = "big"
+SMALL:string = "small"
+
+print = (x) => if (x > 5) BIG else SMALL
+
+print(6)
