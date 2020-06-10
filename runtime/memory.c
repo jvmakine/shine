@@ -1,6 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "memory.h"
+
+void *heap_alloc(int size) {
+    void *result = malloc(size);
+    if (result == 0) {
+         // TODO: error message
+        exit(1);
+    }
+    return result;
+}
 
 void free_structure(void *cls) {
     if (cls == NULL) {

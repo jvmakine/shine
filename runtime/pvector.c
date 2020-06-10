@@ -1,15 +1,10 @@
 #include <stdlib.h>
 #include <string.h>
+#include "memory.h"
 #include "pvector.h"
 
-void OOM() {
-    // TODO: error message
-    exit(1);
-}
-
 PVHead* pvector_new() {
-    PVHead* head = malloc(sizeof(PVHead));
-    if (head == 0) { OOM(); }
+    PVHead* head = heap_alloc(sizeof(PVHead));
     head->refcount = 1;
     head->size = 0;
     head->node = 0;
@@ -17,22 +12,19 @@ PVHead* pvector_new() {
 }
 
 PVNode* pnode_new() {
-    PVNode* node = malloc(sizeof(PVNode));
-    if (node == 0) { OOM(); }
+    PVNode* node = heap_alloc(sizeof(PVNode));
     node->refcount = 1;
     return node;
 }
 
 PVLeaf_uint16 *pleaf_uint16_new() {
-    PVLeaf_uint16* leaf = malloc(sizeof(PVLeaf_uint16));
-    if (leaf == 0) { OOM(); }
+    PVLeaf_uint16* leaf = heap_alloc(sizeof(PVLeaf_uint16));
     leaf->refcount = 1;
     return leaf;
 }
 
 PVLeaf_ptr *pleaf_ptr_new() {
-    PVLeaf_ptr* leaf = malloc(sizeof(PVLeaf_ptr));
-    if (leaf == 0) { OOM(); }
+    PVLeaf_ptr* leaf = heap_alloc(sizeof(PVLeaf_ptr));
     leaf->refcount = 1;
     return leaf;
 }
@@ -58,36 +50,44 @@ PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
     void *node = 0;
     if (new_node) {
         node = pnode_new();
-        if (old_size) {
+        if (vector->node) {
             ((PVNode*)node)->children[0] = vector->node;
             ((PVNode*)vector->node)->refcount++;
         }
     } else {
-        node = malloc(sizeof(PVNode));
-        if (node == 0) { OOM(); }
+        node = heap_alloc(sizeof(PVNode));
         memcpy(node, vector->node, sizeof(PVNode));
         ((PVNode*)node)->refcount = 1;
     }
     head->node = (PVNode*)node;
     while (depth) {
-        uint32_t key = (old_size >> depth*BITS) & MASK;
-        uint32_t okey = ((old_size - 1) >> depth*BITS) & MASK;
+        uint8_t shift = depth*BITS;
+        uint32_t key = (old_size >> shift) & MASK;
+        uint32_t okey = ((old_size - 1) >> shift) & MASK;
         void *nn = 0;
         depth--;
         if (depth) {
+            uint8_t i = 0;
+            while(i < key) {
+                i++;
+                ((PVNode*)(((PVNode*)node)->children[i]))->refcount++;
+            }
             if (key != okey) {
                 nn = pnode_new();
             } else {
-                nn = (PVNode*)malloc(sizeof(PVNode));
-                if (nn == 0) { OOM(); }
+                nn = (PVNode*)heap_alloc(sizeof(PVNode));
                 memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVNode));
             }
         } else {
+            uint8_t i = 0;
+            while(i < key) {
+                i++;
+                ((PVLeaf_uint16*)(((PVNode*)node)->children[i]))->refcount++;
+            }
             if (key != okey) {
                 nn = pleaf_uint16_new();
             } else {
-                nn = (PVLeaf_uint16*)malloc(sizeof(PVLeaf_uint16));
-                if (nn == 0) { OOM(); }
+                nn = (PVLeaf_uint16*)heap_alloc(sizeof(PVLeaf_uint16));
                 memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVLeaf_uint16));
             }
         }
