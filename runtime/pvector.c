@@ -18,6 +18,66 @@ PVNode* pnode_new() {
     return node;
 }
 
+void pleaf_free(PVLeaf_header *leaf) {
+    // TODO: release references properly
+    if (leaf->refcount == 0) {
+        return;
+    }
+    if (leaf->refcount > 1) {
+        leaf->refcount--;
+        return;
+    }
+    free(leaf);
+}
+
+void pnode_free(PVNode *node, int depth) {
+    if (depth <= 0 || node == 0) {
+        return;
+    }
+    uint32_t rc = node->refcount;
+    if (rc == 0) {
+        return;
+    }
+    if (rc > 1) {
+        node->refcount = rc - 1;
+        return;
+    }
+    if (depth > 1) {
+        for(int i = 0; i < BRANCH; ++i) {
+            if (node->children[i] != 0) {
+                pnode_free(node->children[i], depth - 1);
+            }
+        }
+    } else {
+        for(int i = 0; i < BRANCH; ++i) {
+            if (node->children[i] != 0) {
+                pleaf_free(node->children[i]);
+            }
+        }
+    }
+    free(node);
+}
+
+void pvector_free(PVHead *vector) {
+    if (vector == 0 || vector->refcount == 0) {
+        return;
+    }
+
+    uint8_t depth = 0;
+    uint32_t i = vector->size;
+    while (i) {
+        depth++;
+        i = i >> BITS;
+    }
+
+    if (vector->refcount > 1) {
+        vector->refcount = vector->refcount - 1;
+        return;
+    }
+    pnode_free(vector->node, depth);
+    free(vector);
+}
+
 PVLeaf_header *pleaf_header_new(uint8_t element_size) {
     PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
     leaf->refcount = 1;
@@ -72,6 +132,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             } else {
                 nn = (PVNode*)heap_malloc(sizeof(PVNode));
                 memcpy(nn, children[key], sizeof(PVNode));
+                ((PVNode*)nn)->refcount = 1;
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
@@ -82,6 +143,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             } else {
                 nn = (PVLeaf_header*)heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS));
                 memcpy(nn, children[key], sizeof(PVLeaf_header) + (element_size << BITS));
+                ((PVLeaf_header*)nn)->refcount = 1;
             }
         }
         children[key] = nn;

@@ -5,11 +5,13 @@
 void test_append_increases_length() ;
 void test_append_adds_elements();
 void test_append_branches();
+void test_pvector_performance();
 
 int main() {
     test_append_increases_length();
     test_append_adds_elements();
     test_append_branches();
+    test_pvector_performance();
 }
 
 void test_append_increases_length() {
@@ -60,4 +62,23 @@ void test_append_branches() {
         exit(1);
     }
      printf("OK\n");
+}
+
+void test_pvector_performance() {
+    printf("test_pvector_performance: ");
+    PVHead *head = pvector_new();
+    for (int i = 0; i < 1000000; ++i) {
+        PVHead *updated = pvector_append_uint16(head, i);
+        pvector_free(head);
+        head = updated;
+    }
+    for (int i = 0; i < 1000000; ++i) {
+        uint16_t val = pvector_get_uint16(head, i);
+        uint16_t exp = i;
+        if (val != exp) {
+            printf("expected vector(%d) == %d. Got %d\n", i, exp, val);
+            exit(1);
+        }
+    }
+    printf("OK\n");
 }

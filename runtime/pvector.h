@@ -24,3 +24,4 @@ uint32_t pvector_length(PVHead *vector);
 
 PVHead* pvector_append_uint16(PVHead *vector, uint16_t value);
 uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index);
+void pvector_free(PVHead *vector);
