@@ -15,15 +15,9 @@ typedef struct PVNode {
     void* children[BRANCH]; 
 } PVNode;
 
-typedef struct PVLeaf_uint16 {
+typedef struct PVLeaf_header {
     uint32_t refcount;
-    uint16_t values[BRANCH];
-} PVLeaf_uint16;
-
-typedef struct PVLeaf_ptr {
-    uint32_t refcount;
-    void* values[BRANCH];
-} PVLeaf_ptr;
+} PVLeaf_header;
 
 PVHead* pvector_new();
 uint32_t pvector_length(PVHead *vector);

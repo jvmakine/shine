@@ -17,14 +17,8 @@ PVNode* pnode_new() {
     return node;
 }
 
-PVLeaf_uint16 *pleaf_uint16_new() {
-    PVLeaf_uint16* leaf = heap_alloc(sizeof(PVLeaf_uint16));
-    leaf->refcount = 1;
-    return leaf;
-}
-
-PVLeaf_ptr *pleaf_ptr_new() {
-    PVLeaf_ptr* leaf = heap_alloc(sizeof(PVLeaf_ptr));
+PVLeaf_header *pleaf_header_new(uint8_t element_size) {
+    PVLeaf_header* leaf = heap_alloc(sizeof(PVLeaf_header) + (element_size << BITS) );
     leaf->refcount = 1;
     return leaf;
 }
@@ -33,7 +27,7 @@ uint32_t pvector_length(PVHead *vector) {
     return vector->size;
 }
 
-PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
+PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval) {
     uint32_t old_size = vector->size;
     uint32_t new_size = old_size + 1;
     char new_node = 0;
@@ -62,7 +56,7 @@ PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
     PVHead *head = pvector_new();
     head->node = (PVNode*)node;
     head->size = new_size;
-    
+
     while (depth) {
         uint8_t shift = depth*BITS;
         uint32_t key = (old_size >> shift) & MASK;
@@ -80,19 +74,19 @@ PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
-                ((PVLeaf_uint16*)(((PVNode*)node)->children[i]))->refcount++;
+                ((PVLeaf_header*)(((PVNode*)node)->children[i]))->refcount++;
             }
             if (key != okey) {
-                nn = pleaf_uint16_new();
+                nn = pleaf_header_new(element_size);
             } else {
-                nn = (PVLeaf_uint16*)heap_alloc(sizeof(PVLeaf_uint16));
-                memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVLeaf_uint16));
+                nn = (PVLeaf_header*)heap_alloc(sizeof(PVLeaf_header) + (element_size << BITS));
+                memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVLeaf_header) + (element_size << BITS));
             }
         }
         ((PVNode*)node)->children[key] = nn;
         node = nn;
     }
-    ((PVLeaf_uint16*)node)->values[old_size & MASK] = value;
+    *retval = ((PVLeaf_header*)node) + 1;
     return head;
 }
 
@@ -109,5 +103,12 @@ uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index) {
         depth--;
         node = ((PVNode*)node)->children[key];
     }
-    return ((PVLeaf_uint16*)node)->values[index & MASK];
+    return ((uint16_t*)(((PVLeaf_header*)node)+1))[index & MASK];
+}
+
+PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
+    void *ptr;
+    PVHead *head = pvector_append_leaf(vector, sizeof(uint16_t), &ptr);
+    ((uint16_t*)ptr)[vector->size & MASK] = value;
+    return head;
 }
