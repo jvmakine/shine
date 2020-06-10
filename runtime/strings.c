@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "typedef.h"
+#include "strings.h"
 
 uint8_t strings_equal(struct String *s1, struct String *s2) {
     if (s1 == s2) {
