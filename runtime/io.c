@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "typedef.h"
+#include "strings.h"
 
 void print_int(long i) {
     printf("%ld\n", i);
