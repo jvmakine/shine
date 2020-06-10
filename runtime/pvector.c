@@ -90,7 +90,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
     return head;
 }
 
-uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index) {
+void *pvector_get_leaf(PVHead *vector, uint32_t index, uint8_t element_size) {
     uint8_t depth = 0;
     uint32_t i = vector->size;
     while (i) {
@@ -103,7 +103,12 @@ uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index) {
         depth--;
         node = ((PVNode*)node)->children[key];
     }
-    return ((uint16_t*)(((PVLeaf_header*)node)+1))[index & MASK];
+    return ((void*)(((PVLeaf_header*)node)+1));
+}
+
+uint16_t pvector_get_uint16(PVHead *vector, uint32_t index) {
+    uint16_t *ptr = pvector_get_leaf(vector, index, sizeof(uint16_t));
+    return ptr[index & MASK];
 }
 
 PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
