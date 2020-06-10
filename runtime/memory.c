@@ -6,7 +6,7 @@
 void *heap_alloc(int size) {
     void *result = malloc(size);
     if (result == 0) {
-         // TODO: error message
+        fprintf(stderr, "malloc failed");
         exit(1);
     }
     return result;

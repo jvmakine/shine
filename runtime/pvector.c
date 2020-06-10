@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "memory.h"
 #include "pvector.h"
 
@@ -93,6 +94,10 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
 void *pvector_get_leaf(PVHead *vector, uint32_t index, uint8_t element_size) {
     uint8_t depth = 0;
     uint32_t i = vector->size;
+    if (index >= i) {
+        fprintf(stderr, "pvector index out of bounds: got %d, size %d", index, i);
+        exit(1);
+    }
     while (i) {
         depth++;
         i = i >> BITS;
@@ -112,8 +117,8 @@ uint16_t pvector_get_uint16(PVHead *vector, uint32_t index) {
 }
 
 PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
-    void *ptr;
-    PVHead *head = pvector_append_leaf(vector, sizeof(uint16_t), &ptr);
-    ((uint16_t*)ptr)[vector->size & MASK] = value;
+    uint16_t *ptr;
+    PVHead *head = pvector_append_leaf(vector, sizeof(uint16_t), (void*)&ptr);
+    ptr[vector->size & MASK] = value;
     return head;
 }
