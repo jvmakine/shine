@@ -186,3 +186,14 @@ PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
     ptr[vector->size & MASK] = value;
     return head;
 }
+
+PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
+    uint32_t lenb = pvector_length(b);
+    PVHead *n = a;
+    for(uint32_t i = 0; i < lenb; ++i) {
+        PVHead *u = pvector_append_uint16(n, pvector_get_uint16(b, i));
+        pvector_free(n);
+        n = u;
+    }
+    return n;
+}
