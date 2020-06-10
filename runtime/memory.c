@@ -3,10 +3,19 @@
 #include <stdint.h>
 #include "memory.h"
 
-void *heap_alloc(int size) {
+void *heap_malloc(int size) {
     void *result = malloc(size);
     if (result == 0) {
         fprintf(stderr, "malloc failed");
+        exit(1);
+    }
+    return result;
+}
+
+void *heap_calloc(int count, int size) {
+    void *result = calloc(count, size);
+    if (result == 0) {
+        fprintf(stderr, "calloc failed");
         exit(1);
     }
     return result;

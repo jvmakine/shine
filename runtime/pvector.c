@@ -5,7 +5,7 @@
 #include "pvector.h"
 
 PVHead* pvector_new() {
-    PVHead* head = heap_alloc(sizeof(PVHead));
+    PVHead* head = heap_calloc(1, sizeof(PVHead));
     head->refcount = 1;
     head->size = 0;
     head->node = 0;
@@ -13,13 +13,13 @@ PVHead* pvector_new() {
 }
 
 PVNode* pnode_new() {
-    PVNode* node = heap_alloc(sizeof(PVNode));
+    PVNode* node = heap_calloc(1, sizeof(PVNode));
     node->refcount = 1;
     return node;
 }
 
 PVLeaf_header *pleaf_header_new(uint8_t element_size) {
-    PVLeaf_header* leaf = heap_alloc(sizeof(PVLeaf_header) + (element_size << BITS) );
+    PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
     leaf->refcount = 1;
     return leaf;
 }
@@ -49,7 +49,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             ((PVNode*)vector->node)->refcount++;
         }
     } else {
-        node = heap_alloc(sizeof(PVNode));
+        node = heap_calloc(1,sizeof(PVNode));
         memcpy(node, vector->node, sizeof(PVNode));
         ((PVNode*)node)->refcount = 1;
     }
@@ -61,30 +61,30 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
     while (depth) {
         uint8_t shift = depth*BITS;
         uint32_t key = (old_size >> shift) & MASK;
-        uint32_t okey = ((old_size - 1) >> shift) & MASK;
         void *nn = 0;
+        void** children = ((PVNode*)node)->children;
         if (--depth) {
             for(uint8_t i = 0; i < key; i++) {
-                ((PVNode*)(((PVNode*)node)->children[i]))->refcount++;
+                ((PVNode*)children[i])->refcount++;
             }
-            if (key != okey) {
+            if (children[key] == 0) {
                 nn = pnode_new();
             } else {
-                nn = (PVNode*)heap_alloc(sizeof(PVNode));
-                memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVNode));
+                nn = (PVNode*)heap_malloc(sizeof(PVNode));
+                memcpy(nn, children[key], sizeof(PVNode));
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
-                ((PVLeaf_header*)(((PVNode*)node)->children[i]))->refcount++;
+                ((PVLeaf_header*)(children[i]))->refcount++;
             }
-            if (key != okey) {
+            if (children[key] == 0) {
                 nn = pleaf_header_new(element_size);
             } else {
-                nn = (PVLeaf_header*)heap_alloc(sizeof(PVLeaf_header) + (element_size << BITS));
-                memcpy(nn, ((PVNode*)node)->children[key], sizeof(PVLeaf_header) + (element_size << BITS));
+                nn = (PVLeaf_header*)heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS));
+                memcpy(nn, children[key], sizeof(PVLeaf_header) + (element_size << BITS));
             }
         }
-        ((PVNode*)node)->children[key] = nn;
+        children[key] = nn;
         node = nn;
     }
     *retval = ((PVLeaf_header*)node) + 1;
