@@ -42,15 +42,11 @@ void pnode_free(PVNode *node, int depth) {
         node->refcount = rc - 1;
         return;
     }
-    if (depth > 1) {
-        for(int i = 0; i < BRANCH; ++i) {
-            if (node->children[i] != 0) {
+    for(int i = 0; i < BRANCH; ++i) {
+        if (node->children[i] != 0) {
+            if (depth > 1) {
                 pnode_free(node->children[i], depth - 1);
-            }
-        }
-    } else {
-        for(int i = 0; i < BRANCH; ++i) {
-            if (node->children[i] != 0) {
+            } else {
                 pleaf_free(node->children[i]);
             }
         }
@@ -58,18 +54,21 @@ void pnode_free(PVNode *node, int depth) {
     free(node);
 }
 
-void pvector_free(PVHead *vector) {
-    if (vector == 0 || vector->refcount == 0) {
-        return;
-    }
-
+uint8_t pvector_depth(PVHead *vector) {
     uint8_t depth = 0;
     uint32_t i = vector->size;
     while (i) {
         depth++;
         i = i >> BITS;
     }
+    return depth;
+}
 
+void pvector_free(PVHead *vector) {
+    if (vector == 0 || vector->refcount == 0) {
+        return;
+    }
+    uint8_t depth = pvector_depth(vector);
     if (vector->refcount > 1) {
         vector->refcount = vector->refcount - 1;
         return;
@@ -86,6 +85,20 @@ PVLeaf_header *pleaf_header_new(uint8_t element_size) {
 
 uint32_t pvector_length(PVHead *vector) {
     return vector->size;
+}
+
+PVNode *copy_pnode(PVNode* node) {
+    PVNode* res = heap_calloc(1,sizeof(PVNode));
+    memcpy(res, node, sizeof(PVNode));
+    res->refcount = 1;
+    return res;
+}
+
+PVLeaf_header *copy_pleaf(PVLeaf_header *leaf, uint8_t element_size) {
+    PVLeaf_header *res = (PVLeaf_header*)heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS));
+    memcpy(res, leaf, sizeof(PVLeaf_header) + (element_size << BITS));
+    res->refcount = 1;
+    return res;
 }
 
 PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval) {
@@ -109,9 +122,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             ((PVNode*)vector->node)->refcount++;
         }
     } else {
-        node = heap_calloc(1,sizeof(PVNode));
-        memcpy(node, vector->node, sizeof(PVNode));
-        ((PVNode*)node)->refcount = 1;
+        node = copy_pnode(vector->node);
     }
 
     PVHead *head = pvector_new();
@@ -130,9 +141,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             if (children[key] == 0) {
                 nn = pnode_new();
             } else {
-                nn = (PVNode*)heap_malloc(sizeof(PVNode));
-                memcpy(nn, children[key], sizeof(PVNode));
-                ((PVNode*)nn)->refcount = 1;
+                nn = copy_pnode(children[key]);
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
@@ -141,9 +150,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
             if (children[key] == 0) {
                 nn = pleaf_header_new(element_size);
             } else {
-                nn = (PVLeaf_header*)heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS));
-                memcpy(nn, children[key], sizeof(PVLeaf_header) + (element_size << BITS));
-                ((PVLeaf_header*)nn)->refcount = 1;
+                nn = copy_pleaf(children[key], element_size);
             }
         }
         children[key] = nn;
@@ -154,16 +161,11 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
 }
 
 void *pvector_get_leaf(PVHead *vector, uint32_t index, uint8_t element_size) {
-    uint8_t depth = 0;
-    uint32_t i = vector->size;
-    if (index >= i) {
-        fprintf(stderr, "pvector index out of bounds: got %d, size %d", index, i);
+    if (index >= vector->size) {
+        fprintf(stderr, "pvector index out of bounds: got %d, size %d\n", index, vector->size);
         exit(1);
     }
-    while (i) {
-        depth++;
-        i = i >> BITS;
-    }
+    uint8_t depth = pvector_depth(vector);
     void *node = vector->node;
     while (depth) {
         uint32_t key = (index >> depth*BITS) & MASK;

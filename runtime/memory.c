@@ -6,7 +6,7 @@
 void *heap_malloc(int size) {
     void *result = malloc(size);
     if (result == 0) {
-        fprintf(stderr, "malloc failed");
+        fprintf(stderr, "malloc failed\n");
         exit(1);
     }
     return result;
@@ -15,7 +15,7 @@ void *heap_malloc(int size) {
 void *heap_calloc(int count, int size) {
     void *result = calloc(count, size);
     if (result == 0) {
-        fprintf(stderr, "calloc failed");
+        fprintf(stderr, "calloc failed\n");
         exit(1);
     }
     return result;
