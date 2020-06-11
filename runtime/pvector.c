@@ -1,12 +1,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "memory.h"
 #include "pvector.h"
 
 PVHead* pvector_new() {
     PVHead* head = heap_calloc(1, sizeof(PVHead));
-    head->refcount = 1;
+    head->ref.count = 1;
+    head->ref.type = MEM_PVECTOR;
     head->size = 0;
     head->node = 0;
     return head;
@@ -65,12 +65,12 @@ uint8_t pvector_depth(PVHead *vector) {
 }
 
 void pvector_free(PVHead *vector) {
-    if (vector == 0 || vector->refcount == 0) {
+    if (vector == 0 || vector->ref.count == 0) {
         return;
     }
     uint8_t depth = pvector_depth(vector);
-    if (vector->refcount > 1) {
-        vector->refcount = vector->refcount - 1;
+    if (vector->ref.count > 1) {
+        vector->ref.count = vector->ref.count - 1;
         return;
     }
     pnode_free(vector->node, depth);

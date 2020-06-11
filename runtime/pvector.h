@@ -1,11 +1,12 @@
 #include <stdint.h>
+#include "memory.h"
 
 #define BITS 5
 #define BRANCH (1<<BITS)
 #define MASK (BRANCH-1)
 
 typedef struct PVHead {
-    uint32_t refcount;
+    RefCount ref;
     uint32_t size;
     void* node; 
 } PVHead;

@@ -79,7 +79,7 @@ func compileFAccess(from *ast.Exp, ctx *context) cresult {
 	typ := types.NewPointer(ctyp)
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
 	index := getStructFieldIndex(tstru.Structure, fa.Field)
-	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+3)))
+	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+4)))
 	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
 	return makeCR(from, res)
 }

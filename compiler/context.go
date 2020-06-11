@@ -106,8 +106,12 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	size := c.Block.NewPtrToInt(sp, types.I32)
 	mem := c.Block.NewBitCast(c.malloc(size), ctypp)
 
+	// reference type
+	reftp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
+	c.Block.NewStore(constant.NewInt(types.I8, 2), reftp)
+
 	// reference count
-	refcp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
+	refcp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
 	c.Block.NewStore(constant.NewInt(types.I32, 1), refcp)
 
 	// closure count
@@ -117,7 +121,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 			closures++
 		}
 	}
-	clscp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
+	clscp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 2))
 	c.Block.NewStore(constant.NewInt(types.I16, int64(closures)), clscp)
 
 	// structure count
@@ -127,7 +131,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 			structures++
 		}
 	}
-	scp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 2))
+	scp := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 3))
 	c.Block.NewStore(constant.NewInt(types.I16, int64(structures)), scp)
 
 	closures = 0
@@ -140,10 +144,10 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 			fptr := c.Block.NewExtractElement(res, constant.NewInt(types.I32, 0))
 			cptr := c.Block.NewExtractElement(res, constant.NewInt(types.I32, 1))
 			c.increfStructure(cptr)
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+4)))
 			c.Block.NewStore(fptr, ptr)
 			closures++
-			ptr = c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			ptr = c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+4)))
 			c.Block.NewStore(cptr, ptr)
 			closures++
 		}
@@ -152,7 +156,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	structures = 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsStructure() || clj.Type.IsString() {
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+structures+3)))
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+structures+4)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
@@ -166,7 +170,7 @@ func (c *context) makeStructure(struc *Structure) value.Value {
 	primitives := 0
 	for _, clj := range struc.Fields {
 		if !clj.Type.IsFunction() && !clj.Type.IsStructure() && !clj.Type.IsString() {
-			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+3+closures)))
+			ptr := c.Block.NewGetElementPtr(ctyp, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+4+closures)))
 			res, err := c.resolveId(clj.Name)
 			if err != nil {
 				panic(err)
@@ -189,10 +193,10 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 	closures := 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsFunction() {
-			fptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			fptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+4)))
 			fun := c.Block.NewLoad(FunPType, fptr)
 			closures++
-			cptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3)))
+			cptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+4)))
 			cls := c.Block.NewLoad(ClosurePType, cptr)
 			closures++
 			vec := c.Block.NewInsertElement(constant.NewUndef(FunType), fun, constant.NewInt(types.I32, 0))
@@ -205,7 +209,7 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 	structures := 0
 	for _, clj := range struc.Fields {
 		if clj.Type.IsStructure() || clj.Type.IsString() {
-			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+3+structures)))
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(closures+4+structures)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
 			structures++
@@ -215,7 +219,7 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 	primitives := 0
 	for _, clj := range struc.Fields {
 		if !clj.Type.IsFunction() && !clj.Type.IsStructure() && !clj.Type.IsString() {
-			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+closures+3)))
+			ptr := c.Block.NewGetElementPtr(ctyp, cptr, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(primitives+structures+closures+4)))
 			r := c.Block.NewLoad(getType(clj.Type), ptr)
 			c.addId(clj.Name, r)
 			primitives++
@@ -224,12 +228,12 @@ func (c *context) loadStructure(struc *Structure, ptr value.Value) {
 }
 
 func (c *context) freeStructure(fp value.Value) {
-	c.Block.NewCall(c.global.utils.freeStructure, fp)
+	c.Block.NewCall(c.global.utils.freeRc, fp)
 }
 
 func (c *context) freeClosure(fp value.Value) {
 	cptr := c.Block.NewExtractElement(fp, constant.NewInt(types.I32, 1))
-	c.Block.NewCall(c.global.utils.freeStructure, cptr)
+	c.Block.NewCall(c.global.utils.freeRc, cptr)
 }
 
 func (c *context) increfStructure(fp value.Value) {

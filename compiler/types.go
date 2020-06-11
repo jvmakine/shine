@@ -27,31 +27,32 @@ func structureType(s *t.Structure) types.Type {
 		}
 	}
 
-	ps := make([]types.Type, len(s.Fields)+3+cc)
-	ps[0] = types.I32 // reference count
-	ps[1] = types.I16 // number of closures
-	ps[2] = types.I16 // number of structures
+	ps := make([]types.Type, len(s.Fields)+4+cc)
+	ps[0] = types.I8  // reference type
+	ps[1] = types.I32 // reference count
+	ps[2] = types.I16 // number of closures
+	ps[3] = types.I16 // number of structures
 
 	closures := 0
 	for _, p := range s.Fields {
 		if p.Type.IsFunction() {
-			ps[closures+3] = FunPType
+			ps[closures+4] = FunPType
 			closures++
-			ps[closures+3] = ClosurePType
+			ps[closures+4] = ClosurePType
 			closures++
 		}
 	}
 	structures := 0
 	for _, p := range s.Fields {
 		if p.Type.IsStructure() {
-			ps[closures+3+structures] = getType(p.Type)
+			ps[closures+4+structures] = getType(p.Type)
 			structures++
 		}
 	}
 	primitives := 0
 	for _, p := range s.Fields {
 		if !p.Type.IsFunction() && !p.Type.IsStructure() {
-			ps[3+closures+structures+primitives] = getType(p.Type)
+			ps[4+closures+structures+primitives] = getType(p.Type)
 			primitives++
 		}
 	}
