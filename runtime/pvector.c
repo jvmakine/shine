@@ -80,6 +80,7 @@ void pvector_free(PVHead *vector) {
 PVLeaf_header *pleaf_header_new(uint8_t element_size) {
     PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
     leaf->refcount = 1;
+    memset((leaf + 1), 0, element_size << BITS );
     return leaf;
 }
 
@@ -196,4 +197,55 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
         n = u;
     }
     return n;
+}
+
+uint8_t pleaf_equals(PVLeaf_header *a, PVLeaf_header *b, uint8_t element_size) {
+    // TODO: Implement deep equals for pointers
+    if (a == b) {
+        return 1;
+    }
+    uint32_t len = BRANCH * element_size;
+    uint8_t* ptra = (uint8_t*)(a + 1);
+    uint8_t* ptrb = (uint8_t*)(b + 1);
+    for(uint16_t i = 0; i < len; ++i) {
+        if(ptra[i] != ptrb[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t element_size) {
+    if (a == b) {
+        return 1;
+    }
+    for(uint8_t i = 0; i < BRANCH; i++) {
+        if (a->children[i] == 0) {
+            return 1;
+        }
+        if (depth > 1) {
+            if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], depth - 1, element_size)) {
+                return 0;
+            }
+        } else {
+            if(!pleaf_equals((PVLeaf_header*)a->children[i], (PVLeaf_header*)b->children[i], element_size)) {
+                return 0;
+            }
+        }
+    }
+    return 1;
+}
+
+uint8_t pvector_equals(PVHead *a, PVHead *b, uint8_t element_size) {
+    if (a->size != b->size) {
+        return 0;
+    }
+    if (a == b) {
+        return 1;
+    }
+    if (a->size == 0 && b->size == 0) {
+        return 1;
+    }
+    uint32_t depth = pvector_depth(a);
+    return pnode_equals(a->node, b->node, depth, element_size);
 }

@@ -7,12 +7,14 @@ void test_append_adds_elements();
 void test_append_branches();
 void test_pvector_append_performance();
 void test_pvector_combine();
+void test_pvector_equality();
 
 int main() {
     test_append_increases_length();
     test_append_adds_elements();
     test_append_branches();
     test_pvector_combine();
+    test_pvector_equality();
     test_pvector_append_performance();
 }
 
@@ -81,6 +83,23 @@ void test_pvector_combine() {
     }
     if (pvector_get_uint16(res, 2) != 3) {
         printf("expected res(2) == 3. Got %d\n", pvector_get_uint16(res, 2));
+        exit(1);
+    }
+    printf("OK\n");
+}
+
+void test_pvector_equality() {
+    printf("test_pvector_equality: ");
+    PVHead *a = pvector_append_uint16(pvector_append_uint16(pvector_new(), 1), 2);
+    PVHead *b = pvector_append_uint16(pvector_append_uint16(pvector_new(), 1), 2);
+    if (!pvector_equals(a, b, sizeof(uint16_t))) {
+        printf("independent identical vectors were not equal\n");
+        exit(1);
+    }
+    PVHead *aa = pvector_append_uint16(a, 4);
+    PVHead *bb = pvector_append_uint16(b, 5);
+    if (pvector_equals(aa, bb, sizeof(uint16_t))) {
+        printf("different vectors were equal\n");
         exit(1);
     }
     printf("OK\n");
