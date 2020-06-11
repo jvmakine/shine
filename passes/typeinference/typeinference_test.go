@@ -50,7 +50,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail when adding booleans together",
 		exp:  Fcall(Op("+"), BConst(true), BConst(false)),
 		typ:  "",
-		err:  errors.New("can not unify bool with V1[int|real]"),
+		err:  errors.New("can not unify bool with V1[int|real|string]"),
 	}, {
 		name: "infer recursive functions",
 		exp: Block(
@@ -236,7 +236,7 @@ func TestInfer(tes *testing.T) {
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "",
-		err: errors.New("can not unify bool with V1[int|real]"),
+		err: errors.New("can not unify bool with V1[int|real|string]"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: Block(
