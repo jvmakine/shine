@@ -75,11 +75,11 @@ func compileFAccess(from *ast.Exp, ctx *context) cresult {
 	fa := from.FAccess
 	cstru := compileExp(fa.Exp, ctx, false)
 	tstru := fa.Exp.Type()
-	ctyp := structureType(tstru.Structure)
+	ctyp := structureType(tstru.Structure, false)
 	typ := types.NewPointer(ctyp)
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
 	index := getStructFieldIndex(tstru.Structure, fa.Field)
-	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+4)))
+	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+3)))
 	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
 	return makeCR(from, res)
 }
@@ -103,11 +103,8 @@ func compileID(exp *ast.Exp, ctx *context) cresult {
 	name := exp.Id.Name
 	if ctx.isFun(name) {
 		f := ctx.global.functions[name]
-		nv := ctx.Block.NewBitCast(f.Fun, types.I8Ptr)
-		clj := ctx.makeStructure(f.From.Closure)
-		vec := ctx.Block.NewInsertElement(constant.NewUndef(FunType), nv, constant.NewInt(types.I32, 0))
-		vec = ctx.Block.NewInsertElement(vec, clj, constant.NewInt(types.I32, 1))
-		return makeCR(exp, vec)
+		clj := ctx.makeStructure(f.From.Closure, f.Fun)
+		return makeCR(exp, clj)
 	}
 	id, err := ctx.resolveId(name)
 	if err != nil {
@@ -314,12 +311,12 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 				if c.Type().IsFunction() {
 					closureids[k] = v.value
 					if c.Id != nil { // TODO: Optimise renames away
-						sub.increfClosure(v.value)
+						sub.incRef(v.value)
 					}
 				} else if c.Type().IsStructure() || c.Type().IsString() {
 					structids[k] = v.value
 					if c.Id != nil { // TODO: Optimise renames away
-						sub.increfStructure(v.value)
+						sub.incRef(v.value)
 					}
 				}
 				delete(assigns, k)
@@ -330,12 +327,12 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	res := compileExp(from.Value, sub, funcRoot)
 	for id, v := range closureids {
 		if from.Value.Id == nil || from.Value.Id.Name != id {
-			sub.freeClosure(v)
+			sub.freeRef(v)
 		}
 	}
 	for id, v := range structids {
 		if from.Value.Id == nil || from.Value.Id.Name != id {
-			sub.freeStructure(v)
+			sub.freeRef(v)
 		}
 	}
 	ctx.Block = sub.Block

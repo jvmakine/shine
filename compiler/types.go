@@ -6,53 +6,46 @@ import (
 )
 
 var (
+	FunType      = types.I8Ptr
 	ClosurePType = types.I8Ptr
-	FunPType     = types.I8Ptr
-	FunType      = types.NewVector(2, types.I8Ptr)
 	StruType     = types.I8Ptr
 
-	StringPType = types.I8Ptr
-	StringType  = types.NewStruct(types.I32, types.I16, types.I16, types.I8Ptr, types.I8Ptr)
+	StringPType     = types.I8Ptr
+	StringType      = types.NewStruct(types.I32, types.I16, types.I16, types.I8Ptr, types.I8Ptr)
+	ClosureCallType = types.NewStruct(types.I8, types.I32, types.I8Ptr)
 
 	IntType  = types.I64
 	BoolType = types.I1
 	RealType = types.Double
 )
 
-func structureType(s *t.Structure) types.Type {
-	cc := 0
-	for _, p := range s.Fields {
-		if p.Type.IsFunction() {
-			cc++
-		}
+func structureType(s *t.Structure, closure bool) types.Type {
+	extra := 3
+	if closure {
+		extra = 4
 	}
-
-	ps := make([]types.Type, len(s.Fields)+4+cc)
+	ps := make([]types.Type, len(s.Fields)+extra)
 	ps[0] = types.I8  // reference type
 	ps[1] = types.I32 // reference count
-	ps[2] = types.I16 // number of closures
-	ps[3] = types.I16 // number of structures
-
-	closures := 0
-	for _, p := range s.Fields {
-		if p.Type.IsFunction() {
-			ps[closures+4] = FunPType
-			closures++
-			ps[closures+4] = ClosurePType
-			closures++
-		}
+	if closure {
+		ps[2] = FunType
 	}
+	ps[extra-1] = types.I16 // number of structures
+
 	structures := 0
 	for _, p := range s.Fields {
 		if p.Type.IsStructure() {
-			ps[closures+4+structures] = getType(p.Type)
+			ps[extra+structures] = getType(p.Type)
+			structures++
+		} else if p.Type.IsFunction() {
+			ps[extra+structures] = FunType
 			structures++
 		}
 	}
 	primitives := 0
 	for _, p := range s.Fields {
 		if !p.Type.IsFunction() && !p.Type.IsStructure() {
-			ps[4+closures+structures+primitives] = getType(p.Type)
+			ps[extra+structures+primitives] = getType(p.Type)
 			primitives++
 		}
 	}

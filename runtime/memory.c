@@ -41,6 +41,8 @@ void free_rc(RefCount* ref) {
         pvector_free((PVHead*)ref);
     } else if (t == MEM_STRUCT) {
         free_structure((Structure*)ref);
+    } else if (t == MEM_CLOSURE) {
+        free_closure((Closure*)ref);
     } else {
         fprintf(stderr, "invalid pointer\n");
         exit(1);

@@ -9,18 +9,18 @@ reverse = (n) => {
 
 isPal = (n) => { n == reverse(n) }
 
-findLargestProd = (start, stop, cond) => {
+findLargestProd = (start, stop) => {
     agg = (le, ri, max) => {
         if (ri > stop) {
             max
         } else {
             nle = if (le > stop) start else { le + 1 }
             nri = if (le > stop) { ri + 1 } else ri
-            nmax = if (le * ri > max && cond(le * ri)) le * ri else max
+            nmax = if (le * ri > max && isPal(le * ri)) le * ri else max
             agg(nle, nri, nmax)
         }
     }
     agg(start, start, 0)
 }
 
-findLargestProd(100, 999, isPal)
+findLargestProd(100, 999)

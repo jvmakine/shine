@@ -51,7 +51,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			subCtx.loadStructure(v.Def.Closure, ir.NewParam("+cls", ClosurePType))
+			subCtx.loadClosure(v.Def.Closure, ir.NewParam("+cls", ClosurePType))
 			result := compileExp(v.Def.Body, subCtx, true)
 			if result.value != nil { // result can be nil if it has already been returned from the function
 				subCtx.ret(result)
@@ -67,7 +67,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			s := subCtx.makeStructure(v.Struct.Type.FunctReturn().Structure)
+			s := subCtx.makeStructure(v.Struct.Type.FunctReturn().Structure, nil)
 			subCtx.Block.NewRet(s)
 		}
 	}
