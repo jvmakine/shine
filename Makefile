@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := runtime
 .PHONY: runtime
 
-SRC = runtime/memory.c runtime/io.c runtime/strings.c runtime/pvector.c
+SRC = runtime/memory.c runtime/io.c runtime/strings.c runtime/pvector.c runtime/structure.c
 LLS = memory.ll io.ll strings.ll pvector.ll
 
 runtime:
