@@ -29,7 +29,6 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 		i = i >> PV_BITS
 	}
 
-	zero := constant.NewInt(types.I32, 0)
 	gd, count := makePVLeaves(c, encoded, stringID+"%"+strconv.Itoa(depth))
 	arrayType := types.NewArray(uint64(count), LeafType)
 
@@ -38,33 +37,7 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 		gd = makePVNode(c, arrayType, 0, gd, count, stringID+"%"+strconv.Itoa(depth))
 		arrayType = types.NewArray(1, NodeType)
 	} else {
-		for count > 1 {
-			depth++
-			new := []constant.Constant{}
-			n := 0
-			for n < count {
-				i := 0
-				cs := make([]constant.Constant, PV_BRANCH)
-				for i < PV_BRANCH {
-					if n < count {
-						ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, int64(n)))
-						cs[i] = constant.NewBitCast(ptr, types.I8Ptr)
-					} else {
-						cs[i] = constant.NewNull(types.I8Ptr)
-					}
-					n++
-					i++
-				}
-				arr := constant.NewArray(nil, cs...)
-				l := constant.NewStruct(NodeType, zero, arr)
-				new = append(new, l)
-			}
-			count = len(new)
-			arrayType = types.NewArray(uint64(count), NodeType)
-			array := constant.NewArray(nil, new...)
-			id := stringID + "%" + strconv.Itoa(depth)
-			gd = c.global.Module.NewGlobalDef(id, array)
-		}
+		gd = makePVNodes(c, count, arrayType, gd, stringID)
 	}
 	ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, 0))
 	res := makePVHead(c, ptr, len(encoded), stringID)
@@ -95,6 +68,39 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 
 	array := constant.NewArray(nil, nodes...)
 	return c.global.Module.NewGlobalDef(id, array), len(nodes)
+}
+
+func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) *ir.Global {
+	depth := 1
+	zero := constant.NewInt(types.I32, 0)
+	gd := src
+	for count > 1 {
+		depth++
+		nodes := []constant.Constant{}
+		n := 0
+		for n < count {
+			i := 0
+			cs := make([]constant.Constant, PV_BRANCH)
+			for i < PV_BRANCH {
+				if n < count {
+					ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, int64(n)))
+					cs[i] = constant.NewBitCast(ptr, types.I8Ptr)
+				} else {
+					cs[i] = constant.NewNull(types.I8Ptr)
+				}
+				n++
+				i++
+			}
+			arr := constant.NewArray(nil, cs...)
+			l := constant.NewStruct(NodeType, zero, arr)
+			nodes = append(nodes, l)
+		}
+		count = len(nodes)
+		arrayType = types.NewArray(uint64(count), NodeType)
+		array := constant.NewArray(nil, nodes...)
+		gd = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(depth), array)
+	}
+	return gd
 }
 
 func makePVNode(c *context, arrayType types.Type, offset int, gd constant.Constant, nodes int, id string) *ir.Global {
