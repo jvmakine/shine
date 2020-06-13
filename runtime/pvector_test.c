@@ -85,6 +85,10 @@ void test_pvector_combine() {
         printf("expected res(2) == 3. Got %d\n", pvector_get_uint16(res, 2));
         exit(1);
     }
+    if (pvector_get_uint16(res, 0) != 1) {
+        printf("expected res(0) == 1. Got %d\n", pvector_get_uint16(res, 0));
+        exit(1);
+    }
     printf("OK\n");
 }
 

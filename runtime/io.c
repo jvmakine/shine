@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "strings.h"
+#include "pvector.h"
 
 void print_int(long i) {
     printf("%ld\n", i);
@@ -18,6 +19,11 @@ void print_bool(int8_t b) {
     }
 }
 
-void print_string(struct String *b) {
-    printf("%s\n", b->base);
+void print_string(PVHead *str) {
+    for (int i = 0; i < str->size; ++i) {
+        uint16_t c = pvector_get_uint16(str, i);
+        // TODO: UTF-8 conversion
+        printf("%c", c);
+    }
+    printf("\n");
 }

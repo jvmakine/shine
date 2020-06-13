@@ -20,19 +20,21 @@ type utils struct {
 	printBool   *ir.Func
 	printString *ir.Func
 
-	stringsEqual *ir.Func
+	PVEqual     *ir.Func
+	PVCombine16 *ir.Func
 }
 
 func makeUtils(m *ir.Module) *utils {
 	return &utils{
-		malloc:       m.NewFunc("heap_malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
-		freeRc:       m.NewFunc("free_rc", types.Void, ir.NewParam("ptr", types.I8Ptr)),
-		incRef:       m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
-		printInt:     m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
-		printReal:    m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
-		printBool:    m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
-		printString:  m.NewFunc("print_string", types.Void, ir.NewParam("p", StringPType)),
-		stringsEqual: m.NewFunc("strings_equal", types.I8, ir.NewParam("s1", StringPType), ir.NewParam("s2", StringPType)),
+		malloc:      m.NewFunc("heap_malloc", types.I8Ptr, ir.NewParam("size", types.I32)),
+		freeRc:      m.NewFunc("free_rc", types.Void, ir.NewParam("ptr", types.I8Ptr)),
+		incRef:      m.NewFunc("increase_refcount", types.Void, ir.NewParam("cls", types.I8Ptr)),
+		printInt:    m.NewFunc("print_int", types.Void, ir.NewParam("p", IntType)),
+		printReal:   m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
+		printBool:   m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
+		printString: m.NewFunc("print_string", types.Void, ir.NewParam("p", StringPType)),
+		PVEqual:     m.NewFunc("pvector_equals", types.I8, ir.NewParam("s1", types.I8Ptr), ir.NewParam("s2", types.I8Ptr), ir.NewParam("elemsize", types.I32)),
+		PVCombine16: m.NewFunc("pvector_combine_uint16", types.I8Ptr, ir.NewParam("l", types.I8Ptr), ir.NewParam("r", types.I8Ptr)),
 	}
 }
 

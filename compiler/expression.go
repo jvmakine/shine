@@ -127,7 +127,6 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 
 	ctx.Block = trueB
 	truev := compileExp(t, ctx, funcRoot)
-	ctx.freeIfUnboundRef(truev)
 	ctx.freeIfUnboundRef(cond)
 
 	trueB = ctx.Block
@@ -138,7 +137,6 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 	ctx.Block = falseB
 	falsev := compileExp(f, ctx, funcRoot)
 	falseB = ctx.Block
-	ctx.freeIfUnboundRef(falsev)
 	ctx.freeIfUnboundRef(cond)
 
 	if funcRoot && falsev.value != nil {
@@ -188,6 +186,9 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 		case "+":
 			if from.Params[0].Type().AsPrimitive() == t.Real {
 				return makeCR(exp, ctx.Block.NewFAdd(params[0].value, params[1].value))
+			} else if from.Params[0].Type().AsPrimitive() == t.String {
+				v := ctx.Block.NewCall(ctx.global.utils.PVCombine16, params[0].value, params[1].value)
+				return makeCR(exp, v)
 			}
 			return makeCR(exp, ctx.Block.NewAdd(params[0].value, params[1].value))
 		case "-":
@@ -217,7 +218,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
 		case "==":
 			if from.Params[0].Type().IsString() {
-				v := ctx.Block.NewCall(ctx.global.utils.stringsEqual, params[0].value, params[1].value)
+				v := ctx.Block.NewCall(ctx.global.utils.PVEqual, params[0].value, params[1].value, constant.NewInt(types.I32, 2))
 				r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
 				return makeCR(exp, r)
 			}

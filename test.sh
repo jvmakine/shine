@@ -21,7 +21,7 @@ rtest "examples/features/memory_management.shi" "3"
 rtest "examples/features/booleans.shi" "false"
 rtest "examples/features/explicit_types.shi" "2.000000"
 rtest "examples/features/structures.shi" "40.094891"
-rtest "examples/features/strings.shi" "same"
+rtest "examples/features/strings.shi" "a is same as a"
 
 rtest "examples/euler/001.shi" "233168"
 rtest "examples/euler/002.shi" "4613732"

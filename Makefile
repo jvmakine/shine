@@ -1,8 +1,8 @@
 .DEFAULT_GOAL := runtime
 .PHONY: runtime
 
-SRC = runtime/memory.c runtime/io.c runtime/strings.c runtime/pvector.c runtime/structure.c
-LLS = memory.ll io.ll strings.ll pvector.ll structure.ll
+SRC = runtime/memory.c runtime/io.c runtime/pvector.c runtime/structure.c
+LLS = memory.ll io.ll pvector.ll structure.ll
 
 runtime:
 	clang-9 -shared -fPIC -o lib/runtime.so $(SRC)

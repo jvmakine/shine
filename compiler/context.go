@@ -254,34 +254,3 @@ func (c *context) freeIfUnboundRef(res cresult) {
 		}
 	}
 }
-
-func (c *context) makeStringRefRoot(str string) value.Value {
-	var rootVal value.Value
-	if c.global.strings[str] != nil {
-		rootVal = c.global.strings[str]
-	} else {
-		mod := c.global.Module
-		name := "const_string_" + strconv.Itoa(len(c.global.strings))
-		array := constant.NewCharArrayFromString(str)
-		array.X = append(array.X, 0)
-		array.Typ.Len++
-		rootVal = mod.NewGlobalDef(name, array)
-		c.global.strings[str] = rootVal
-	}
-	ptrt := types.NewPointer(StringType)
-	sp := c.Block.NewGetElementPtr(StringType, constant.NewNull(ptrt), constant.NewInt(types.I32, 1))
-	size := c.Block.NewPtrToInt(sp, types.I32)
-	mem := c.Block.NewBitCast(c.malloc(size), ptrt)
-
-	refcountp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
-	c.Block.NewStore(constant.NewInt(types.I32, 1), refcountp)
-	clsp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 1))
-	c.Block.NewStore(constant.NewInt(types.I16, 0), clsp)
-	strup := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 2))
-	c.Block.NewStore(constant.NewInt(types.I16, 0), strup)
-	staticstrp := c.Block.NewGetElementPtr(StringType, mem, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 4))
-	bc := c.Block.NewBitCast(rootVal, StringPType)
-	c.Block.NewStore(bc, staticstrp)
-
-	return mem
-}
