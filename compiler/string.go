@@ -37,7 +37,8 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 		gd = makePVNode(c, arrayType, 0, gd, count, stringID+"%"+strconv.Itoa(depth))
 		arrayType = types.NewArray(1, NodeType)
 	} else {
-		gd = makePVNodes(c, count, arrayType, gd, stringID)
+		gd, count = makePVNodes(c, count, arrayType, gd, stringID)
+		arrayType = types.NewArray(uint64(count), NodeType)
 	}
 	ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, 0))
 	res := makePVHead(c, ptr, len(encoded), stringID)
@@ -70,7 +71,7 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 	return c.global.Module.NewGlobalDef(id, array), len(nodes)
 }
 
-func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) *ir.Global {
+func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) (*ir.Global, int) {
 	depth := 1
 	zero := constant.NewInt(types.I32, 0)
 	gd := src
@@ -96,11 +97,10 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 			nodes = append(nodes, l)
 		}
 		count = len(nodes)
-		arrayType = types.NewArray(uint64(count), NodeType)
 		array := constant.NewArray(nil, nodes...)
 		gd = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(depth), array)
 	}
-	return gd
+	return gd, count
 }
 
 func makePVNode(c *context, arrayType types.Type, offset int, gd constant.Constant, nodes int, id string) *ir.Global {
