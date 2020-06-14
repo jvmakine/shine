@@ -4,8 +4,12 @@
 #include "pvector.h"
 
 uint8_t pvector_depth(PVHead *vector) {
+    uint32_t size = vector->size;
+    if (size == 0) {
+        return 0;
+    }
     uint8_t depth = 0;
-    uint32_t i = vector->size >> BITS;
+    uint32_t i = (size - 1) >> BITS;
     while (i) {
         depth++;
         i = i >> BITS;
@@ -114,13 +118,18 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
     uint32_t new_size = old_size + 1;
     char new_node = 0;
     uint8_t depth = 0;
-    uint32_t o = old_size >> BITS;
-    uint32_t n = new_size >> BITS;
-    while(n) {
-        if (!o) { new_node = 1; }
-        o = o >> BITS;
-        n = n >> BITS;
-        depth++;
+    uint32_t o = (old_size - 1) >> BITS;
+    uint32_t n = (new_size - 1) >> BITS;
+    if (old_size > 0) {
+        while(n) {
+            if (!o) { new_node = 1; }
+            o = o >> BITS;
+            n = n >> BITS;
+            depth++;
+        }
+    } else {
+        depth = 0;
+        new_node = 1;
     }
     void *node = 0;
     if (new_node || vector->node == 0) {

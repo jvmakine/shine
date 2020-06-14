@@ -22,11 +22,13 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 	}
 	stringID := "string%" + strconv.Itoa(len(c.global.strings))
 	encoded := utf16.Encode([]rune(str))
-	i := len(encoded) >> PV_BITS
 	depth := 0
-	for i > 0 {
-		depth++
-		i = i >> PV_BITS
+	if len(encoded) > 0 {
+		i := (len(encoded) - 1) >> PV_BITS
+		for i > 0 {
+			depth++
+			i = i >> PV_BITS
+		}
 	}
 
 	gd, count := makePVLeaves(c, encoded, stringID+"%0")
