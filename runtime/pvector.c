@@ -3,6 +3,16 @@
 #include <stdio.h>
 #include "pvector.h"
 
+uint8_t pvector_depth(PVHead *vector) {
+    uint8_t depth = 0;
+    uint32_t i = vector->size >> BITS;
+    while (i) {
+        depth++;
+        i = i >> BITS;
+    }
+    return depth;
+}
+
 PVHead* pvector_new() {
     PVHead* head = heap_calloc(1, sizeof(PVHead));
     head->ref.count = 1;
@@ -54,16 +64,6 @@ void pnode_free(PVNode *node, int depth) {
     free(node);
 }
 
-uint8_t pvector_depth(PVHead *vector) {
-    uint8_t depth = 0;
-    uint32_t i = vector->size;
-    while (i) {
-        depth++;
-        i = i >> BITS;
-    }
-    return depth;
-}
-
 void pvector_free(PVHead *vector) {
     if (vector == 0 || vector->ref.count == 0) {
         return;
@@ -107,8 +107,8 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
     uint32_t new_size = old_size + 1;
     char new_node = 0;
     uint8_t depth = 0;
-    uint32_t o = old_size;
-    uint32_t n = new_size;
+    uint32_t o = old_size >> BITS;
+    uint32_t n = new_size >> BITS;
     while(n) {
         if (!o) { new_node = 1; }
         o = o >> BITS;
@@ -116,11 +116,19 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
         depth++;
     }
     void *node = 0;
-    if (new_node) {
-        node = pnode_new();
-        if (vector->node) {
-            ((PVNode*)node)->children[0] = vector->node;
-            ((PVNode*)vector->node)->refcount++;
+    if (new_node || vector->node == 0) {
+        if (depth > 0) {
+            node = pnode_new();
+            PVNode *vn = vector->node;
+            if (vn) {
+                ((PVNode*)node)->children[0] = vn;
+                uint32_t rc = vn->refcount;
+                if (rc > 0) {
+                    vn->refcount = rc + 1;
+                }
+            }
+        } else {
+            node = pleaf_header_new(element_size);
         }
     } else {
         node = copy_pnode(vector->node);
@@ -132,30 +140,35 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, void **retval)
 
     while (depth) {
         uint8_t shift = depth*BITS;
+        depth--;
         uint32_t key = (old_size >> shift) & MASK;
-        void *nn = 0;
         void** children = ((PVNode*)node)->children;
-        if (--depth) {
+        if (depth) {
             for(uint8_t i = 0; i < key; i++) {
-                ((PVNode*)children[i])->refcount++;
+                uint32_t rc = ((PVNode*)children[i])->refcount;
+                if (rc > 0) {
+                    ((PVNode*)children[i])->refcount = rc + 1;
+                }
             }
             if (children[key] == 0) {
-                nn = pnode_new();
+                node = pnode_new();
             } else {
-                nn = copy_pnode(children[key]);
+                node = copy_pnode(children[key]);
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
-                ((PVLeaf_header*)(children[i]))->refcount++;
+                uint32_t rc = ((PVLeaf_header*)children[i])->refcount;
+                if (rc > 0) {
+                    ((PVLeaf_header*)(children[i]))->refcount = rc + 1;
+                }
             }
             if (children[key] == 0) {
-                nn = pleaf_header_new(element_size);
+                node = pleaf_header_new(element_size);
             } else {
-                nn = copy_pleaf(children[key], element_size);
+                node = copy_pleaf(children[key], element_size);
             }
         }
-        children[key] = nn;
-        node = nn;
+        children[key] = node;
     }
     *retval = ((PVLeaf_header*)node) + 1;
     return head;
@@ -224,7 +237,7 @@ uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t element_size) 
         if (a->children[i] == 0) {
             return 1;
         }
-        if (depth > 1) {
+        if (depth > 0) {
             if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], depth - 1, element_size)) {
                 return 0;
             }
@@ -248,5 +261,9 @@ uint8_t pvector_equals(PVHead *a, PVHead *b, uint8_t element_size) {
         return 1;
     }
     uint32_t depth = pvector_depth(a);
-    return pnode_equals(a->node, b->node, depth, element_size);
+    if (depth > 0) {
+        return pnode_equals(a->node, b->node, depth, element_size);
+    } else {
+        return pleaf_equals(a->node, b->node, element_size);
+    }
 }

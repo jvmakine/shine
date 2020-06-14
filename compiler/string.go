@@ -22,21 +22,17 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 	}
 	stringID := "string%" + strconv.Itoa(len(c.global.strings))
 	encoded := utf16.Encode([]rune(str))
-	i := len(encoded)
+	i := len(encoded) >> PV_BITS
 	depth := 0
 	for i > 0 {
 		depth++
 		i = i >> PV_BITS
 	}
 
-	gd, count := makePVLeaves(c, encoded, stringID+"%"+strconv.Itoa(depth))
+	gd, count := makePVLeaves(c, encoded, stringID+"%0")
 	arrayType := types.NewArray(uint64(count), LeafType)
 
-	if depth <= 1 {
-		depth++
-		gd = makePVNode(c, arrayType, 0, gd, count, stringID+"%"+strconv.Itoa(depth))
-		arrayType = types.NewArray(1, NodeType)
-	} else {
+	if depth > 0 {
 		gd, count = makePVNodes(c, count, arrayType, gd, stringID)
 		arrayType = types.NewArray(uint64(count), NodeType)
 	}
@@ -72,9 +68,8 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 }
 
 func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) (*ir.Global, int) {
-	depth := 1
+	depth := 0
 	zero := constant.NewInt(types.I32, 0)
-	gd := src
 	for count > 1 {
 		depth++
 		nodes := []constant.Constant{}
@@ -84,7 +79,7 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 			cs := make([]constant.Constant, PV_BRANCH)
 			for i < PV_BRANCH {
 				if n < count {
-					ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, int64(n)))
+					ptr := constant.NewGetElementPtr(arrayType, src, constant.NewInt(types.I32, int64(n)))
 					cs[i] = constant.NewBitCast(ptr, types.I8Ptr)
 				} else {
 					cs[i] = constant.NewNull(types.I8Ptr)
@@ -98,28 +93,10 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 		}
 		count = len(nodes)
 		array := constant.NewArray(nil, nodes...)
-		gd = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(depth), array)
+		src = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(depth), array)
+		arrayType = types.NewArray(uint64(count), NodeType)
 	}
-	return gd, count
-}
-
-func makePVNode(c *context, arrayType types.Type, offset int, gd constant.Constant, nodes int, id string) *ir.Global {
-	zero := constant.NewInt(types.I32, 0)
-	cs := make([]constant.Constant, PV_BRANCH)
-	i := 0
-	for i < PV_BRANCH {
-		if i < nodes {
-			ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, int64(i+offset)))
-			cs[i] = constant.NewBitCast(ptr, types.I8Ptr)
-		} else {
-			cs[i] = constant.NewNull(types.I8Ptr)
-		}
-		i++
-	}
-	arr := constant.NewArray(nil, cs...)
-	l := constant.NewStruct(NodeType, zero, arr)
-	array := constant.NewArray(nil, l)
-	return c.global.Module.NewGlobalDef(id, array)
+	return src, count
 }
 
 func makePVHead(c *context, node constant.Constant, length int, id string) constant.Constant {
