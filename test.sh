@@ -21,7 +21,7 @@ rtest "examples/features/memory_management.shi" "3"
 rtest "examples/features/booleans.shi" "false"
 rtest "examples/features/explicit_types.shi" "2.000000"
 rtest "examples/features/structures.shi" "40.094891"
-rtest "examples/features/strings.shi" "Lorem ipsum dolor sit amet, consectetur adipiscing elit. 日本語 a is a"
+rtest "examples/features/strings.shi" "Lorem ipsum dolor sit amet, consectetur adipiscing elit. 日本語 ab is ab"
 
 rtest "examples/euler/001.shi" "233168"
 rtest "examples/euler/002.shi" "4613732"
