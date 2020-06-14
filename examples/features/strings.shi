@@ -1,3 +1,5 @@
-isSame = (x, y) => if (x == y) "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " + x + " is " + y else "not same"
+LoremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
+
+isSame = (x, y) => if (x == y) LoremIpsum + x + " is " + y else "not same"
 
 isSame("a", "a")
