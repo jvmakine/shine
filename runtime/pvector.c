@@ -30,18 +30,19 @@ PVNode* pnode_new() {
 
 void pleaf_free(PVLeaf_header *leaf) {
     // TODO: release references properly
-    if (leaf->refcount == 0) {
+    uint32_t rc = leaf->refcount;
+    if (rc == 0) {
         return;
     }
-    if (leaf->refcount > 1) {
-        leaf->refcount--;
+    if (rc > 1) {
+        leaf->refcount = rc - 1;
         return;
     }
     free(leaf);
 }
 
 void pnode_free(PVNode *node, int depth) {
-    if (depth <= 0 || node == 0) {
+    if (node == 0) {
         return;
     }
     uint32_t rc = node->refcount;
@@ -73,7 +74,13 @@ void pvector_free(PVHead *vector) {
         vector->ref.count = vector->ref.count - 1;
         return;
     }
-    pnode_free(vector->node, depth);
+    if (vector->size > 0) {
+        if (depth > 0) {
+            pnode_free(vector->node, depth);
+        } else {
+            pleaf_free(vector->node);
+        }
+    }
     free(vector);
 }
 
