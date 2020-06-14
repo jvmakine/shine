@@ -30,35 +30,35 @@ void test_pvector_depth() {
         exit(1);
     }
 
-    head->size = 35;
+    head->size = BRANCH + 3;
     d = pvector_depth(head);
     if (d != 1) {
         printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 1, d);
         exit(1);
     }
 
-    head->size = 1025;
+    head->size = BRANCH * BRANCH + 3;
     d = pvector_depth(head);
     if (d != 2) {
         printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 2, d);
         exit(1);
     }
 
-    head->size = 16;
+    head->size = BRANCH / 2;
     d = pvector_depth(head);
     if (d != 0) {
         printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 0, d);
         exit(1);
     }
 
-    head->size = 32;
+    head->size = BRANCH;
     d = pvector_depth(head);
     if (d != 0) {
         printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 0, d);
         exit(1);
     }
 
-    head->size = 1024;
+    head->size = BRANCH * BRANCH;
     d = pvector_depth(head);
     if (d != 1) {
         printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 1, d);
