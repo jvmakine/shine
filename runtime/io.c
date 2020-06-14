@@ -24,7 +24,14 @@ void print_string(PVHead *str) {
         uint16_t c = pvector_get_uint16(str, i);
         uint32_t code = c;
         if (code > 0xd7ff && code < 0xe000) {
-            // TODO: large code points
+            // see https://unicode.org/faq/utf_bom.html#utf16-3 
+            uint16_t hi = c;
+            i++;
+            uint16_t lo = pvector_get_uint16(str, i);
+            uint32_t x = (hi & ((1 << 6) -1)) << 10 | (lo & ((1 << 10) -1));
+            uint32_t w = (hi >> 6) & ((1 << 5) - 1);
+            uint32_t u = w + 1;
+            c = u << 16 | x;
         }
         if (code <= 0x7f) {
             printf("%c", c);
@@ -44,7 +51,6 @@ void print_string(PVHead *str) {
             uint8_t b4 = 0b10000000 + (code & 0b00111111);
             printf("%c%c%c%c", b1, b2, b3, b4);
         }
-        // TODO: UTF-8 conversion
     }
     printf("\n");
 }
