@@ -36,7 +36,7 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 		gd, count = makePVNodes(c, count, arrayType, gd, stringID)
 		arrayType = types.NewArray(uint64(count), NodeType)
 	}
-	ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, 0))
+	ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
 	res := makePVHead(c, ptr, len(encoded), stringID)
 	c.global.strings[str] = res
 	return res
@@ -79,7 +79,7 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 			cs := make([]constant.Constant, PV_BRANCH)
 			for i < PV_BRANCH {
 				if n < count {
-					ptr := constant.NewGetElementPtr(arrayType, src, constant.NewInt(types.I32, int64(n)))
+					ptr := constant.NewGetElementPtr(arrayType, src, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(n)))
 					cs[i] = constant.NewBitCast(ptr, types.I8Ptr)
 				} else {
 					cs[i] = constant.NewNull(types.I8Ptr)
