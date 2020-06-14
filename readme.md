@@ -62,7 +62,7 @@ if (a) 1 else 2
 
 strings can be used as output values
 ```
-a: string = "Hello world!"
+a: string = "Hello " + "world!"
 a
 ```
 
