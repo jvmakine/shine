@@ -1,5 +1,5 @@
 LoremIpsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. "
 
-isSame = (x, y) => if (x == y) LoremIpsum + x + " is " + y else "not same"
+isSame = (x, y) => if (x == y) LoremIpsum + "日本語 " + x + " is " + y else "not same"
 
 isSame("a", "a")
