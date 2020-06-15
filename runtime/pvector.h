@@ -13,11 +13,13 @@ typedef struct PVHead {
 
 typedef struct PVNode {
     uint32_t refcount;
+    uint32_t **indextable;
     void* children[BRANCH]; 
 } PVNode;
 
 typedef struct PVLeaf_header {
     uint32_t refcount;
+    uint8_t size;
 } PVLeaf_header;
 
 PVHead* pvector_new();
