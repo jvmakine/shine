@@ -1,14 +1,16 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/time.h>
 #include "pvector.h"
 
 void test_append_increases_length() ;
 void test_append_adds_elements();
 void test_append_branches();
-void test_pvector_append_performance();
 void test_pvector_combine();
 void test_pvector_equality();
 void test_pvector_depth();
+void test_pvector_append_performance();
+void test_pvector_combine_performance();
 
 int main() {
     test_pvector_depth();
@@ -18,6 +20,7 @@ int main() {
     test_pvector_combine();
     test_pvector_equality();
     test_pvector_append_performance();
+    test_pvector_combine_performance();
 }
 
 void test_pvector_depth() {
@@ -162,11 +165,18 @@ void test_pvector_equality() {
 void test_pvector_append_performance() {
     printf("test_pvector_append_performance: ");
     PVHead *head = pvector_new();
+    struct timeval tval_before, tval_after, tval_result;
+    gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
         PVHead *updated = pvector_append_uint16(head, i);
         pvector_free(head);
         head = updated;
     }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    printf("append %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+    
+    gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
         uint16_t val = pvector_get_uint16(head, i);
         uint16_t exp = i;
@@ -175,5 +185,37 @@ void test_pvector_append_performance() {
             exit(1);
         }
     }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+    printf("OK\n");
+}
+
+void test_pvector_combine_performance() {
+    printf("test_pvector_combine_performance: ");
+    PVHead *v1 = pvector_new();
+    PVHead *v2 = pvector_new();
+    for (int i = 0; i < 500000; ++i) {
+        PVHead *updated = pvector_append_uint16(v1, i);
+        pvector_free(v1);
+        v1 = updated;
+        updated = pvector_append_uint16(v2, i);
+        pvector_free(v2);
+        v2 = updated;
+    }
+
+    struct timeval tval_before, tval_after, tval_result;
+    gettimeofday(&tval_before, NULL);
+    PVHead *combined = pvector_combine_uint16(v1, v2);
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+
+    pvector_free(v1);
+    pvector_free(v2);
+    if (combined->size != 1000000) {
+        printf("expected combined->size == %d. Got %d\n", 1000000, combined->size);
+        exit(1);
+    }
+    printf("combine %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
     printf("OK\n");
 }
