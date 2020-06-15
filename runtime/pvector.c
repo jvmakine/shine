@@ -33,15 +33,13 @@ PVNode* pnode_new() {
     return node;
 }
 
-PVLeaf_header *pleaf_header_new(uint8_t element_size) {
-    PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
+void *pleaf_new(uint32_t leaf_size) {
+    PVLeaf_uint16* leaf = heap_calloc(1, leaf_size);
     leaf->refcount = 1;
-    leaf->size = 0;
-    memset((leaf + 1), 0, element_size << BITS);
-    return leaf;
+    return (void*)leaf;
 }
 
-void pleaf_free(PVLeaf_header *leaf) {
+void pleaf_free(PVLeaf_uint16 *leaf) {
     // TODO: release references properly
     uint32_t rc = leaf->refcount;
     if (rc == 0) {
@@ -75,6 +73,9 @@ void pnode_free(PVNode *node, int depth) {
             }
         }
     }
+    if (node->indextable != 0) {
+        free(node->indextable);
+    }
     free(node);
 }
 
@@ -102,20 +103,27 @@ uint32_t pvector_length(PVHead *vector) {
 }
 
 PVNode *copy_pnode(PVNode* node) {
-    PVNode* res = heap_calloc(1,sizeof(PVNode));
+    PVNode* res = heap_malloc(sizeof(PVNode));
     memcpy(res, node, sizeof(PVNode));
     res->refcount = 1;
+    if (node->indextable != 0) {
+        // TODO: Fix memory corruption
+        node->indextable = 0;
+        /*printf("%p\n", node->indextable);
+        res->indextable = heap_malloc(BRANCH*sizeof(uint32_t));
+        memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));*/
+    }
     return res;
 }
 
-PVLeaf_header *copy_pleaf(PVLeaf_header *leaf, uint8_t element_size) {
-    PVLeaf_header *res = (PVLeaf_header*)heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS));
-    memcpy(res, leaf, sizeof(PVLeaf_header) + (element_size << BITS));
-    res->refcount = 1;
+void *copy_pleaf(void *leaf, uint32_t leaf_size) {
+    void *res = heap_malloc(leaf_size);
+    memcpy(res, leaf, leaf_size);
+    ((PVLeaf_uint16*)res)->refcount = 1;
     return res;
 }
 
-PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, PVLeaf_header **retval) {
+PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
     uint32_t old_size = vector->size;
     uint32_t new_size = old_size + 1;
     char new_node = 0;
@@ -146,7 +154,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, PVLeaf_header 
                 }
             }
         } else {
-            node = pleaf_header_new(element_size);
+            node = pleaf_new(leaf_size);
         }
     } else {
         node = copy_pnode(vector->node);
@@ -175,25 +183,25 @@ PVHead* pvector_append_leaf(PVHead *vector, uint8_t element_size, PVLeaf_header 
             }
         } else {
             for(uint8_t i = 0; i < key; i++) {
-                uint32_t rc = ((PVLeaf_header*)children[i])->refcount;
+                uint32_t rc = ((PVLeaf_uint16*)children[i])->refcount;
                 if (rc > 0) {
-                    ((PVLeaf_header*)(children[i]))->refcount = rc + 1;
+                    ((PVLeaf_uint16*)(children[i]))->refcount = rc + 1;
                 }
             }
             if (children[key] == 0) {
-                node = pleaf_header_new(element_size);
+                node = pleaf_new(leaf_size);
             } else {
-                node = copy_pleaf(children[key], element_size);
+                node = copy_pleaf(children[key], leaf_size);
             }
         }
         children[key] = node;
     }
-    ((PVLeaf_header*)node)->size++;
-    *retval = (PVLeaf_header*)node;
+    ((PVLeaf_uint16*)node)->size++;
+    *retval = node;
     return head;
 }
 
-PVLeaf_header* pvector_get_leaf(PVHead *vector, uint32_t index, uint8_t element_size) {
+void* pvector_get_leaf(PVHead *vector, uint32_t index) {
     if (index >= vector->size) {
         fprintf(stderr, "pvector index out of bounds: got %d, size %d\n", index, vector->size);
         exit(1);
@@ -205,24 +213,18 @@ PVLeaf_header* pvector_get_leaf(PVHead *vector, uint32_t index, uint8_t element_
         depth--;
         node = ((PVNode*)node)->children[key];
     }
-    return (PVLeaf_header*)node;
-}
-
-void *leaf_ptr_to_data(PVLeaf_header *ptr) {
-    return ((void *)(ptr + 1)) - 2;
+    return (void*)node;
 }
 
 uint16_t pvector_get_uint16(PVHead *vector, uint32_t index) {
-    PVLeaf_header *leaf = pvector_get_leaf(vector, index, sizeof(uint16_t));
-    uint16_t *ptr = leaf_ptr_to_data(leaf);
-    return ptr[index & MASK];
+    PVLeaf_uint16 *leaf = pvector_get_leaf(vector, index);
+    return leaf->data[index & MASK];
 }
 
 PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
-    PVLeaf_header *leaf;
-    PVHead *head = pvector_append_leaf(vector, sizeof(uint16_t), (void*)&leaf);
-    uint16_t *ptr = leaf_ptr_to_data(leaf);
-    ptr[vector->size & MASK] = value;
+    PVLeaf_uint16 *leaf;
+    PVHead *head = pvector_append_leaf(vector, sizeof(PVLeaf_uint16), (void*)&leaf);
+    leaf->data[vector->size & MASK] = value;
     return head;
 }
 
@@ -241,23 +243,14 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     return n;
 }
 
-uint8_t pleaf_equals(PVLeaf_header *a, PVLeaf_header *b, uint8_t element_size) {
-    // TODO: Implement deep equals for pointers
+uint8_t pleaf_equals(void *a, void *b, uint32_t leaf_size) {
     if (a == b) {
         return 1;
     }
-    uint32_t len = BRANCH * element_size;
-    uint8_t* ptra = leaf_ptr_to_data(a);
-    uint8_t* ptrb = leaf_ptr_to_data(b);
-    for(uint16_t i = 0; i < len; ++i) {
-        if(ptra[i] != ptrb[i]) {
-            return 0;
-        }
-    }
-    return 1;
+    return !memcmp(a, b, leaf_size);
 }
 
-uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t element_size) {
+uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t leaf_size) {
     if (a == b) {
         return 1;
     }
@@ -266,11 +259,11 @@ uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t element_size) 
             return 1;
         }
         if (depth > 0) {
-            if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], depth - 1, element_size)) {
+            if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], depth - 1, leaf_size)) {
                 return 0;
             }
         } else {
-            if(!pleaf_equals((PVLeaf_header*)a->children[i], (PVLeaf_header*)b->children[i], element_size)) {
+            if(!pleaf_equals(a->children[i], b->children[i], leaf_size)) {
                 return 0;
             }
         }
@@ -278,7 +271,7 @@ uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t element_size) 
     return 1;
 }
 
-uint8_t pvector_equals(PVHead *a, PVHead *b, uint8_t element_size) {
+uint8_t pvector_equals(PVHead *a, PVHead *b, uint32_t leaf_size) {
     if (a->size != b->size) {
         return 0;
     }
@@ -290,8 +283,8 @@ uint8_t pvector_equals(PVHead *a, PVHead *b, uint8_t element_size) {
     }
     uint32_t depth = pvector_depth(a);
     if (depth > 0) {
-        return pnode_equals(a->node, b->node, depth, element_size);
+        return pnode_equals(a->node, b->node, depth, leaf_size);
     } else {
-        return pleaf_equals(a->node, b->node, element_size);
+        return pleaf_equals(a->node, b->node, leaf_size);
     }
 }
