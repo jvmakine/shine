@@ -199,7 +199,7 @@ void test_pvector_combine_performance() {
         PVHead *updated = pvector_append_uint16(v1, i);
         pvector_free(v1);
         v1 = updated;
-        updated = pvector_append_uint16(v2, i);
+        updated = pvector_append_uint16(v2,500000 + i);
         pvector_free(v2);
         v2 = updated;
     }
@@ -217,5 +217,19 @@ void test_pvector_combine_performance() {
         exit(1);
     }
     printf("combine %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+
+    gettimeofday(&tval_before, NULL);
+    for (int i = 0; i < 1000000; ++i) {
+        uint16_t val = pvector_get_uint16(combined, i);
+        uint16_t exp = i;
+        if (val != exp) {
+            printf("expected combined(%d) == %d. Got %d\n", i, exp, val);
+            exit(1);
+        }
+    }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+    pvector_free(combined);
     printf("OK\n");
 }

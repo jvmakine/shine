@@ -32,6 +32,13 @@ PVNode* pnode_new() {
     return node;
 }
 
+PVLeaf_header *pleaf_header_new(uint8_t element_size) {
+    PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
+    leaf->refcount = 1;
+    memset((leaf + 1), 0, element_size << BITS);
+    return leaf;
+}
+
 void pleaf_free(PVLeaf_header *leaf) {
     // TODO: release references properly
     uint32_t rc = leaf->refcount;
@@ -86,13 +93,6 @@ void pvector_free(PVHead *vector) {
         }
     }
     free(vector);
-}
-
-PVLeaf_header *pleaf_header_new(uint8_t element_size) {
-    PVLeaf_header* leaf = heap_malloc(sizeof(PVLeaf_header) + (element_size << BITS) );
-    leaf->refcount = 1;
-    memset((leaf + 1), 0, element_size << BITS );
-    return leaf;
 }
 
 uint32_t pvector_length(PVHead *vector) {
@@ -224,7 +224,9 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
         uint16_t c = pvector_get_uint16(b, i);
         PVHead *u = pvector_append_uint16(n, c);
         // TODO: Optimise
-        pvector_free(n);
+        if (i > 0) {
+            pvector_free(n);
+        }
         n = u;
     }
     return n;
