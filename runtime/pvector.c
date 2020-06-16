@@ -107,11 +107,10 @@ PVNode *copy_pnode(PVNode* node) {
     memcpy(res, node, sizeof(PVNode));
     res->refcount = 1;
     if (node->indextable != 0) {
-        // TODO: Fix memory corruption
         node->indextable = 0;
-        /*printf("%p\n", node->indextable);
+        printf("%p\n", node->indextable);
         res->indextable = heap_malloc(BRANCH*sizeof(uint32_t));
-        memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));*/
+        memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));
     }
     return res;
 }
@@ -157,7 +156,11 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
             node = pleaf_new(leaf_size);
         }
     } else {
-        node = copy_pnode(vector->node);
+        if (depth > 0) {
+            node = copy_pnode(vector->node);
+         } else {
+             node = copy_pleaf(vector->node, leaf_size);
+         }
     }
 
     PVHead *head = pvector_new();
