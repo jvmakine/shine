@@ -8,12 +8,10 @@ void test_append_adds_elements();
 void test_append_branches();
 void test_pvector_combine();
 void test_pvector_equality();
-void test_pvector_depth();
 void test_pvector_append_performance();
 void test_pvector_combine_performance();
 
 int main() {
-    test_pvector_depth();
     test_append_increases_length();
     test_append_adds_elements();
     test_append_branches();
@@ -22,54 +20,6 @@ int main() {
     test_pvector_append_performance();
     test_pvector_combine_performance();
 }
-
-void test_pvector_depth() {
-    printf("test_pvector_depth: ");
-    PVHead *head = pvector_new();
-    head->size = 0;
-    uint8_t d = pvector_depth(head);
-    if (d != 0) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 0, d);
-        exit(1);
-    }
-
-    head->size = BRANCH + 3;
-    d = pvector_depth(head);
-    if (d != 1) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 1, d);
-        exit(1);
-    }
-
-    head->size = BRANCH * BRANCH + 3;
-    d = pvector_depth(head);
-    if (d != 2) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 2, d);
-        exit(1);
-    }
-
-    head->size = BRANCH / 2;
-    d = pvector_depth(head);
-    if (d != 0) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 0, d);
-        exit(1);
-    }
-
-    head->size = BRANCH;
-    d = pvector_depth(head);
-    if (d != 0) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 0, d);
-        exit(1);
-    }
-
-    head->size = BRANCH * BRANCH;
-    d = pvector_depth(head);
-    if (d != 1) {
-        printf("expected new vector size %d to have depth %d. Got %d\n", head->size, 1, d);
-        exit(1);
-    }
-    printf("OK\n");
-}
-
 
 void test_append_increases_length() {
     printf("test_append_increases_length: ");

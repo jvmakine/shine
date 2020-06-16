@@ -4,17 +4,15 @@
 #include "pvector.h"
 
 uint8_t pvector_depth(PVHead *vector) {
-    uint32_t size = vector->size;
-    if (size == 0) {
+   PVNode* node = vector->node;
+    if (node == 0) {
         return 0;
     }
-    uint8_t depth = 0;
-    uint32_t i = (size - 1) >> BITS;
-    while (i) {
-        depth++;
-        i = i >> BITS;
-    }
-    return depth;
+    return node->depth;
+}
+
+uint32_t pvector_length(PVHead *vector) {
+    return vector->size;
 }
 
 PVHead* pvector_new() {
@@ -26,10 +24,11 @@ PVHead* pvector_new() {
     return head;
 }
 
-PVNode* pnode_new() {
+PVNode* pnode_new(uint8_t depth) {
     PVNode* node = heap_calloc(1, sizeof(PVNode));
     node->refcount = 1;
     node->indextable = 0;
+    node->depth = depth;
     return node;
 }
 
@@ -98,17 +97,11 @@ void pvector_free(PVHead *vector) {
     free(vector);
 }
 
-uint32_t pvector_length(PVHead *vector) {
-    return vector->size;
-}
-
 PVNode *copy_pnode(PVNode* node) {
     PVNode* res = heap_malloc(sizeof(PVNode));
     memcpy(res, node, sizeof(PVNode));
     res->refcount = 1;
     if (node->indextable != 0) {
-        node->indextable = 0;
-        printf("%p\n", node->indextable);
         res->indextable = heap_malloc(BRANCH*sizeof(uint32_t));
         memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));
     }
@@ -143,7 +136,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
     void *node = 0;
     if (new_node || vector->node == 0) {
         if (depth > 0) {
-            node = pnode_new();
+            node = pnode_new(depth);
             PVNode *vn = vector->node;
             if (vn) {
                 ((PVNode*)node)->children[0] = vn;
@@ -180,7 +173,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
                 }
             }
             if (children[key] == 0) {
-                node = pnode_new();
+                node = pnode_new(depth);
             } else {
                 node = copy_pnode(children[key]);
             }
@@ -211,6 +204,24 @@ void* pvector_get_leaf(PVHead *vector, uint32_t index) {
     }
     uint8_t depth = pvector_depth(vector);
     void *node = vector->node;
+
+    // If the index table is in use, we need to use it to adjust the index
+    while (depth && ((PVNode*)node)->indextable != 0) {
+        uint32_t *it = *((PVNode*)node)->indextable;
+        uint8_t i = 0;
+        uint32_t v = 0;
+        while (v < index) {
+            v = it[i++];
+        }
+        i--;
+        node = ((PVNode*)node)->children[i];
+        if (i > 0) {
+            index = index - it[i - 1];
+        }
+        depth--;
+    }
+
+    // Fully balanced subtree does not need the index lookup
     while (depth) {
         uint32_t key = (index >> depth*BITS) & MASK;
         depth--;
@@ -278,10 +289,7 @@ uint8_t pvector_equals(PVHead *a, PVHead *b, uint32_t leaf_size) {
     if (a->size != b->size) {
         return 0;
     }
-    if (a == b) {
-        return 1;
-    }
-    if (a->size == 0 && b->size == 0) {
+    if (a == b || a->size == 0) {
         return 1;
     }
     uint32_t depth = pvector_depth(a);

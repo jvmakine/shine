@@ -12,12 +12,14 @@ typedef struct PVHead {
 } PVHead;
 
 typedef struct PVNode {
+    uint8_t depth;
     uint32_t refcount;
     uint32_t **indextable;
     void* children[BRANCH];
 } PVNode;
 
 typedef struct PVLeaf_uint16 {
+    uint8_t depth;
     uint32_t refcount;
     uint8_t size;
     uint16_t data[BRANCH];
