@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "pvector.h"
 
+#define RRB_ERROR 2
+
 uint8_t pvector_depth(PVHead *vector) {
    PVNode* node = vector->node;
     if (node == 0) {
@@ -51,7 +53,7 @@ void pleaf_free(PVLeaf_uint16 *leaf) {
     free(leaf);
 }
 
-void pnode_free(PVNode *node, int depth) {
+void pnode_free(PVNode *node) {
     if (node == 0) {
         return;
     }
@@ -65,8 +67,8 @@ void pnode_free(PVNode *node, int depth) {
     }
     for(int i = 0; i < BRANCH; ++i) {
         if (node->children[i] != 0) {
-            if (depth > 1) {
-                pnode_free(node->children[i], depth - 1);
+            if (node->depth > 1) {
+                pnode_free(node->children[i]);
             } else {
                 pleaf_free(node->children[i]);
             }
@@ -82,14 +84,13 @@ void pvector_free(PVHead *vector) {
     if (vector == 0 || vector->ref.count == 0) {
         return;
     }
-    uint8_t depth = pvector_depth(vector);
     if (vector->ref.count > 1) {
         vector->ref.count = vector->ref.count - 1;
         return;
     }
     if (vector->size > 0) {
-        if (depth > 0) {
-            pnode_free(vector->node, depth);
+        if (pvector_depth(vector) > 0) {
+            pnode_free(vector->node);
         } else {
             pleaf_free(vector->node);
         }
@@ -242,7 +243,135 @@ PVHead* pvector_append_uint16(PVHead *vector, uint16_t value) {
     return head;
 }
 
+void *pvnode_right_child(PVNode *n) {
+    int8_t i = BRANCH - 1;
+    while(i >= 0 && n->children[i--] == 0);
+    return(n->children[i + 1]);
+}
+
+uint32_t pvnode_size(PVNode *n) {
+    uint32_t sum = 0;
+    if(n->indextable != 0) {
+        uint32_t *it = *n->indextable;
+        for(uint8_t i = 0; i < BRANCH; ++i) {
+            sum += it[i];
+        }
+    } else {
+        void **children = n->children;
+        for(uint8_t i = 0; i < BRANCH; ++i) {
+             if(i == BRANCH - 1 || children[i + 1] == 0) {
+                 if (n->depth == 1) {
+                     sum += ((PVLeaf_uint16*)children[i])->size;
+                 } else {
+                     sum += pvnode_size((PVNode*)children[i]);
+                 }
+                 break;
+             } else {
+                 uint32_t s = 1 << BITS;
+                 uint8_t d = n->depth;
+                 while(d > 0) {
+                     s = s << BITS;
+                     d--;
+                 }
+                 sum += s;
+             }
+        }
+    }
+    return sum;
+}
+
+void update_index_table(PVNode *n, uint8_t isFinal) {
+    uint32_t indices[BRANCH];
+    uint8_t depth = n->depth;
+    uint8_t needed = 0;
+    uint32_t sum = 0;
+    uint8_t size = 0;
+    for(uint8_t i = 0; i < BRANCH; ++i) {
+        if (n->children[i]) {
+            if (size > 0 && size < BRANCH) {
+                needed = 1;
+            }
+            if (depth <= 1) {
+                size = ((PVLeaf_uint16*)n->children[i])->size;
+            } else {
+                size = pvnode_size(n->children[i]);
+                if (((PVNode*)n->children[i])->indextable) {
+                    needed = 1;
+                }
+            }
+            sum += size;
+            indices[i] = sum;
+        } else {
+            indices[i] = 0;
+        }
+    }
+    if (n->indextable) {
+        free(n->indextable);
+        n->indextable = 0;
+    }
+    if (needed || (size > 0 && size < BRANCH && !isFinal)) {
+        n->indextable = heap_malloc(BRANCH * sizeof(uint32_t));
+        memcpy(n->indextable, indices, BRANCH * sizeof(uint32_t));
+    }
+}
+
+uint8_t pvnode_branches(PVNode* n) {
+    uint8_t i = 0;
+    for(; i < BRANCH && n->children[i]; ++i);
+    return i;
+}
+
+void balance_level(PVNode** left, PVNode** right) {
+
+}
+
+uint32_t branching_sum(PVNode* node) {
+    uint32_t p = 0;
+    uint8_t depth = node->depth;
+    for(uint8_t i = 0; i < BRANCH; ++i) {
+        if (!node->children[i]) {
+            break;
+        }
+        if (depth > 1) {
+            p += pvnode_branches((PVNode*)node->children[i]);
+        } else {
+            p += ((PVLeaf_uint16*)node->children[i])->size;
+        }
+    }
+    return p;
+}
+
+void combine_level(PVNode** left, PVNode** right) {
+    uint32_t p = branching_sum(*left) + branching_sum(*right);
+    uint32_t a = pvnode_branches(*left) + pvnode_branches(*right);
+    uint32_t e = a - ((p - 1) >> BITS) - 1;
+    if (e > RRB_ERROR) {
+        balance_level(left, right);
+    }
+}
+
 PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
+    // Construct the paths to the rightmost leaf of left value and leftmost leaf of right value
+    void* patha[pvector_depth(a) + 1];
+    void* pathb[pvector_depth(b) + 1];
+    
+    void *na = a->node;
+    void *nb = b->node;
+    uint8_t ia = 0;
+    uint8_t ib = 0;
+
+    while (((PVNode*)na)->depth > 0) {
+        patha[ia++] = na;
+        na = pvnode_right_child(na);
+    }
+    patha[ia++] = na;
+
+    while (((PVNode*)nb)->depth > 0) {
+        pathb[ib++] = nb;
+        nb = ((PVNode*)nb)->children[0];
+    }
+    pathb[ib++] = nb;
+
     uint32_t lenb = pvector_length(b);
     PVHead *n = a;
     for(uint32_t i = 0; i < lenb; ++i) {
@@ -264,7 +393,7 @@ uint8_t pleaf_equals(void *a, void *b, uint32_t leaf_size) {
     return !memcmp(a, b, leaf_size);
 }
 
-uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t leaf_size) {
+uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t leaf_size) {
     if (a == b) {
         return 1;
     }
@@ -272,8 +401,8 @@ uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t depth, uint8_t leaf_size) {
         if (a->children[i] == 0) {
             return 1;
         }
-        if (depth > 0) {
-            if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], depth - 1, leaf_size)) {
+        if (a->depth > 0) {
+            if(!pnode_equals((PVNode*)a->children[i], (PVNode*)b->children[i], leaf_size)) {
                 return 0;
             }
         } else {
@@ -292,9 +421,8 @@ uint8_t pvector_equals(PVHead *a, PVHead *b, uint32_t leaf_size) {
     if (a == b || a->size == 0) {
         return 1;
     }
-    uint32_t depth = pvector_depth(a);
-    if (depth > 0) {
-        return pnode_equals(a->node, b->node, depth, leaf_size);
+    if (pvector_depth(a) > 0) {
+        return pnode_equals(a->node, b->node, leaf_size);
     } else {
         return pleaf_equals(a->node, b->node, leaf_size);
     }
