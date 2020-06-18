@@ -322,7 +322,8 @@ uint8_t pvnode_branches(PVNode* n) {
 }
 
 void balance_level(PVNode** left, PVNode** right) {
-
+    fprintf(stderr, "BALANCE NOT IMPLEMENTED\n");
+    exit(1);
 }
 
 uint32_t branching_sum(PVNode* node) {
@@ -357,6 +358,37 @@ void combine_level(PVNode** left, PVNode** right) {
     }
 }
 
+PVLeaf_uint16* combine_leaf_uint16(PVLeaf_uint16 *a, PVLeaf_uint16 *b, PVLeaf_uint16 **overflow) {
+    if (a->size + b->size < BRANCH) {
+        *overflow = 0;
+        PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
+        memcpy(leaf->data, a->data, a->size * sizeof(uint16_t));
+        memcpy(leaf->data + a->size, b->data, b->size * sizeof(uint16_t));
+        leaf->size = a->size + b->size;
+        return leaf;
+    } else {
+        uint32_t overflow_size = (a->size + b->size) - BRANCH;
+        *overflow = pleaf_new(sizeof(PVLeaf_uint16));
+        PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
+        memcpy(leaf->data, a->data, a->size * sizeof(uint16_t));
+        memcpy(leaf->data + a->size, b->data, (BRANCH - a->size) * sizeof(uint16_t));
+        leaf->size = BRANCH;
+
+        (*overflow)->size = overflow_size;
+        memcpy((*overflow)->data, b->data + (BRANCH - a->size), overflow_size * sizeof(uint16_t));
+        return leaf;
+    }
+}
+
+void* join_nodes(void* left, void* right, void **overflow) {
+    if (((PVLeaf_uint16*)left)->depth == 0 && ((PVLeaf_uint16*)right)->depth == 0) {
+        return combine_leaf_uint16(((PVLeaf_uint16*)left), ((PVLeaf_uint16*)right), (PVLeaf_uint16**)overflow);
+    } else {
+        fprintf(stderr, "JOIN NOT IMPLEMENTED\n");
+        exit(1);
+    }
+}
+
 PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     // Construct the paths to the rightmost leaf of left value and leftmost leaf of right value
     void* patha[pvector_depth(a) + 1];
@@ -371,26 +403,41 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
         patha[ia++] = na;
         na = pvnode_right_child(na);
     }
-    patha[ia++] = na;
+    patha[ia] = na;
 
     while (((PVNode*)nb)->depth > 0) {
         pathb[ib++] = nb;
         nb = ((PVNode*)nb)->children[0];
     }
-    pathb[ib++] = nb;
+    pathb[ib] = nb;
 
-    uint32_t lenb = pvector_length(b);
-    PVHead *n = a;
-    for(uint32_t i = 0; i < lenb; ++i) {
-        uint16_t c = pvector_get_uint16(b, i);
-        PVHead *u = pvector_append_uint16(n, c);
-        // TODO: Optimise
-        if (i > 0) {
-            pvector_free(n);
-        }
-        n = u;
+    void *l = patha[ia];
+    void *r = pathb[ib];
+    while (ia > 0 && ib > 0) {
+        ia--;
+        ib--;
+        l = patha[ia];
+        r = pathb[ib];
+        combine_level((PVNode**)&l, (PVNode**)&r);
     }
-    return n;
+    if (ib == 0 && ia == 0) {
+        void* overflow;
+        void *join = join_nodes(l, r, &overflow);
+        PVHead *head = pvector_new();
+        head->size = a->size + b->size;
+        if (overflow == 0) {
+            head->node = join;
+            return head;
+        } else {
+            PVNode *node = pnode_new(pvector_depth(a) + 1);
+            node->children[0] = join;
+            node->children[1] = overflow;
+            head->node = node;
+            return head;
+        }
+    }
+    fprintf(stderr, "UNEVEN MERGE NOT IMPLEMENTED!");
+    exit(1);
 }
 
 uint8_t pleaf_equals(void *a, void *b, uint32_t leaf_size) {

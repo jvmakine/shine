@@ -23,6 +23,16 @@ int main() {
     test_pvector_combine_performance();
 }
 
+PVHead* make_pvector(uint32_t length) {
+    PVHead *head = pvector_new();
+    for (int i = 0; i < length; ++i) {
+        PVHead *updated = pvector_append_uint16(head, i);
+        pvector_free(head);
+        head = updated;
+    }
+    return head;
+}
+
 void test_append_increases_length() {
     printf("test_append_increases_length: ");
     PVHead *head = pvector_new();
@@ -75,6 +85,8 @@ void test_append_branches() {
 
 void test_pvector_combine() {
     printf("test_pvector_combine: ");
+
+    // Test joining two nodes where the resulting size is less than BRANCH
     PVHead *a = pvector_append_uint16(pvector_append_uint16(pvector_new(), 1), 2);
     PVHead *b = pvector_append_uint16(pvector_append_uint16(pvector_new(), 3), 4);
     PVHead *res = pvector_combine_uint16(a, b);
@@ -94,6 +106,22 @@ void test_pvector_combine() {
         printf("expected res(0) == 1. Got %d\n", pvector_get_uint16(res, 0));
         exit(1);
     }
+    pvector_free(a);
+    pvector_free(b);
+    pvector_free(res);
+
+    // Test joining two leaf nodes where resulting size is greater than BRANCH
+    a = make_pvector(20);
+    b = make_pvector(20);
+    res = pvector_combine_uint16(a, b);
+     if (pvector_get_uint16(res, 32) != 12) {
+        printf("expected res(32) == 12. Got %d\n", pvector_get_uint16(res, 32));
+        exit(1);
+    }
+    pvector_free(a);
+    pvector_free(b);
+    pvector_free(res);
+
     printf("OK\n");
 }
 
@@ -112,16 +140,6 @@ void test_pvector_equality() {
         exit(1);
     }
     printf("OK\n");
-}
-
-PVHead* make_pvector(uint32_t length) {
-    PVHead *head = pvector_new();
-    for (int i = 0; i < length; ++i) {
-        PVHead *updated = pvector_append_uint16(head, i);
-        pvector_free(head);
-        head = updated;
-    }
-    return head;
 }
 
 void test_pvector_append_performance() {
