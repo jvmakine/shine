@@ -384,8 +384,31 @@ void* join_nodes(void* left, void* right, void **overflow) {
     if (((PVLeaf_uint16*)left)->depth == 0 && ((PVLeaf_uint16*)right)->depth == 0) {
         return combine_leaf_uint16(((PVLeaf_uint16*)left), ((PVLeaf_uint16*)right), (PVLeaf_uint16**)overflow);
     } else {
-        fprintf(stderr, "JOIN NOT IMPLEMENTED\n");
-        exit(1);
+        PVNode *a = (PVNode*)left;
+        PVNode *b = (PVNode*)right;
+        uint32_t asize = pvnode_branches(a);
+        uint32_t bsize = pvnode_branches(b);
+        uint8_t depth = ((PVNode*)a)->depth;
+        if (((PVNode*)b)->depth > depth) {
+            depth = ((PVNode*)b)->depth;
+        }
+
+        if (asize + bsize < BRANCH) {
+            *overflow = 0;
+            PVNode *node = pnode_new(depth);
+            memcpy(node->children, a->children, asize * sizeof(void*));
+            memcpy(node->children + asize, b->children, bsize * sizeof(void*));
+            return node;
+        } else {
+            uint32_t overflow_size = (asize + bsize) - BRANCH;
+            *overflow = pnode_new(depth);
+            PVNode *node = pnode_new(depth);
+            memcpy(node->children, a->children, asize * sizeof(void*));
+            memcpy(node->children + asize, b->children, (BRANCH - asize) * sizeof(void*));
+
+            memcpy(((PVNode*)(*overflow))->children, b->children + (BRANCH - asize), overflow_size * sizeof(void*));
+            return node;
+        }
     }
 }
 
