@@ -341,11 +341,18 @@ uint32_t branching_sum(PVNode* node) {
     return p;
 }
 
-void combine_level(PVNode** left, PVNode** right) {
-    uint32_t p = branching_sum(*left) + branching_sum(*right);
-    uint32_t a = pvnode_branches(*left) + pvnode_branches(*right);
+uint8_t needs_rebalancing(PVNode* left, PVNode* right) {
+    uint32_t p = branching_sum(left) + branching_sum(right);
+    uint32_t a = pvnode_branches(left) + pvnode_branches(right);
     uint32_t e = a - ((p - 1) >> BITS) - 1;
     if (e > RRB_ERROR) {
+        return 1;
+    }
+    return 0;
+}
+
+void combine_level(PVNode** left, PVNode** right) {
+    if (needs_rebalancing(*left, *right)) {
         balance_level(left, right);
     }
 }

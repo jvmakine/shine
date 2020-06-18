@@ -10,6 +10,7 @@ void test_pvector_combine();
 void test_pvector_equality();
 void test_pvector_append_performance();
 void test_pvector_combine_performance();
+void test_pvector_rebalancing();
 
 int main() {
     test_append_increases_length();
@@ -17,6 +18,7 @@ int main() {
     test_append_branches();
     test_pvector_combine();
     test_pvector_equality();
+    test_pvector_rebalancing();
     test_pvector_append_performance();
     test_pvector_combine_performance();
 }
@@ -112,16 +114,21 @@ void test_pvector_equality() {
     printf("OK\n");
 }
 
-void test_pvector_append_performance() {
-    printf("test_pvector_append_performance: ");
+PVHead* make_pvector(uint32_t length) {
     PVHead *head = pvector_new();
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-    for (int i = 0; i < 1000000; ++i) {
+    for (int i = 0; i < length; ++i) {
         PVHead *updated = pvector_append_uint16(head, i);
         pvector_free(head);
         head = updated;
     }
+    return head;
+}
+
+void test_pvector_append_performance() {
+    printf("test_pvector_append_performance: ");
+    struct timeval tval_before, tval_after, tval_result;
+    gettimeofday(&tval_before, NULL);
+    PVHead *head = make_pvector(1000000);
     gettimeofday(&tval_after, NULL);
     timersub(&tval_after, &tval_before, &tval_result);
     printf("append %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
@@ -153,7 +160,6 @@ void test_pvector_combine_performance() {
         pvector_free(v2);
         v2 = updated;
     }
-
     struct timeval tval_before, tval_after, tval_result;
     gettimeofday(&tval_before, NULL);
     PVHead *combined = pvector_combine_uint16(v1, v2);
@@ -181,5 +187,18 @@ void test_pvector_combine_performance() {
     timersub(&tval_after, &tval_before, &tval_result);
     printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
     pvector_free(combined);
+    printf("OK\n");
+}
+
+void test_pvector_rebalancing() {
+    printf("test_pvector_rebalancing: ");
+    PVHead *a = make_pvector(BRANCH * BRANCH + 1);
+    PVHead *b = make_pvector(BRANCH * BRANCH + 1);
+    if (needs_rebalancing(a->node, b->node)) {
+        printf("needs_rebalancing returned true\n");
+        exit(1);
+    }
+    pvector_free(a);
+    pvector_free(b);
     printf("OK\n");
 }

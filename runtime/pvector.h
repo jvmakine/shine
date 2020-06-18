@@ -34,3 +34,5 @@ uint8_t pvector_depth(PVHead *vector);
 PVHead* pvector_append_uint16(PVHead *vector, uint16_t value);
 uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index);
 PVHead* pvector_combine_uint16(PVHead *a, PVHead *b);
+
+uint8_t needs_rebalancing(PVNode* left, PVNode* right);
