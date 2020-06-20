@@ -120,9 +120,9 @@ void increment_children_refcount(PVNode *node) {
     void **children = node->children;
     for (uint8_t i = 0; i < BRANCH; ++i) {
         if (children[i] == 0) break;
-        uint32_t rc = ((PVH*)children[i])->header.refcount;
+        uint32_t rc = ((PVH*)children[i])->refcount;
         if (rc > 0) {
-            ((PVH*)(children[i]))->header.refcount = rc + 1;
+            ((PVH*)(children[i]))->refcount = rc + 1;
         }
     }
 }
