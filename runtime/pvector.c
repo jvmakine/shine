@@ -116,6 +116,17 @@ void *copy_pleaf(void *leaf, uint32_t leaf_size) {
     return res;
 }
 
+void increment_children_refcount(PVNode *node) {
+    void **children = node->children;
+    for (uint8_t i = 0; i < BRANCH; ++i) {
+        if (children[i] == 0) break;
+        uint32_t rc = ((PVLeaf_uint16*)children[i])->refcount;
+        if (rc > 0) {
+            ((PVLeaf_uint16*)(children[i]))->refcount = rc + 1;
+        }
+    }
+}
+
 PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
     uint32_t old_size = vector->size;
     uint32_t new_size = old_size + 1;
@@ -141,10 +152,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
             PVNode *vn = vector->node;
             if (vn) {
                 ((PVNode*)node)->children[0] = vn;
-                uint32_t rc = vn->refcount;
-                if (rc > 0) {
-                    vn->refcount = rc + 1;
-                }
+                increment_children_refcount((PVNode*)node);
             }
         } else {
             node = pleaf_new(leaf_size);
@@ -166,25 +174,14 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
         depth--;
         uint32_t key = (old_size >> shift) & MASK;
         void** children = ((PVNode*)node)->children;
+        increment_children_refcount((PVNode*)node);
         if (depth) {
-            for(uint8_t i = 0; i < key; i++) {
-                uint32_t rc = ((PVNode*)children[i])->refcount;
-                if (rc > 0) {
-                    ((PVNode*)children[i])->refcount = rc + 1;
-                }
-            }
             if (children[key] == 0) {
                 node = pnode_new(depth);
             } else {
                 node = copy_pnode(children[key]);
             }
         } else {
-            for(uint8_t i = 0; i < key; i++) {
-                uint32_t rc = ((PVLeaf_uint16*)children[i])->refcount;
-                if (rc > 0) {
-                    ((PVLeaf_uint16*)(children[i]))->refcount = rc + 1;
-                }
-            }
             if (children[key] == 0) {
                 node = pleaf_new(leaf_size);
             } else {
@@ -205,16 +202,18 @@ void* pvector_get_leaf(PVHead *vector, uint32_t index) {
     }
     uint8_t depth = pvector_depth(vector);
     void *node = vector->node;
+    uint32_t *it = ((PVNode*)node)->indextable;
 
     // If the index table is in use, we need to use it to adjust the index
-    while (depth && ((PVNode*)node)->indextable != 0) {
-        uint32_t *it = ((PVNode*)node)->indextable;
+    // TODO: Use binary search
+    while (depth && it != 0) {
         uint8_t i = 0;
         while (it[i] <= index) { i++; }
         if (i > 0) {
             index -= it[i - 1];
         }
         node = ((PVNode*)node)->children[i];
+        it = ((PVNode*)node)->indextable;
         depth--;
     }
 
@@ -376,16 +375,6 @@ PVLeaf_uint16* combine_leaf_uint16(PVLeaf_uint16 *a, PVLeaf_uint16 *b, PVLeaf_ui
         (*overflow)->size = overflow_size;
         memcpy((*overflow)->data, b->data + (BRANCH - a->size), overflow_size * sizeof(uint16_t));
         return leaf;
-    }
-}
-
-void increment_children_refcount(PVNode *node) {
-    void **children = node->children;
-    for (uint8_t i = 0; i < BRANCH; ++i) {
-        uint32_t rc = ((PVLeaf_uint16*)children[i])->refcount;
-        if (rc > 0) {
-            ((PVLeaf_uint16*)(children[i]))->refcount = rc + 1;
-        }
     }
 }
 
