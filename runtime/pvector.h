@@ -14,7 +14,7 @@ typedef struct PVHead {
 typedef struct PVNode {
     uint8_t depth;
     uint32_t refcount;
-    uint32_t **indextable;
+    uint32_t *indextable;
     void* children[BRANCH];
 } PVNode;
 

@@ -114,7 +114,7 @@ void test_pvector_combine() {
     a = make_pvector(20);
     b = make_pvector(20);
     res = pvector_combine_uint16(a, b);
-     if (pvector_get_uint16(res, 32) != 12) {
+    if (pvector_get_uint16(res, 32) != 12) {
         printf("expected res(32) == 12. Got %d\n", pvector_get_uint16(res, 32));
         exit(1);
     }
