@@ -11,16 +11,20 @@ typedef struct PVHead {
     void* node; 
 } PVHead;
 
-typedef struct PVNode {
+// Common header between nodes and leaves
+typedef struct PVH {
     uint8_t depth;
     uint32_t refcount;
+} PVH;
+
+typedef struct PVNode {
+    PVH header;
     uint32_t *indextable;
     void* children[BRANCH];
 } PVNode;
 
 typedef struct PVLeaf_uint16 {
-    uint8_t depth;
-    uint32_t refcount;
+    PVH header;
     uint8_t size;
     uint16_t data[BRANCH];
 } PVLeaf_uint16;
