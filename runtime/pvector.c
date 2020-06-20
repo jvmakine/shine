@@ -205,14 +205,28 @@ void* pvector_get_leaf(PVHead *vector, uint32_t index) {
     uint32_t *it = ((PVNode*)node)->indextable;
 
     // If the index table is in use, we need to use it to adjust the index
-    // TODO: Use binary search
     while (depth && it != 0) {
-        uint8_t i = 0;
-        while (it[i] <= index) { i++; }
-        if (i > 0) {
-            index -= it[i - 1];
+        uint8_t r = BRANCH - 1;
+        uint8_t l = 0;
+        // TODO: Optimise finding the right edge
+        while(r > 0 && it[r] == 0) { r--; }
+        // Binary search for the right child
+        while(r > l) {
+            uint8_t mid = l + ((r - l) >> 1);
+            uint32_t mv = it[mid];
+            if (mv == index) {
+                r = mid + 1;
+                break;
+            } else if (mv < index) {
+                l = mid + 1;
+            } else {
+                r = mid;
+            }
         }
-        node = ((PVNode*)node)->children[i];
+        if (r > 0) {
+            index -= it[r - 1];
+        }
+        node = ((PVNode*)node)->children[r];
         it = ((PVNode*)node)->indextable;
         depth--;
     }
