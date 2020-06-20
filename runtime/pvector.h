@@ -15,6 +15,7 @@ typedef struct PVHead {
 typedef struct PVH {
     uint8_t depth;
     uint32_t refcount;
+    uint32_t size;
 } PVH;
 
 typedef struct PVNode {
@@ -25,7 +26,6 @@ typedef struct PVNode {
 
 typedef struct PVLeaf_uint16 {
     PVH header;
-    uint8_t size;
     uint16_t data[BRANCH];
 } PVLeaf_uint16;
 

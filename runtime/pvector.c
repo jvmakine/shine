@@ -190,7 +190,7 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
         }
         children[key] = node;
     }
-    ((PVLeaf_uint16*)node)->size++;
+    ((PVLeaf_uint16*)node)->header.size++;
     *retval = node;
     return head;
 }
@@ -272,7 +272,7 @@ uint32_t pvnode_size(PVNode *n) {
              //if (i == BRANCH - 1 || children[i + 1] == 0) {
                  if (children[i] == 0) break;
                  if (n->header.depth == 1) {
-                     sum += ((PVLeaf_uint16*)children[i])->size;
+                     sum += ((PVLeaf_uint16*)children[i])->header.size;
                  } else {
                      sum += pvnode_size((PVNode*)children[i]);
                  }
@@ -307,7 +307,7 @@ void update_index_table(PVNode *n) {
                 needed = 1;
             }
             if (depth <= 1) {
-                size = ((PVLeaf_uint16*)n->children[i])->size;
+                size = ((PVLeaf_uint16*)n->children[i])->header.size;
             } else {
                 size = pvnode_size(n->children[i]);
             }
@@ -348,7 +348,7 @@ uint32_t branching_sum(PVNode* node) {
         if (depth > 1) {
             p += pvnode_branches((PVNode*)node->children[i]);
         } else {
-            p += ((PVLeaf_uint16*)node->children[i])->size;
+            p += ((PVLeaf_uint16*)node->children[i])->header.size;
         }
     }
     return p;
@@ -371,23 +371,23 @@ void combine_level(PVNode** left, PVNode** right) {
 }
 
 PVLeaf_uint16* combine_leaf_uint16(PVLeaf_uint16 *a, PVLeaf_uint16 *b, PVLeaf_uint16 **overflow) {
-    if (a->size + b->size <= BRANCH) {
+    if (a->header.size + b->header.size <= BRANCH) {
         *overflow = 0;
         PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
-        memcpy(leaf->data, a->data, a->size * sizeof(uint16_t));
-        memcpy(leaf->data + a->size, b->data, b->size * sizeof(uint16_t));
-        leaf->size = a->size + b->size;
+        memcpy(leaf->data, a->data, a->header.size * sizeof(uint16_t));
+        memcpy(leaf->data + a->header.size, b->data, b->header.size * sizeof(uint16_t));
+        leaf->header.size = a->header.size + b->header.size;
         return leaf;
     } else {
-        uint32_t overflow_size = (a->size + b->size) - BRANCH;
+        uint32_t overflow_size = (a->header.size + b->header.size) - BRANCH;
         *overflow = pleaf_new(sizeof(PVLeaf_uint16));
         PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
-        memcpy(leaf->data, a->data, a->size * sizeof(uint16_t));
-        memcpy(leaf->data + a->size, b->data, (BRANCH - a->size) * sizeof(uint16_t));
-        leaf->size = BRANCH;
+        memcpy(leaf->data, a->data, a->header.size * sizeof(uint16_t));
+        memcpy(leaf->data + a->header.size, b->data, (BRANCH - a->header.size) * sizeof(uint16_t));
+        leaf->header.size = BRANCH;
 
-        (*overflow)->size = overflow_size;
-        memcpy((*overflow)->data, b->data + (BRANCH - a->size), overflow_size * sizeof(uint16_t));
+        (*overflow)->header.size = overflow_size;
+        memcpy((*overflow)->data, b->data + (BRANCH - a->header.size), overflow_size * sizeof(uint16_t));
         return leaf;
     }
 }
