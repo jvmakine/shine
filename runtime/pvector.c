@@ -377,7 +377,9 @@ uint8_t needs_rebalancing(PVNode* left, PVNode* right) {
 
 PVLeaf_uint16* combine_leaf_uint16(PVLeaf_uint16 *a, PVLeaf_uint16 *b, PVLeaf_uint16 **overflow) {
     if (a->header.size + b->header.size <= BRANCH) {
-        *overflow = 0;
+        if (overflow) {
+            *overflow = 0;
+        }
         PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
         memcpy(leaf->data, a->data, a->header.size * sizeof(uint16_t));
         memcpy(leaf->data + a->header.size, b->data, b->header.size * sizeof(uint16_t));
@@ -412,7 +414,9 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
         }
 
         if (asize + bsize <= BRANCH) {
-            *overflow = 0;
+            if (overflow) {
+                *overflow = 0;
+            }
             PVNode *node = pnode_new(depth);
             memcpy(node->children, a->children, asize * sizeof(void*));
             memcpy(node->children + asize, b->children, bsize * sizeof(void*));
@@ -451,6 +455,44 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
     }
 }
 
+PVNode *pnode_replace_child(PVNode *node, uint8_t index, PVH* new_child) {
+    PVNode *n = copy_pnode(node);
+    uint32_t os = n->children[index]->size;
+    uint32_t ns = new_child->size;
+    n->children[index] = 0;
+    increment_children_refcount(n);
+    n->children[index] = new_child;
+    n->header.size -= os;
+    n->header.size += ns;
+    return n;
+}
+
+uint8_t can_join(PVH *l, PVH *r) {
+    if (l->depth == 0) {
+        if (l->size + r->size < BRANCH) {
+            return 1;
+        } else {
+            return 0;
+        }
+    } else {
+        PVNode *a = (PVNode*)l;
+        PVNode *b = (PVNode*)r;
+        if (pvnode_branches(a) + pvnode_branches(b) < BRANCH) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+}
+
+PVNode *make_parent_node(PVH *child) {
+    PVNode *n = pnode_new(child->depth + 1);
+    n->header.size = child->size;
+    n->children[0] = child;
+    child->refcount++;
+    return n;
+}
+
 PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     // Construct the paths to the rightmost leaf of left value and leftmost leaf of right value
     PVH* patha[pvector_depth(a) + 1];
@@ -458,6 +500,12 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     
     PVH* na = a->node;
     PVH* nb = b->node;
+
+    /*printf("l=");
+    printf_uint16_node(na);
+    printf(" r=");
+    printf_uint16_node(nb);
+    printf("\n");*/
 
     uint8_t ia = 0;
     uint8_t ib = 0;
@@ -478,48 +526,71 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     PVH* r = pathb[ib];
     while (ia > 0 || ib > 0) {
         uint8_t balanced = 0;
-        if (l->depth > 0 && needs_rebalancing((PVNode*)l, (PVNode*)r)) {
+        if (l && r && l->depth > 0 && needs_rebalancing((PVNode*)l, (PVNode*)r)) {
             balance_level((PVNode**)&l, (PVNode**)&r);
             balanced = 1;
         }
-
-        if (ia == 0) {
-            PVNode *n = pnode_new(l->depth + 1);
-            n->header.size = l->size;
-            n->children[0] = l;
-            l->refcount++;
-            l = (PVH*)n;
+        
+        if (l && r) {
+            if (ia == 0) {
+                if (can_join(l, r)) {
+                    l = 0;
+                    PVNode *n = (PVNode*)pathb[ib - 1];
+                    r = (PVH*)pnode_replace_child(n, 0, join_nodes(l, r, 0));
+                } else {
+                    l = (PVH*)make_parent_node(l);
+                }
+            } 
+            if (ib == 0) {
+                if (can_join(l, r)) {
+                    PVNode *n = (PVNode*)patha[ia - 1];
+                    uint8_t index = pvnode_right_child_index(n);
+                    PVNode *joined = (PVNode*)join_nodes(l, r, 0);
+                    l = (PVH*)pnode_replace_child(n, index, (PVH*)joined);
+                    r = 0;
+                } else {
+                    r = (PVH*)make_parent_node(r);
+                }
+            } 
+            if (ib > 0 && r == pathb[ib]) {
+                r = pathb[ib - 1];
+            }
+            if (ia > 0 && l == patha[ia]) {
+                l = patha[ia - 1];
+            }
+        } else if (l) {
+            PVNode *n = (PVNode*)patha[ia - 1];
+            l = (PVH*)pnode_replace_child(n, pvnode_right_child_index(n), l);
         } else {
-            l = patha[ia - 1];
+            PVNode *n = (PVNode*)pathb[ib - 1];
+            r = (PVH*)pnode_replace_child(n, 0, r);
         }
-
-        if (ib == 0) {
-            PVNode *n = pnode_new(r->depth + 1);
-            n->header.size = r->size;
-            n->children[0] = r;
-            r->refcount++;
-            r = (PVH*)n;
-        } else {
-            r = pathb[ib - 1];
-        }
-
         if (ia > 0) ia--;
         if (ib > 0) ib--;
     }
     PVH *result;
     PVH *overflow;
-    result = join_nodes(l, r, &overflow);
-    if (overflow) {
-        PVNode *node = pnode_new(result->depth + 1);
-        node->header.size = result->size + overflow->size;
-        node->children[0] = result;
-        node->children[1] = overflow;
-        update_index_table(node);
-        result = (PVH*)node;
+    if (l && r) {
+        result = join_nodes(l, r, &overflow);
+        if (overflow) {
+            PVNode *node = pnode_new(result->depth + 1);
+            node->header.size = result->size + overflow->size;
+            node->children[0] = result;
+            node->children[1] = overflow;
+            update_index_table(node);
+            result = (PVH*)node;
+        }
+    } else if (l) {
+        result = l;
+    } else {
+        result = r;
     }
     PVHead *head = pvector_new();
     head->size = a->size + b->size;
     head->node = result;
+    /*printf("result=");
+    printf_uint16_node(result);
+    printf("\n");*/
     return head;
 }
 
