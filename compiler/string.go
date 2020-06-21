@@ -13,8 +13,8 @@ import (
 const PV_BITS = 5
 const PV_BRANCH = 1 << PV_BITS
 
-var LeafType = types.NewStruct(types.I8, types.I32, types.I8, types.NewArray(PV_BRANCH, types.I16))
-var NodeType = types.NewStruct(types.I8, types.I32, types.I8Ptr, types.NewArray(PV_BRANCH, types.I8Ptr))
+var LeafType = types.NewStruct(types.I8, types.I32, types.I32, types.NewArray(PV_BRANCH, types.I16))
+var NodeType = types.NewStruct(types.I8, types.I32, types.I32, types.I8Ptr, types.NewArray(PV_BRANCH, types.I8Ptr))
 
 func (c *context) makeStringRefRoot(str string) value.Value {
 	if c.global.strings[str] != nil {
@@ -64,7 +64,7 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 			i++
 		}
 		arr := constant.NewArray(nil, cs...)
-		l := constant.NewStruct(LeafType, zero8, zero32, constant.NewInt(types.I8, int64(w)), arr)
+		l := constant.NewStruct(LeafType, zero8, zero32, constant.NewInt(types.I32, int64(w)), arr)
 		nodes = append(nodes, l)
 	}
 
@@ -75,6 +75,8 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) (*ir.Global, int) {
 	depth := 0
 	zero := constant.NewInt(types.I32, 0)
+	// TODO: Get proper size
+	size := 0
 	for count > 1 {
 		depth++
 		nodes := []constant.Constant{}
@@ -93,7 +95,7 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 				i++
 			}
 			arr := constant.NewArray(nil, cs...)
-			l := constant.NewStruct(NodeType, constant.NewInt(types.I8, int64(depth)), zero, constant.NewNull(types.I8Ptr), arr)
+			l := constant.NewStruct(NodeType, constant.NewInt(types.I8, int64(depth)), zero, constant.NewInt(types.I32, int64(size)), constant.NewNull(types.I8Ptr), arr)
 			nodes = append(nodes, l)
 		}
 		count = len(nodes)
