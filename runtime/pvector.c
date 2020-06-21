@@ -386,6 +386,10 @@ PVLeaf_uint16* combine_leaf_uint16(PVLeaf_uint16 *a, PVLeaf_uint16 *b, PVLeaf_ui
         leaf->header.size = a->header.size + b->header.size;
         return leaf;
     } else {
+        if (!overflow) {
+            fprintf(stderr, "overflow required\n");
+            exit(1);
+        }
         uint32_t overflow_size = (a->header.size + b->header.size) - BRANCH;
         *overflow = pleaf_new(sizeof(PVLeaf_uint16));
         PVLeaf_uint16 *leaf = pleaf_new(sizeof(PVLeaf_uint16));
@@ -426,6 +430,10 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
             node->header.size = a->header.size + b->header.size;
             return (PVH*)node;
         } else {
+            if (!overflow) {
+                fprintf(stderr, "overflow required\n");
+                exit(1);
+            }
             uint32_t overflow_branches = (asize + bsize) - BRANCH;
             *overflow = (PVH*)pnode_new(depth);
             PVNode *node = pnode_new(depth);
@@ -622,16 +630,17 @@ uint8_t pnode_equals(PVNode *a, PVNode *b, uint8_t leaf_size) {
     return 1;
 }
 
-uint8_t pvector_equals(PVHead *a, PVHead *b, uint32_t leaf_size) {
+uint8_t pvector_equals_uint16(PVHead *a, PVHead *b) {
     if (a->size != b->size) {
         return 0;
     }
     if (a == b || a->size == 0) {
         return 1;
     }
-    if (pvector_depth(a) > 0) {
-        return pnode_equals((PVNode*)a->node, (PVNode*)b->node, leaf_size);
-    } else {
-        return pleaf_equals(a->node, b->node, leaf_size);
+    for (uint32_t i = 0; i < a->size; ++i) {
+        if (pvector_get_uint16(a, i) != pvector_get_uint16(b, i)) {
+            return 0;
+        }
     }
+    return 1;
 }

@@ -218,7 +218,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
 		case "==":
 			if from.Params[0].Type().IsString() {
-				v := ctx.Block.NewCall(ctx.global.utils.PVEqual, params[0].value, params[1].value, constant.NewInt(types.I32, 2))
+				v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, params[0].value, params[1].value)
 				r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
 				return makeCR(exp, r)
 			}

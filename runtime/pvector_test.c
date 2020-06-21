@@ -173,13 +173,13 @@ void test_pvector_equality() {
     printf("test_pvector_equality: ");
     PVHead *a = pvector_append_uint16(pvector_append_uint16(pvector_new(), 1), 2);
     PVHead *b = pvector_append_uint16(pvector_append_uint16(pvector_new(), 1), 2);
-    if (!pvector_equals(a, b, sizeof(PVLeaf_uint16))) {
+    if (!pvector_equals_uint16(a, b)) {
         printf("independent identical vectors were not equal\n");
         exit(1);
     }
     PVHead *aa = pvector_append_uint16(a, 4);
     PVHead *bb = pvector_append_uint16(b, 5);
-    if (pvector_equals(aa, bb, sizeof(PVLeaf_uint16))) {
+    if (pvector_equals_uint16(aa, bb)) {
         printf("different vectors were equal\n");
         exit(1);
     }

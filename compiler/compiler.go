@@ -20,7 +20,7 @@ type utils struct {
 	printBool   *ir.Func
 	printString *ir.Func
 
-	PVEqual     *ir.Func
+	PVEqual16   *ir.Func
 	PVCombine16 *ir.Func
 }
 
@@ -33,7 +33,7 @@ func makeUtils(m *ir.Module) *utils {
 		printReal:   m.NewFunc("print_real", types.Void, ir.NewParam("p", RealType)),
 		printBool:   m.NewFunc("print_bool", types.Void, ir.NewParam("p", BoolType)),
 		printString: m.NewFunc("print_string", types.Void, ir.NewParam("p", StringPType)),
-		PVEqual:     m.NewFunc("pvector_equals", types.I8, ir.NewParam("s1", types.I8Ptr), ir.NewParam("s2", types.I8Ptr), ir.NewParam("elemsize", types.I32)),
+		PVEqual16:   m.NewFunc("pvector_equals_uint16", types.I8, ir.NewParam("s1", types.I8Ptr), ir.NewParam("s2", types.I8Ptr)),
 		PVCombine16: m.NewFunc("pvector_combine_uint16", types.I8Ptr, ir.NewParam("l", types.I8Ptr), ir.NewParam("r", types.I8Ptr)),
 	}
 }
