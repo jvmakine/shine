@@ -35,7 +35,7 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 	arrayType := types.NewArray(uint64(count), LeafType)
 
 	if depth > 0 {
-		gd, count = makePVNodes(c, count, arrayType, gd, stringID)
+		gd, count = makePVNodes(c, count, arrayType, gd, stringID, len(str))
 		arrayType = types.NewArray(uint64(count), NodeType)
 	}
 	ptr := constant.NewGetElementPtr(arrayType, gd, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, 0))
@@ -72,18 +72,23 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 	return c.global.Module.NewGlobalDef(id, array), len(nodes)
 }
 
-func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string) (*ir.Global, int) {
-	depth := 0
+func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string, maxlen int) (*ir.Global, int) {
+	var depth uint = 0
 	zero := constant.NewInt(types.I32, 0)
-	// TODO: Get proper size
-	size := 0
 	for count > 1 {
 		depth++
 		nodes := []constant.Constant{}
 		n := 0
+		cumSize := 0
 		for n < count {
 			i := 0
 			cs := make([]constant.Constant, PV_BRANCH)
+			size := 1 << depth
+			cumSize += size
+			if cumSize > maxlen {
+				size -= cumSize - maxlen
+				cumSize = maxlen
+			}
 			for i < PV_BRANCH {
 				if n < count {
 					ptr := constant.NewGetElementPtr(arrayType, src, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(n)))
@@ -100,7 +105,7 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 		}
 		count = len(nodes)
 		array := constant.NewArray(nil, nodes...)
-		src = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(depth), array)
+		src = c.global.Module.NewGlobalDef(id+"%"+strconv.Itoa(int(depth)), array)
 		arrayType = types.NewArray(uint64(count), NodeType)
 	}
 	return src, count
