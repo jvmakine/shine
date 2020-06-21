@@ -122,6 +122,29 @@ void test_pvector_combine() {
     pvector_free(b);
     pvector_free(res);
 
+    // Test joining to nodes of differing sizes
+    a = make_pvector(BRANCH / 2);
+    b = make_pvector(BRANCH * 2);
+    res = pvector_combine_uint16(a, b);
+    for (uint32_t i = 0; i < BRANCH / 2; ++i) {
+        if (pvector_get_uint16(res, i) != i) {
+            printf("differing sizes 1: ");
+            printf("expected res(%d) == %d. Got %d\n", i, i, pvector_get_uint16(res, i));
+            exit(1);
+        }
+    }
+    for (uint32_t i = 0; i < BRANCH * 2; ++i) {
+        uint32_t ri = i + BRANCH / 2;
+        if (pvector_get_uint16(res, ri) != i) {
+            printf("differing sizes 2: ");
+            printf("expected res(%d) == %d. Got %d\n", ri, i, pvector_get_uint16(res, ri));
+            exit(1);
+        }
+    }
+    pvector_free(a);
+    pvector_free(b);
+    pvector_free(res);
+
     printf("OK\n");
 }
 
