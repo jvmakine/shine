@@ -235,7 +235,7 @@ void test_pvector_rebalancing() {
     printf("test_pvector_rebalancing: ");
     PVHead *a = make_pvector(BRANCH * BRANCH + 1);
     PVHead *b = make_pvector(BRANCH * BRANCH + 1);
-    if (needs_rebalancing(a->node, b->node)) {
+    if (needs_rebalancing((PVNode*)a->node, (PVNode*)b->node)) {
         printf("needs_rebalancing returned true\n");
         exit(1);
     }

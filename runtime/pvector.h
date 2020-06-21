@@ -5,12 +5,6 @@
 #define BRANCH (1<<BITS)
 #define MASK (BRANCH-1)
 
-typedef struct PVHead {
-    RefCount ref;
-    uint32_t size;
-    void* node; 
-} PVHead;
-
 // Common header between nodes and leaves
 typedef struct PVH {
     uint8_t depth;
@@ -18,10 +12,16 @@ typedef struct PVH {
     uint32_t size;
 } PVH;
 
+typedef struct PVHead {
+    RefCount ref;
+    uint32_t size;
+    PVH* node; 
+} PVHead;
+
 typedef struct PVNode {
     PVH header;
     uint32_t *indextable;
-    void* children[BRANCH];
+    PVH* children[BRANCH];
 } PVNode;
 
 typedef struct PVLeaf_uint16 {

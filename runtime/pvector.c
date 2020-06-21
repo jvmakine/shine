@@ -39,11 +39,11 @@ void printf_uint16_node(PVH *node) {
 }
 
 uint8_t pvector_depth(PVHead *vector) {
-   PVNode* node = vector->node;
+   PVH* node = vector->node;
     if (node == 0) {
         return 0;
     }
-    return node->header.depth;
+    return node->depth;
 }
 
 uint32_t pvector_length(PVHead *vector) {
@@ -74,14 +74,14 @@ void *pleaf_new(uint32_t leaf_size) {
     return (void*)leaf;
 }
 
-void pleaf_free(PVLeaf_uint16 *leaf) {
+void pleaf_free(PVH *leaf) {
     // TODO: release references properly
-    uint32_t rc = leaf->header.refcount;
+    uint32_t rc = leaf->refcount;
     if (rc == 0) {
         return;
     }
     if (rc > 1) {
-        leaf->header.refcount = rc - 1;
+        leaf->refcount = rc - 1;
         return;
     }
     free(leaf);
@@ -102,7 +102,7 @@ void pnode_free(PVNode *node) {
     for(int i = 0; i < BRANCH; ++i) {
         if (node->children[i] != 0) {
             if (node->header.depth > 1) {
-                pnode_free(node->children[i]);
+                pnode_free((PVNode*)node->children[i]);
             } else {
                 pleaf_free(node->children[i]);
             }
@@ -124,7 +124,7 @@ void pvector_free(PVHead *vector) {
     }
     if (vector->size > 0) {
         if (pvector_depth(vector) > 0) {
-            pnode_free(vector->node);
+            pnode_free((PVNode*)vector->node);
         } else {
             pleaf_free(vector->node);
         }
@@ -143,15 +143,15 @@ PVNode *copy_pnode(PVNode* node) {
     return res;
 }
 
-void *copy_pleaf(void *leaf, uint32_t leaf_size) {
-    void *res = heap_malloc(leaf_size);
+void *copy_pleaf(PVH *leaf, uint32_t leaf_size) {
+    PVH *res = heap_malloc(leaf_size);
     memcpy(res, leaf, leaf_size);
-    ((PVLeaf_uint16*)res)->header.refcount = 1;
+    res->refcount = 1;
     return res;
 }
 
 void increment_children_refcount(PVNode *node) {
-    void **children = node->children;
+    PVH **children = node->children;
     for (uint8_t i = 0; i < BRANCH; ++i) {
         // Can not break here, as sometimes we disable children to be replaced before the call
         if (children[i] != 0) {
@@ -181,13 +181,13 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
         depth = 0;
         new_node = 1;
     }
-    void *node = 0;
+    PVH *node = 0;
     if (new_node || vector->node == 0) {
         if (depth > 0) {
-            node = pnode_new(depth);
-            PVNode *vn = vector->node;
+            node = (PVH*)pnode_new(depth);
+            PVNode *vn = (PVNode*)vector->node;
             if (vn) {
-                ((PVNode*)node)->children[0] = vn;
+                ((PVNode*)node)->children[0] = (PVH*)vn;
                  ((PVNode*)node)->header.size = vn->header.size;
                 increment_children_refcount((PVNode*)node);
             }
@@ -196,33 +196,33 @@ PVHead* pvector_append_leaf(PVHead *vector, uint32_t leaf_size, void **retval) {
         }
     } else {
         if (depth > 0) {
-            node = copy_pnode(vector->node);
+            node = (PVH*)copy_pnode((PVNode*)vector->node);
          } else {
-             node = copy_pleaf(vector->node, leaf_size);
+             node = (PVH*)copy_pleaf(vector->node, leaf_size);
          }
     }
 
     PVHead *head = pvector_new();
-    head->node = (PVNode*)node;
+    head->node = node;
     head->size = new_size;
     ((PVH*)node)->size++;
     while (depth) {
         uint8_t shift = depth*BITS;
         depth--;
         uint32_t key = (old_size >> shift) & MASK;
-        void** children = ((PVNode*)node)->children;
+        PVH** children = ((PVNode*)node)->children;
         increment_children_refcount((PVNode*)node);
         if (depth) {
             if (children[key] == 0) {
-                node = pnode_new(depth);
+                node = (PVH*)pnode_new(depth);
             } else {
-                node = copy_pnode(children[key]);
+                node = (PVH*)copy_pnode((PVNode*)children[key]);
             }
         } else {
             if (children[key] == 0) {
-                node = pleaf_new(leaf_size);
+                node = (PVH*)pleaf_new(leaf_size);
             } else {
-                node = copy_pleaf(children[key], leaf_size);
+                node = (PVH*)copy_pleaf(children[key], leaf_size);
             }
         }
         children[key] = node;
@@ -559,7 +559,7 @@ uint8_t pvector_equals(PVHead *a, PVHead *b, uint32_t leaf_size) {
         return 1;
     }
     if (pvector_depth(a) > 0) {
-        return pnode_equals(a->node, b->node, leaf_size);
+        return pnode_equals((PVNode*)a->node, (PVNode*)b->node, leaf_size);
     } else {
         return pleaf_equals(a->node, b->node, leaf_size);
     }
