@@ -542,9 +542,10 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
         if (l && r) {
             if (ia == 0) {
                 if (can_join(l, r)) {
-                    l = 0;
                     PVNode *n = (PVNode*)pathb[ib - 1];
-                    r = (PVH*)pnode_replace_child(n, 0, join_nodes(l, r, 0));
+                    PVNode *joined = (PVNode*)join_nodes(l, r, 0);
+                    r = (PVH*)pnode_replace_child(n, 0, (PVH*)joined);
+                    l = 0;
                 } else {
                     l = (PVH*)make_parent_node(l);
                 }
