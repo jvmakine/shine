@@ -73,7 +73,7 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 }
 
 func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string, maxlen int) (*ir.Global, int) {
-	var depth uint = 0
+	var depth int = 0
 	zero := constant.NewInt(types.I32, 0)
 	for count > 1 {
 		depth++
@@ -83,7 +83,12 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 		for n < count {
 			i := 0
 			cs := make([]constant.Constant, PV_BRANCH)
-			size := 1 << depth
+			d := 0
+			size := 1 << PV_BITS
+			for d < depth {
+				size = size << PV_BITS
+				d++
+			}
 			cumSize += size
 			if cumSize > maxlen {
 				size -= cumSize - maxlen
