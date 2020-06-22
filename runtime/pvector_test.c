@@ -187,6 +187,35 @@ void test_pvector_combine() {
     }
     pvector_free(res);
 
+    PVHead *res2;
+    // Test joins that need rebalancing
+    a = make_pvector(30);
+    b = make_pvector(30);
+
+    for (uint32_t i = 0; i < 6; ++i) {
+        res = pvector_combine_uint16(a, b);
+        res2 = pvector_combine_uint16(a, b);
+        pvector_free(a);
+        pvector_free(b);
+
+        a = res;
+        b = res2;
+    }
+    res = pvector_combine_uint16(a, b);
+    pvector_free(a);
+    pvector_free(b);
+
+    if (pvector_length(res) != 30 << 7) {
+        printf("expected new vector size to be 30 << 7. Got %d\n", pvector_length(res));
+        exit(1);
+    }
+     for (uint32_t i = 0; i < pvector_length(res); ++i) {
+        if (pvector_get_uint16(res, i) != i % 30) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 30, pvector_get_uint16(res, i));
+            exit(1);
+        }
+    }
+
     printf("OK\n");
 }
 
