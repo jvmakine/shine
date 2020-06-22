@@ -9,7 +9,7 @@ times = (n, f, res) => {
 S = (a, b)
 a = (x, f) => (y) => { f(x, y) }
 b = (n) => {
-    s = S(1, "foo" + "bar")
+    s = S(1, "foooooooooooooooo" + "baaaaaaaaaaaaaaar")
     r = a(1, (x, y) => { x + y + s.a })
     r(n) 
 }
