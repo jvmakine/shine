@@ -273,10 +273,14 @@ void update_index_table(PVNode *n) {
     }
 }
 
-uint8_t pvnode_branches(PVNode* n) {
-    uint8_t i = 0;
-    for(; i < BRANCH && n->children[i]; ++i);
-    return i;
+uint8_t pvnode_branching(PVH* n) {
+    if (n->depth > 0) {
+        uint8_t i = 0;
+        for(; i < BRANCH && ((PVNode*)n)->children[i]; ++i);
+        return i;
+    } else {
+        return n->size;
+    }
 }
 
 void balance_level(PVNode** left, PVNode** right) {
@@ -294,11 +298,7 @@ uint32_t branching_sum(PVNode* node) {
         if (!node->children[i]) {
             break;
         }
-        if (depth > 1) {
-            p += pvnode_branches((PVNode*)node->children[i]);
-        } else {
-            p += ((PVH*)node->children[i])->size;
-        }
+        p += pvnode_branching(node->children[i]);
     }
     return p;
 }
@@ -306,7 +306,7 @@ uint32_t branching_sum(PVNode* node) {
 uint8_t needs_rebalancing(PVNode* left, PVNode* right) {
     if (left == 0 || right == 0) return 0;
     uint32_t p = branching_sum(left) + branching_sum(right);
-    uint32_t a = pvnode_branches(left) + pvnode_branches(right);
+    uint32_t a = pvnode_branching((PVH*)left) + pvnode_branching((PVH*)right);
     int e = a - ((p - 1) >> BITS) - 1;
     if (e > RRB_ERROR) {
         return 1;
@@ -348,8 +348,8 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
     } else {
         PVNode *a = (PVNode*)left;
         PVNode *b = (PVNode*)right;
-        uint32_t asize = pvnode_branches(a);
-        uint32_t bsize = pvnode_branches(b);
+        uint32_t asize = pvnode_branching(left);
+        uint32_t bsize = pvnode_branching(right);
         uint8_t depth = ((PVNode*)a)->header.depth;
         if (((PVNode*)b)->header.depth != depth) {
             fprintf(stderr, "join error, depth mismatch\n");
@@ -423,9 +423,7 @@ uint8_t can_join(PVH *l, PVH *r) {
             return 0;
         }
     } else {
-        PVNode *a = (PVNode*)l;
-        PVNode *b = (PVNode*)r;
-        if (pvnode_branches(a) + pvnode_branches(b) <= BRANCH) {
+        if (pvnode_branching(l) + pvnode_branching(r) <= BRANCH) {
             return 1;
         } else {
             return 0;
