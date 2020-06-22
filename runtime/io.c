@@ -20,7 +20,8 @@ void print_bool(int8_t b) {
 }
 
 void print_string(PVHead *str) {
-    for (int i = 0; i < str->size; ++i) {
+    uint32_t size = str->size;
+    for (int i = 0; i < size; ++i) {
         uint16_t c = pvector_get_uint16(str, i);
         uint32_t code = c;
         if (code > 0xd7ff && code < 0xe000) {
