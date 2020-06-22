@@ -472,6 +472,7 @@ PVNode *pnode_replace_child(PVNode *node, uint8_t index, PVH* new_child) {
     n->children[index] = new_child;
     n->header.size -= os;
     n->header.size += ns;
+    update_index_table(n);
     return n;
 }
 

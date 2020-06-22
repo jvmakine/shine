@@ -179,6 +179,12 @@ void test_pvector_combine() {
         printf("expected new vector size to be 1000. Got %d\n", pvector_length(res));
         exit(1);
     }
+    for (uint32_t i = 0; i < 10*200; ++i) {
+        if (pvector_get_uint16(res, i) != i % 10) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 10, pvector_get_uint16(res, i));
+            exit(1);
+        }
+    }
     pvector_free(res);
 
     printf("OK\n");
