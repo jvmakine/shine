@@ -453,12 +453,6 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     PVH* patha[na->depth + 1];
     PVH* pathb[nb->depth + 1];
 
-    /*printf("l=");
-    printf_uint16_node(na);
-    printf(" r=");
-    printf_uint16_node(nb);
-    printf("\n");*/
-
     uint8_t ia = 0;
     uint8_t ib = 0;
 
@@ -539,9 +533,6 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     PVHead *head = pvector_new();
     head->size = a->size + b->size;
     head->node = result;
-    /*printf("result=");
-    printf_uint16_node(result);
-    printf("\n");*/
     return head;
 }
 
@@ -601,6 +592,7 @@ void balance_level(PVNode** left, PVNode** right) {
     new_right->header.size = rsize;
     if (rsize == 0) {
         //TODO: Implement
+        fprintf(stderr, "Right hand side eliminated in balancing. Implement.");
         exit(1);
     }
     update_index_table(new_left);
