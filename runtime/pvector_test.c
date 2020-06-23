@@ -10,7 +10,7 @@ void test_pvector_combine();
 void test_pvector_equality();
 void test_pvector_append_performance();
 void test_pvector_combine_performance();
-void test_pvector_rebalancing();
+void test_pvector_balancing_performance();
 
 int main() {
     test_append_increases_length();
@@ -18,9 +18,9 @@ int main() {
     test_append_branches();
     test_pvector_combine();
     test_pvector_equality();
-    test_pvector_rebalancing();
     test_pvector_append_performance();
     test_pvector_combine_performance();
+    test_pvector_balancing_performance();
 }
 
 PVHead* make_pvector(uint32_t length) {
@@ -244,7 +244,7 @@ void test_pvector_append_performance() {
     PVHead *head = make_pvector(1000000);
     gettimeofday(&tval_after, NULL);
     timersub(&tval_after, &tval_before, &tval_result);
-    printf("append %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+    printf("construct %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
     
     gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
@@ -285,7 +285,7 @@ void test_pvector_combine_performance() {
         printf("expected combined->size == %d. Got %d\n", 1000000, combined->size);
         exit(1);
     }
-    printf("combine %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+    printf("construct %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
 
     gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
@@ -303,15 +303,43 @@ void test_pvector_combine_performance() {
     printf("OK\n");
 }
 
-void test_pvector_rebalancing() {
-    printf("test_pvector_rebalancing: ");
-    PVHead *a = make_pvector(BRANCH * BRANCH + 1);
-    PVHead *b = make_pvector(BRANCH * BRANCH + 1);
-    if (needs_rebalancing((PVNode*)a->node, (PVNode*)b->node)) {
-        printf("needs_rebalancing returned true\n");
-        exit(1);
+void test_pvector_balancing_performance() {
+    printf("test_pvector_balancing_performance: ");
+    PVHead *a = make_pvector(30);
+    PVHead *b = make_pvector(30);
+    PVHead *res;
+    PVHead *res2;
+
+    struct timeval tval_before, tval_after, tval_result;
+    gettimeofday(&tval_before, NULL);
+
+    for (uint32_t i = 0; i < 14; ++i) {
+        PVHead *res = pvector_combine_uint16(a, b);
+        res2 = pvector_combine_uint16(a, b);
+        pvector_free(a);
+        pvector_free(b);
+
+        a = res;
+        b = res2;
     }
+    res = pvector_combine_uint16(a, b);
     pvector_free(a);
     pvector_free(b);
+
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    printf("construct %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+
+    gettimeofday(&tval_before, NULL);
+    for (uint32_t i = 0; i < pvector_length(res); ++i) {
+        if (pvector_get_uint16(res, i) != i % 30) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 30, pvector_get_uint16(res, i));
+            exit(1);
+        }
+    }
+    gettimeofday(&tval_after, NULL);
+    timersub(&tval_after, &tval_before, &tval_result);
+    printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
+
     printf("OK\n");
 }
