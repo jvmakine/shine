@@ -5,6 +5,8 @@
 
 #define RRB_ERROR 2
 
+void balance_level(PVNode** left, PVNode** right);
+
 void printf_uint16_node(PVH *node) {
     uint8_t d = node->depth;
     printf("{");
@@ -283,11 +285,6 @@ uint8_t pvnode_branching(PVH* n) {
     }
 }
 
-void balance_level(PVNode** left, PVNode** right) {
-    fprintf(stderr, "BALANCE NOT IMPLEMENTED\n");
-    exit(1);
-}
-
 uint32_t branching_sum(PVNode* node) {
     uint32_t p = 0;
     uint8_t depth = node->header.depth;
@@ -506,10 +503,10 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
                     r = (PVH*)make_parent_node(r);
                 }
             } 
-            if (ib > 0 && r == pathb[ib]) {
+            if (ib > 0 && (r == pathb[ib] || balanced)) {
                 r = pathb[ib - 1];
             }
-            if (ia > 0 && l == patha[ia]) {
+            if (ia > 0 && (l == patha[ia] || balanced)) {
                 l = patha[ia - 1];
             }
         } else if (l) {
@@ -546,6 +543,70 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     printf_uint16_node(result);
     printf("\n");*/
     return head;
+}
+
+void balance_level(PVNode** left, PVNode** right) {
+    PVNode *new_left = copy_pnode(*left);
+    PVNode *new_right = copy_pnode(*right);
+    PVH *l = (*left)->children[0];
+    PVH *r = 0;
+    uint8_t i = 0;
+    uint8_t ls = pvnode_branching(l);
+    uint32_t lsize = 0;
+    uint32_t rsize = 0;
+
+    for (uint8_t i = 1; i < (BRANCH << 1); ++i) {
+        if (l) {
+            if (i < BRANCH) {
+                r = new_left->children[i];
+            } else {
+                r = new_right->children[i - BRANCH];
+            }
+            PVH *overflow;
+            PVH *join = join_nodes(l, r, &overflow);
+            if (i > 1 && l) {
+                if (l->depth > 0) pnode_free((PVNode*)l);
+                else pleaf_free(l);
+            }
+            l = overflow;
+            if (i - 1 < BRANCH) {
+                new_left->children[i - 1] = join;
+                lsize += join->size;
+            } else {
+                new_right->children[i - 1 - BRANCH] = join;
+                rsize += join->size;
+            }
+        } else {
+            if (i < BRANCH) {
+                r = new_left->children[i];
+            } else {
+                r = new_right->children[i - BRANCH];
+            }
+             if (i - 1 < BRANCH) {
+                new_left->children[i - 1] = r;
+                lsize += r->size;
+            } else {
+                new_right->children[i - 1 - BRANCH] = r;
+                rsize += r->size;
+            }
+            r->refcount++;
+        }
+    }
+    if (l) {
+        fprintf(stderr, "balance failed to compress a vector\n");
+        exit(1);
+    }
+    new_right->children[BRANCH - 1] = 0;
+    new_left->header.size = lsize;
+    new_right->header.size = rsize;
+    if (rsize == 0) {
+        //TODO: Implement
+        exit(1);
+    }
+    update_index_table(new_left);
+    update_index_table(new_right);
+    *left = new_left;
+    *right = new_right;
 }
 
 uint8_t pvector_equals_uint16(PVHead *a, PVHead *b) {

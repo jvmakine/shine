@@ -40,3 +40,5 @@ uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index);
 PVHead* pvector_combine_uint16(PVHead *a, PVHead *b);
 
 uint8_t needs_rebalancing(PVNode* left, PVNode* right);
+
+void printf_uint16_node(PVH *node);

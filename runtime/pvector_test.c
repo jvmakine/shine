@@ -188,6 +188,7 @@ void test_pvector_combine() {
     pvector_free(res);
 
     PVHead *res2;
+    
     // Test joins that need rebalancing
     a = make_pvector(30);
     b = make_pvector(30);
