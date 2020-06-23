@@ -545,7 +545,6 @@ void balance_level(PVNode** left, PVNode** right) {
     uint8_t ls = pvnode_branching(l);
     uint32_t lsize = 0;
     uint32_t rsize = 0;
-
     for (uint8_t i = 1; i < (BRANCH << 1); ++i) {
         if (l) {
             if (i < BRANCH) {
@@ -575,12 +574,12 @@ void balance_level(PVNode** left, PVNode** right) {
             }
              if (i - 1 < BRANCH) {
                 new_left->children[i - 1] = r;
-                lsize += r->size;
+                if (r) lsize += r->size;
             } else {
                 new_right->children[i - 1 - BRANCH] = r;
-                rsize += r->size;
+                if (r) rsize += r->size;
             }
-            r->refcount++;
+            if (r) r->refcount++;
         }
     }
     if (l) {

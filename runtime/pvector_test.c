@@ -305,15 +305,15 @@ void test_pvector_combine_performance() {
 
 void test_pvector_balancing_performance() {
     printf("test_pvector_balancing_performance: ");
-    PVHead *a = make_pvector(15);
-    PVHead *b = make_pvector(15);
+    PVHead *a = make_pvector(7);
+    PVHead *b = make_pvector(7);
     PVHead *res;
     PVHead *res2;
 
     struct timeval tval_before, tval_after, tval_result;
     gettimeofday(&tval_before, NULL);
 
-    for (uint32_t i = 0; i < 15; ++i) {
+    for (uint32_t i = 0; i < 17; ++i) {
         PVHead *res = pvector_combine_uint16(a, b);
         res2 = pvector_combine_uint16(a, b);
         pvector_free(a);
@@ -332,7 +332,7 @@ void test_pvector_balancing_performance() {
 
     gettimeofday(&tval_before, NULL);
     for (uint32_t i = 0; i < pvector_length(res); ++i) {
-        if (pvector_get_uint16(res, i) != i % 15) {
+        if (pvector_get_uint16(res, i) != i % 7) {
             printf("expected res(%d) == %d. Got %d\n", i, i % 15, pvector_get_uint16(res, i));
             exit(1);
         }
