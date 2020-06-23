@@ -313,7 +313,7 @@ void test_pvector_balancing_performance() {
     struct timeval tval_before, tval_after, tval_result;
     gettimeofday(&tval_before, NULL);
 
-    for (uint32_t i = 0; i < 17; ++i) {
+    for (uint32_t i = 0; i < 16; ++i) {
         PVHead *res = pvector_combine_uint16(a, b);
         res2 = pvector_combine_uint16(a, b);
         pvector_free(a);
@@ -341,5 +341,5 @@ void test_pvector_balancing_performance() {
     timersub(&tval_after, &tval_before, &tval_result);
     printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
 
-    printf("OK\n");
+    printf("OK %d");
 }
