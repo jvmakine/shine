@@ -41,7 +41,7 @@ void free_rc(RefCount* ref) {
     }
     uint8_t t = ref->type;
     if (t == MEM_PVECTOR) {
-        pvector_free((PVHead*)ref);
+        pv_free((PVHead*)ref);
     } else if (t == MEM_STRUCT) {
         free_structure((Structure*)ref);
     } else if (t == MEM_CLOSURE) {

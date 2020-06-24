@@ -29,15 +29,15 @@ typedef struct PVLeaf_uint16 {
     uint16_t data[BRANCH];
 } PVLeaf_uint16;
 
-PVHead* pvector_new();
-uint32_t pvector_length(PVHead *vector);
-void pvector_free(PVHead *vector);
-uint8_t pvector_equals_uint16(PVHead *a, PVHead *b);
-uint8_t pvector_depth(PVHead *vector);
+PVHead* pv_new();
+uint32_t pv_length(PVHead *vector);
+void pv_free(PVHead *vector);
+uint8_t pv_16_equals(PVHead *a, PVHead *b);
+uint8_t pv_depth(PVHead *vector);
 
-PVHead* pvector_append_uint16(PVHead *vector, uint16_t value);
-uint16_t  pvector_get_uint16(PVHead *vector, uint32_t index);
-PVHead* pvector_combine_uint16(PVHead *a, PVHead *b);
+PVHead* pv_16_append(PVHead *vector, uint16_t value);
+uint16_t  pv_get_uint16(PVHead *vector, uint32_t index);
+PVHead* pv_concatenate(PVHead *a, PVHead *b);
 
-uint8_t needs_rebalancing(PVNode* left, PVNode* right);
-void balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut);
+uint8_t pn_needs_rebalancing(PVNode* left, PVNode* right);
+void pn_balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut);
