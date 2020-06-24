@@ -110,8 +110,10 @@ void *pl_copy(PVH *leaf, uint32_t leaf_size) {
 void pn_set_child(PVNode *n, PVH *c, uint8_t index) {
     uint32_t os = 0;
     uint32_t ns = 0;
-    if (n->children[index]) {
-        os = n->children[index]->size;
+    PVH *old_child = n->children[index];
+    if (old_child) {
+        os = old_child->size;
+        pn_free(old_child);
     }
     n->children[index] = c;
     if (c) {
@@ -182,7 +184,7 @@ void* pv_get_leaf(PVHead *vector, uint32_t *inder_ptr) {
     return (void*)node;
 }
 
-uint16_t pv_get_uint16(PVHead *vector, uint32_t index) {
+uint16_t pv_uint16_get(PVHead *vector, uint32_t index) {
     uint32_t index_v = index;
     PVLeaf_uint16 *leaf = pv_get_leaf(vector, &index_v);
     return leaf->data[index_v & MASK];
@@ -361,35 +363,26 @@ PVH* pn_join_nodes(PVH* left, PVH* right, PVH **overflow) {
 }
 
 PVNode *pn_replace_child(PVNode *node, uint8_t index, PVH* new_child) {
-    if (node->header.depth <= 0) {
-        fprintf(stderr, "no children in leaf nodes\n");
-        exit(1);
-    }
     PVNode *n = pn_copy(node);
-    uint32_t os = n->children[index]->size;
-    uint32_t ns = new_child->size;
-    n->children[index] = 0;
-    pn_increment_children_ref(n);
-    n->children[index] = new_child;
-    n->header.size -= os;
-    n->header.size += ns;
+    pn_set_child(n, new_child, index);
     pn_update_index_table(n);
     return n;
 }
 
 PVNode *pn_remove_child(PVNode *node, uint8_t index) {
     PVNode *copy = pn_copy(node);
-    if (!node->children[index]) {
+    PVH *child = node->children[index];
+    if (!child) {
         return copy;
     }
-    uint32_t csize = copy->children[index]->size;
+    uint32_t csize = child->size;
+    pn_free(child);
     copy->children[index] = 0;
     for (uint8_t i = index; i < BRANCH - 1; ++i) {
         copy->children[i] = copy->children[i + 1];
     }
     copy->children[BRANCH - 1] = 0;
     copy->header.size -= csize;
-    pn_increment_children_ref(copy);
     pn_update_index_table(copy);
     return copy;
 }
@@ -463,7 +456,9 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
             if (ia == 0) {
                 if (pn_fits_into_one_node(l, r)) {
                     PVNode *n = (PVNode*)pathb[ib - 1];
-                    r = (PVH*)pn_replace_child(n, 0, pn_join_nodes(l, r, 0));
+                    PVH *join =  pn_join_nodes(l, r, 0);
+                    r = (PVH*)pn_replace_child(n, 0, join);
+                    pn_free(join);
                     l = 0;
                 } else {
                     l = (PVH*)pn_make_parent(l);
@@ -473,7 +468,9 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                 if (pn_fits_into_one_node(l, r)) {
                     PVNode *n = (PVNode*)patha[ia - 1];
                     uint8_t index = pn_right_child_index(n);
-                    l = (PVH*)pn_replace_child(n, index, (PVH*)pn_join_nodes(l, r, 0));
+                    PVH *join = pn_join_nodes(l, r, 0);
+                    l = (PVH*)pn_replace_child(n, index, join);
+                    pn_free(join);
                     r = 0;
                 } else {
                     r = (PVH*)pn_make_parent(r);
@@ -590,18 +587,18 @@ void pn_balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **ri
     *rightOut = new_right;
 }
 
-uint8_t pv_16_equals(PVHead *a, PVHead *b) {
+uint8_t pv_uint16_equals(PVHead *a, PVHead *b) {
     if (a->size != b->size) return 0;
     if (a == b || a->size == 0) return 1;
     for (uint32_t i = 0; i < a->size; ++i) {
-        if (pv_get_uint16(a, i) != pv_get_uint16(b, i)) {
+        if (pv_uint16_get(a, i) != pv_uint16_get(b, i)) {
             return 0;
         }
     }
     return 1;
 }
 
-PVHead* pv_16_append(PVHead *vector, uint16_t value) {
+PVHead* pv_uint16_append(PVHead *vector, uint16_t value) {
     PVLeaf_uint16 *leaf = (PVLeaf_uint16*)pl_new(sizeof(PVLeaf_uint16));
     leaf->header.size = 1;
     leaf->data[0] = value;

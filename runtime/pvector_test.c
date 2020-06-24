@@ -26,7 +26,7 @@ int main() {
 PVHead* make_pvector(uint32_t length) {
     PVHead *head = pv_new();
     for (int i = 0; i < length; ++i) {
-        PVHead *updated = pv_16_append(head, i);
+        PVHead *updated = pv_uint16_append(head, i);
         pv_free(head);
         head = updated;
     }
@@ -40,7 +40,7 @@ void test_append_increases_length() {
         printf("expected new vector size to be 0. Got %d\n", pv_length(head));
         exit(1);
     }
-    PVHead *appended = pv_16_append(pv_16_append(head, (uint16_t)5), (uint16_t)5);
+    PVHead *appended = pv_uint16_append(pv_uint16_append(head, (uint16_t)5), (uint16_t)5);
     if (pv_length(head) != 0) {
         printf("expected vector size not to change after append. Got %d\n", pv_length(head));
         exit(1);
@@ -55,13 +55,13 @@ void test_append_increases_length() {
 void test_append_adds_elements() {
      printf("test_append_adds_elements: ");
      PVHead *head = pv_new();
-     PVHead *appended = pv_16_append(pv_16_append(head, (uint16_t)5), (uint16_t)8);
-     if (pv_get_uint16(appended, 0) != 5) {
-        printf("expected appended(0) == 5. Got %d\n", pv_get_uint16(appended, 0));
+     PVHead *appended = pv_uint16_append(pv_uint16_append(head, (uint16_t)5), (uint16_t)8);
+     if (pv_uint16_get(appended, 0) != 5) {
+        printf("expected appended(0) == 5. Got %d\n", pv_uint16_get(appended, 0));
         exit(1);
     }
-    if (pv_get_uint16(appended, 1) != 8) {
-        printf("expected appended(0) == 8. Got %d\n", pv_get_uint16(appended, 2));
+    if (pv_uint16_get(appended, 1) != 8) {
+        printf("expected appended(0) == 8. Got %d\n", pv_uint16_get(appended, 2));
         exit(1);
     }
      printf("OK\n");
@@ -69,15 +69,15 @@ void test_append_adds_elements() {
 
 void test_append_branches() {
      printf("test_append_branches: ");
-     PVHead *head = pv_16_append(pv_16_append(pv_new(), (uint16_t)5), (uint16_t)8);
-     PVHead *b1 = pv_16_append(head, 12);
-     PVHead *b2 = pv_16_append(head, 15);
-     if (pv_get_uint16(b1, 2) != 12) {
-        printf("expected b1(2) == 12. Got %d\n", pv_get_uint16(b1, 2));
+     PVHead *head = pv_uint16_append(pv_uint16_append(pv_new(), (uint16_t)5), (uint16_t)8);
+     PVHead *b1 = pv_uint16_append(head, 12);
+     PVHead *b2 = pv_uint16_append(head, 15);
+     if (pv_uint16_get(b1, 2) != 12) {
+        printf("expected b1(2) == 12. Got %d\n", pv_uint16_get(b1, 2));
         exit(1);
     }
-    if (pv_get_uint16(b2, 2) != 15) {
-        printf("expected b1(0) == 15. Got %d\n", pv_get_uint16(b2, 2) );
+    if (pv_uint16_get(b2, 2) != 15) {
+        printf("expected b1(0) == 15. Got %d\n", pv_uint16_get(b2, 2) );
         exit(1);
     }
      printf("OK\n");
@@ -87,23 +87,23 @@ void test_pvector_combine() {
     printf("test_pvector_combine: ");
 
     // Test joining two nodes where the resulting size is less than BRANCH
-    PVHead *a = pv_16_append(pv_16_append(pv_new(), 1), 2);
-    PVHead *b = pv_16_append(pv_16_append(pv_new(), 3), 4);
+    PVHead *a = pv_uint16_append(pv_uint16_append(pv_new(), 1), 2);
+    PVHead *b = pv_uint16_append(pv_uint16_append(pv_new(), 3), 4);
     PVHead *res = pv_concatenate(a, b);
     if (pv_length(res) != 4) {
         printf("expected new vector size to be 4. Got %d\n", pv_length(res));
         exit(1);
     }
-    if (pv_get_uint16(res, 1) != 2) {
-        printf("expected res(1) == 2. Got %d\n", pv_get_uint16(res, 1));
+    if (pv_uint16_get(res, 1) != 2) {
+        printf("expected res(1) == 2. Got %d\n", pv_uint16_get(res, 1));
         exit(1);
     }
-    if (pv_get_uint16(res, 2) != 3) {
-        printf("expected res(2) == 3. Got %d\n", pv_get_uint16(res, 2));
+    if (pv_uint16_get(res, 2) != 3) {
+        printf("expected res(2) == 3. Got %d\n", pv_uint16_get(res, 2));
         exit(1);
     }
-    if (pv_get_uint16(res, 0) != 1) {
-        printf("expected res(0) == 1. Got %d\n", pv_get_uint16(res, 0));
+    if (pv_uint16_get(res, 0) != 1) {
+        printf("expected res(0) == 1. Got %d\n", pv_uint16_get(res, 0));
         exit(1);
     }
     pv_free(a);
@@ -114,8 +114,8 @@ void test_pvector_combine() {
     a = make_pvector(20);
     b = make_pvector(20);
     res = pv_concatenate(a, b);
-    if (pv_get_uint16(res, 32) != 12) {
-        printf("expected res(32) == 12. Got %d\n", pv_get_uint16(res, 32));
+    if (pv_uint16_get(res, 32) != 12) {
+        printf("expected res(32) == 12. Got %d\n", pv_uint16_get(res, 32));
         exit(1);
     }
     pv_free(a);
@@ -127,17 +127,17 @@ void test_pvector_combine() {
     b = make_pvector(BRANCH * 2);
     res = pv_concatenate(a, b);
     for (uint32_t i = 0; i < BRANCH / 2; ++i) {
-        if (pv_get_uint16(res, i) != i) {
+        if (pv_uint16_get(res, i) != i) {
             printf("differing sizes 1: ");
-            printf("expected res(%d) == %d. Got %d\n", i, i, pv_get_uint16(res, i));
+            printf("expected res(%d) == %d. Got %d\n", i, i, pv_uint16_get(res, i));
             exit(1);
         }
     }
     for (uint32_t i = 0; i < BRANCH * 2; ++i) {
         uint32_t ri = i + BRANCH / 2;
-        if (pv_get_uint16(res, ri) != i) {
+        if (pv_uint16_get(res, ri) != i) {
             printf("differing sizes 2: ");
-            printf("expected res(%d) == %d. Got %d\n", ri, i, pv_get_uint16(res, ri));
+            printf("expected res(%d) == %d. Got %d\n", ri, i, pv_uint16_get(res, ri));
             exit(1);
         }
     }
@@ -159,8 +159,8 @@ void test_pvector_combine() {
         exit(1);
     }
     for (uint32_t i = 0; i < 10*200; ++i) {
-        if (pv_get_uint16(res, i) != i % 10) {
-            printf("\nexpected res(%d) == %d. Got %d\n", i, i % 10, pv_get_uint16(res, i));
+        if (pv_uint16_get(res, i) != i % 10) {
+            printf("\nexpected res(%d) == %d. Got %d\n", i, i % 10, pv_uint16_get(res, i));
             exit(1);
         }
     }
@@ -181,8 +181,8 @@ void test_pvector_combine() {
     }
 
     for (uint32_t i = 0; i < 10*200; ++i) {
-        if (pv_get_uint16(res, i) != i % 10) {
-            printf("expected res(%d) == %d. Got %d\n", i, i % 10, pv_get_uint16(res, i));
+        if (pv_uint16_get(res, i) != i % 10) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 10, pv_uint16_get(res, i));
             exit(1);
         }
     }
@@ -213,8 +213,8 @@ void test_pvector_combine() {
     }
 
     for (uint32_t i = 0; i < pv_length(res); ++i) {
-        if (pv_get_uint16(res, i) != i % 30) {
-            printf("expected res(%d) == %d. Got %d\n", i, i % 30, pv_get_uint16(res, i));
+        if (pv_uint16_get(res, i) != i % 30) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 30, pv_uint16_get(res, i));
             exit(1);
         }
     }
@@ -224,15 +224,15 @@ void test_pvector_combine() {
 
 void test_pvector_equality() {
     printf("test_pvector_equality: ");
-    PVHead *a = pv_16_append(pv_16_append(pv_new(), 1), 2);
-    PVHead *b = pv_16_append(pv_16_append(pv_new(), 1), 2);
-    if (!pv_16_equals(a, b)) {
+    PVHead *a = pv_uint16_append(pv_uint16_append(pv_new(), 1), 2);
+    PVHead *b = pv_uint16_append(pv_uint16_append(pv_new(), 1), 2);
+    if (!pv_uint16_equals(a, b)) {
         printf("independent identical vectors were not equal\n");
         exit(1);
     }
-    PVHead *aa = pv_16_append(a, 4);
-    PVHead *bb = pv_16_append(b, 5);
-    if (pv_16_equals(aa, bb)) {
+    PVHead *aa = pv_uint16_append(a, 4);
+    PVHead *bb = pv_uint16_append(b, 5);
+    if (pv_uint16_equals(aa, bb)) {
         printf("different vectors were equal\n");
         exit(1);
     }
@@ -250,7 +250,7 @@ void test_pvector_append_performance() {
     
     gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
-        uint16_t val = pv_get_uint16(head, i);
+        uint16_t val = pv_uint16_get(head, i);
         uint16_t exp = i;
         if (val != exp) {
             printf("expected vector(%d) == %d. Got %d\n", i, exp, val);
@@ -268,10 +268,10 @@ void test_pvector_combine_performance() {
     PVHead *v1 = pv_new();
     PVHead *v2 = pv_new();
     for (int i = 0; i < 500000; ++i) {
-        PVHead *updated = pv_16_append(v1, i);
+        PVHead *updated = pv_uint16_append(v1, i);
         pv_free(v1);
         v1 = updated;
-        updated = pv_16_append(v2,500000 + i);
+        updated = pv_uint16_append(v2,500000 + i);
         pv_free(v2);
         v2 = updated;
     }
@@ -291,7 +291,7 @@ void test_pvector_combine_performance() {
 
     gettimeofday(&tval_before, NULL);
     for (int i = 0; i < 1000000; ++i) {
-        uint16_t val = pv_get_uint16(combined, i);
+        uint16_t val = pv_uint16_get(combined, i);
         uint16_t exp = i;
         if (val != exp) {
             printf("expected combined(%d) == %d. Got %d\n", i, exp, val);
@@ -334,8 +334,8 @@ void test_pvector_balancing_performance() {
 
     gettimeofday(&tval_before, NULL);
     for (uint32_t i = 0; i < pv_length(res); ++i) {
-        if (pv_get_uint16(res, i) != i % 7) {
-            printf("expected res(%d) == %d. Got %d\n", i, i % 15, pv_get_uint16(res, i));
+        if (pv_uint16_get(res, i) != i % 7) {
+            printf("expected res(%d) == %d. Got %d\n", i, i % 15, pv_uint16_get(res, i));
             exit(1);
         }
     }

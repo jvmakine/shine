@@ -6,10 +6,18 @@ times = (n, f, res) => {
     }
 }
 
+makeBigString = (size) => {
+    if (size <= 0) {
+        "fooooo"
+    } else {
+        makeBigString(size - 1) + makeBigString(size - 1)
+    }
+}
+
 S = (a, b)
 a = (x, f) => (y) => { f(x, y) }
 b = (n) => {
-    s = S(1, "foooooooooooooooo" + "baaaaaaaaaaaaaaar")
+    s = S(1, makeBigString(10))
     r = a(1, (x, y) => { x + y + s.a })
     r(n) 
 }
