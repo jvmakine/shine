@@ -5,7 +5,7 @@
 
 #define RRB_ERROR 1
 
-void balance_level(PVNode** left, PVNode** right);
+void balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut);
 
 uint8_t pvector_depth(PVHead *vector) {
    PVH* node = vector->node;
@@ -443,7 +443,10 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     while (ia > 0 || ib > 0) {
         uint8_t balanced = 0;
         if (l && r && l->depth > 0 && needs_rebalancing((PVNode*)l, (PVNode*)r)) {
-            balance_level((PVNode**)&l, (PVNode**)&r);
+            PVNode *lr, *rr;
+            balance_level((PVNode*)l, (PVNode*)r, &lr, &rr);
+            l = (PVH*)lr;
+            r = (PVH*)rr;
             balanced = 1;
         }
         if (l && r) {
@@ -524,10 +527,10 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
     return head;
 }
 
-void balance_level(PVNode** left, PVNode** right) {
-    PVNode *new_left = copy_pnode(*left);
-    PVNode *new_right = copy_pnode(*right);
-    PVH *l = (*left)->children[0];
+void balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut) {
+    PVNode *new_left = copy_pnode(left);
+    PVNode *new_right = copy_pnode(right);
+    PVH *l = left->children[0];
     PVH *r = 0;
     uint32_t lsize = 0;
     uint32_t rsize = 0;
@@ -582,24 +585,20 @@ void balance_level(PVNode** left, PVNode** right) {
     new_left->header.size = lsize;
     if (rsize == 0) {
        // TODO: Fix
-       pnode_free(new_right);
+       pnode_free((PVH*)new_right);
        new_right = 0;
     } else {
         new_right->header.size = rsize;
         update_index_table(new_right);
     }
     update_index_table(new_left);
-    *left = new_left;
-    *right = new_right;
+    *leftOut = new_left;
+    *rightOut = new_right;
 }
 
 uint8_t pvector_equals_uint16(PVHead *a, PVHead *b) {
-    if (a->size != b->size) {
-        return 0;
-    }
-    if (a == b || a->size == 0) {
-        return 1;
-    }
+    if (a->size != b->size) return 0;
+    if (a == b || a->size == 0) return 1;
     for (uint32_t i = 0; i < a->size; ++i) {
         if (pvector_get_uint16(a, i) != pvector_get_uint16(b, i)) {
             return 0;
