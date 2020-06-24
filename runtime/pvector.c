@@ -7,44 +7,6 @@
 
 void balance_level(PVNode** left, PVNode** right);
 
-void printf_uint16_node(PVH *node) {
-    if (!node) {
-        printf("(nil)");
-        return;
-    }
-    uint8_t d = node->depth;
-    printf("{");
-    printf("size:%d,", node->size);
-    if (d == 0) {
-        printf("data:[");
-        PVLeaf_uint16 *leaf = (PVLeaf_uint16*)node;
-        for (uint8_t i = 0; i < node->size; ++i) {
-            printf("%d,", leaf->data[i]);
-        }
-        
-    } else {
-        PVNode *n = (PVNode*)node;
-        if (n->indextable) {
-            printf("it:[");
-            for (uint8_t i = 0; i < BRANCH; ++i) {
-                if (n->indextable[i]) {
-                    printf("%d,", n->indextable[i]);
-                }
-            }
-            printf("],");
-        }
-        printf("children:[");
-        for (uint8_t i = 0; i < BRANCH; ++i) {
-            if (n->children[i]) {
-                printf_uint16_node(n->children[i]);
-                printf(",");
-            }
-        }
-    }
-    printf("]");
-    printf("}");
-}
-
 uint8_t pvector_depth(PVHead *vector) {
    PVH* node = vector->node;
     if (node == 0) {
@@ -81,44 +43,30 @@ PVH *pleaf_new(uint32_t leaf_size) {
     return leaf;
 }
 
-void pleaf_free(PVH *leaf) {
-    // TODO: release references properly
-    uint32_t rc = leaf->refcount;
+void pnode_free(PVH *n) {
+    if (n == 0) {
+        return;
+    }
+    uint32_t rc = n->refcount;
     if (rc == CONSTANT_REF) {
         return;
     }
     if (rc > 1) {
-        leaf->refcount = rc - 1;
+        n->refcount = rc - 1;
         return;
     }
-    free(leaf);
-}
-
-void pnode_free(PVNode *node) {
-    if (node == 0) {
-        return;
-    }
-    uint32_t rc = node->header.refcount;
-    if (rc == CONSTANT_REF) {
-        return;
-    }
-    if (rc > 1) {
-        node->header.refcount = rc - 1;
-        return;
-    }
-    for(int i = 0; i < BRANCH; ++i) {
-        if (node->children[i] != 0) {
-            if (node->header.depth > 1) {
-                pnode_free((PVNode*)node->children[i]);
-            } else {
-                pleaf_free(node->children[i]);
+    if (n->depth > 0) {
+        PVNode *node = (PVNode*)n;
+        for(int i = 0; i < BRANCH; ++i) {
+            if (node->children[i] != 0) {
+                pnode_free(node->children[i]);
             }
         }
+        if (node->indextable != 0) {
+            free(node->indextable);
+        }
     }
-    if (node->indextable != 0) {
-        free(node->indextable);
-    }
-    free(node);
+    free(n);
 }
 
 void pvector_free(PVHead *vector) {
@@ -130,11 +78,7 @@ void pvector_free(PVHead *vector) {
         return;
     }
     if (vector->size > 0) {
-        if (pvector_depth(vector) > 0) {
-            pnode_free((PVNode*)vector->node);
-        } else {
-            pleaf_free(vector->node);
-        }
+        pnode_free(vector->node);
     }
     free(vector);
 }
@@ -599,8 +543,7 @@ void balance_level(PVNode** left, PVNode** right) {
                 PVH *overflow;
                 PVH *join = join_nodes(l, r, &overflow);
                 if (writeTo > 0 && l) {
-                    if (l->depth > 0) pnode_free((PVNode*)l);
-                    else pleaf_free(l);
+                    pnode_free(l);
                 }
                 l = overflow;
                 if (writeTo < BRANCH) {
@@ -638,7 +581,7 @@ void balance_level(PVNode** left, PVNode** right) {
     new_right->children[BRANCH - 1] = 0;
     new_left->header.size = lsize;
     if (rsize == 0) {
-        // TODO: Fix
+       // TODO: Fix
        pnode_free(new_right);
        new_right = 0;
     } else {
