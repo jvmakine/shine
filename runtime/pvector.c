@@ -83,7 +83,7 @@ void pv_free(PVHead *vector) {
         vector->ref.count = vector->ref.count - 1;
         return;
     }
-    if (vector->size > 0) {
+    if (vector->node) {
         pn_free(vector->node);
     }
     free(vector);
