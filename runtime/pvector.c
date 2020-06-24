@@ -412,9 +412,7 @@ uint8_t can_join(PVH *l, PVH *r) {
 
 PVNode *make_parent_node(PVH *child) {
     PVNode *n = pnode_new(child->depth + 1);
-    n->header.size = child->size;
-    n->children[0] = child;
-    child->refcount++;
+    pnode_set_child(n, child, 0);
     return n;
 }
 
@@ -522,9 +520,8 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
         result = join_nodes(l, r, &overflow);
         if (overflow) {
             PVNode *node = pnode_new(result->depth + 1);
-            node->header.size = result->size + overflow->size;
-            node->children[0] = result;
-            node->children[1] = overflow;
+            pnode_set_child(node, result, 0);
+            pnode_set_child(node, overflow, 1);
             update_index_table(node);
             result = (PVH*)node;
         }
@@ -538,19 +535,17 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
 }
 
 void balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut) {
-    PVNode *new_left = copy_pnode(left);
-    PVNode *new_right = copy_pnode(right);
+    PVNode *new_left = pnode_new(left->header.depth);
+    PVNode *new_right = pnode_new(right->header.depth);
     PVH *l = left->children[0];
     PVH *r = 0;
-    uint32_t lsize = 0;
-    uint32_t rsize = 0;
     uint8_t writeTo = 0;
     for (uint8_t i = 1; i < (BRANCH << 1); ++i) {
         if (l) {
             if (i < BRANCH) {
-                r = new_left->children[i];
+                r = left->children[i];
             } else {
-                r = new_right->children[i - BRANCH];
+                r = right->children[i - BRANCH];
             }
             if (r) {
                 PVH *overflow;
@@ -560,44 +555,34 @@ void balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **right
                 }
                 l = overflow;
                 if (writeTo < BRANCH) {
-                    new_left->children[writeTo] = join;
-                    lsize += join->size;
+                    pnode_set_child(new_left, join, writeTo);
                 } else {
-                    new_right->children[writeTo - BRANCH] = join;
-                    rsize += join->size;
+                    pnode_set_child(new_right, join, writeTo - BRANCH);
                 }
                 writeTo++;
             }
         } else {
             if (i < BRANCH) {
-                r = new_left->children[i];
+                r = left->children[i];
             } else {
-                r = new_right->children[i - BRANCH];
+                r = right->children[i - BRANCH];
             }
             if (writeTo < BRANCH) {
-                new_left->children[writeTo] = r;
-                if (r) lsize += r->size;
+                pnode_set_child(new_left, r, writeTo);
             } else {
-                new_right->children[writeTo - BRANCH] = r;
-                if (r) rsize += r->size;
+                pnode_set_child(new_right, r, writeTo - BRANCH);
             }
-            if (r) {
-                r->refcount++;
-                writeTo++;
-            }
+            if (r) writeTo++;
         }
     }
     if (l) {
         fprintf(stderr, "balance failed to compress a vector\n");
         exit(1);
     }
-    new_right->children[BRANCH - 1] = 0;
-    new_left->header.size = lsize;
-    if (rsize == 0) {
+    if (new_right->header.size == 0) {
        pnode_free((PVH*)new_right);
        new_right = 0;
     } else {
-        new_right->header.size = rsize;
         update_index_table(new_right);
     }
     update_index_table(new_left);
