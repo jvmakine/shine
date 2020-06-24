@@ -84,7 +84,7 @@ PVH *pleaf_new(uint32_t leaf_size) {
 void pleaf_free(PVH *leaf) {
     // TODO: release references properly
     uint32_t rc = leaf->refcount;
-    if (rc == 0) {
+    if (rc == CONSTANT_REF) {
         return;
     }
     if (rc > 1) {
@@ -99,7 +99,7 @@ void pnode_free(PVNode *node) {
         return;
     }
     uint32_t rc = node->header.refcount;
-    if (rc == 0) {
+    if (rc == CONSTANT_REF) {
         return;
     }
     if (rc > 1) {
@@ -122,7 +122,7 @@ void pnode_free(PVNode *node) {
 }
 
 void pvector_free(PVHead *vector) {
-    if (vector == 0 || vector->ref.count == 0) {
+    if (vector == 0 || vector->ref.count == CONSTANT_REF) {
         return;
     }
     if (vector->ref.count > 1) {
@@ -638,8 +638,8 @@ void balance_level(PVNode** left, PVNode** right) {
     new_right->children[BRANCH - 1] = 0;
     new_left->header.size = lsize;
     if (rsize == 0) {
-       //TODO: Fix
-       //pnode_free(new_right);
+        // TODO: Fix
+       pnode_free(new_right);
        new_right = 0;
     } else {
         new_right->header.size = rsize;

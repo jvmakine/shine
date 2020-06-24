@@ -26,7 +26,7 @@ void *heap_calloc(int count, int size) {
 void increase_refcount(RefCount *ref) {
     if (ref != NULL) {
         uint32_t refcount = ref->count;
-        if (refcount >= 1) {
+        if (refcount != CONSTANT_REF) {
             ref->count = refcount + 1;
         }
     }
@@ -34,6 +34,9 @@ void increase_refcount(RefCount *ref) {
 
 void free_rc(RefCount* ref) {
     if (ref == 0) {
+        return;
+    }
+    if (ref->count == CONSTANT_REF) {
         return;
     }
     uint8_t t = ref->type;

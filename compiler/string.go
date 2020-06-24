@@ -16,6 +16,8 @@ const PV_BRANCH = 1 << PV_BITS
 var LeafType = types.NewStruct(types.I8, types.I32, types.I32, types.NewArray(PV_BRANCH, types.I16))
 var NodeType = types.NewStruct(types.I8, types.I32, types.I32, types.I8Ptr, types.NewArray(PV_BRANCH, types.I8Ptr))
 
+var ConstantRef = constant.NewInt(types.I32, int64(0xffffffff))
+
 func (c *context) makeStringRefRoot(str string) value.Value {
 	if c.global.strings[str] != nil {
 		return c.global.strings[str]
@@ -45,7 +47,6 @@ func (c *context) makeStringRefRoot(str string) value.Value {
 }
 
 func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
-	zero32 := constant.NewInt(types.I32, 0)
 	zero8 := constant.NewInt(types.I8, 0)
 	n := 0
 	nodes := []constant.Constant{}
@@ -64,7 +65,7 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 			i++
 		}
 		arr := constant.NewArray(nil, cs...)
-		l := constant.NewStruct(LeafType, zero8, zero32, constant.NewInt(types.I32, int64(w)), arr)
+		l := constant.NewStruct(LeafType, zero8, ConstantRef, constant.NewInt(types.I32, int64(w)), arr)
 		nodes = append(nodes, l)
 	}
 
@@ -74,7 +75,6 @@ func makePVLeaves(c *context, elements []uint16, id string) (*ir.Global, int) {
 
 func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id string, maxlen int) (*ir.Global, int) {
 	var depth int = 0
-	zero := constant.NewInt(types.I32, 0)
 	for count > 1 {
 		depth++
 		nodes := []constant.Constant{}
@@ -105,7 +105,7 @@ func makePVNodes(c *context, count int, arrayType types.Type, src *ir.Global, id
 				i++
 			}
 			arr := constant.NewArray(nil, cs...)
-			l := constant.NewStruct(NodeType, constant.NewInt(types.I8, int64(depth)), zero, constant.NewInt(types.I32, int64(size)), constant.NewNull(types.I8Ptr), arr)
+			l := constant.NewStruct(NodeType, constant.NewInt(types.I8, int64(depth)), ConstantRef, constant.NewInt(types.I32, int64(size)), constant.NewNull(types.I8Ptr), arr)
 			nodes = append(nodes, l)
 		}
 		count = len(nodes)
@@ -121,7 +121,7 @@ func makePVHead(c *context, node constant.Constant, length int, id string) const
 	head := constant.NewStruct(
 		headType,
 		constant.NewInt(types.I8, 3),
-		constant.NewInt(types.I32, 0),
+		ConstantRef,
 		constant.NewInt(types.I32, int64(length)),
 		constant.NewBitCast(node, types.I8Ptr))
 
