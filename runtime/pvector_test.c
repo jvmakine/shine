@@ -160,7 +160,7 @@ void test_pvector_combine() {
     }
     for (uint32_t i = 0; i < 10*200; ++i) {
         if (pvector_get_uint16(res, i) != i % 10) {
-            printf("expected res(%d) == %d. Got %d\n", i, i % 10, pvector_get_uint16(res, i));
+            printf("\nexpected res(%d) == %d. Got %d\n", i, i % 10, pvector_get_uint16(res, i));
             exit(1);
         }
     }
@@ -179,6 +179,7 @@ void test_pvector_combine() {
         printf("expected new vector size to be 1000. Got %d\n", pvector_length(res));
         exit(1);
     }
+
     for (uint32_t i = 0; i < 10*200; ++i) {
         if (pvector_get_uint16(res, i) != i % 10) {
             printf("expected res(%d) == %d. Got %d\n", i, i % 10, pvector_get_uint16(res, i));
@@ -210,7 +211,8 @@ void test_pvector_combine() {
         printf("expected new vector size to be 30 << 7. Got %d\n", pvector_length(res));
         exit(1);
     }
-     for (uint32_t i = 0; i < pvector_length(res); ++i) {
+
+    for (uint32_t i = 0; i < pvector_length(res); ++i) {
         if (pvector_get_uint16(res, i) != i % 30) {
             printf("expected res(%d) == %d. Got %d\n", i, i % 30, pvector_get_uint16(res, i));
             exit(1);
@@ -341,5 +343,5 @@ void test_pvector_balancing_performance() {
     timersub(&tval_after, &tval_before, &tval_result);
     printf("index %ld.%06lds ", (long int)tval_result.tv_sec, (long int)tval_result.tv_usec);
 
-    printf("OK %d");
+    printf("OK\n");
 }

@@ -3,13 +3,18 @@
 #include <stdio.h>
 #include "pvector.h"
 
-#define RRB_ERROR 2
+#define RRB_ERROR 1
 
 void balance_level(PVNode** left, PVNode** right);
 
 void printf_uint16_node(PVH *node) {
+    if (!node) {
+        printf("(nil)");
+        return;
+    }
     uint8_t d = node->depth;
     printf("{");
+    printf("size:%d,", node->size);
     if (d == 0) {
         printf("data:[");
         PVLeaf_uint16 *leaf = (PVLeaf_uint16*)node;
@@ -220,9 +225,9 @@ uint16_t pvector_get_uint16(PVHead *vector, uint32_t index) {
 
 uint8_t pvnode_right_child_index(PVNode *n) {
     if (n->indextable) {
-        int8_t i = BRANCH - 1;
-        while(i >= 0 && n->children[i--] == 0);
-        return i + 1;
+        int8_t i = BRANCH;
+        while(i >= 0 && n->children[--i] == 0);
+        return i;
     } else {
         uint8_t depth = n->header.depth;
         uint32_t s = 1;
@@ -377,16 +382,16 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
             uint32_t overflow_size = 0;
             for (uint8_t i = 0; i < asize; ++i) {
                 node->children[i] = a->children[i];
-                node_size +=  ((PVH*)a->children[i])->size;
+                node_size +=  a->children[i]->size;
             }
             for (uint8_t i = 0; i < (BRANCH - asize); ++i) {
                 node->children[i + asize] = b->children[i];
-                node_size +=  ((PVH*)b->children[i])->size;
+                node_size +=  b->children[i]->size;
             }
             node->header.size = node_size;
              for (uint8_t i = 0; i < overflow_branches; ++i) {
                 ((PVNode*)(*overflow))->children[i] = b->children[i + (BRANCH - asize)];
-                overflow_size +=  ((PVH*)b->children[i + (BRANCH - asize)])->size;
+                overflow_size +=  b->children[i + (BRANCH - asize)]->size;
             }
             ((PVH*)*overflow)->size = overflow_size;
 
@@ -400,6 +405,10 @@ PVH* join_nodes(PVH* left, PVH* right, PVH **overflow) {
 }
 
 PVNode *pnode_replace_child(PVNode *node, uint8_t index, PVH* new_child) {
+    if (node->header.depth <= 0) {
+        fprintf(stderr, "no children in leaf nodes\n");
+        exit(1);
+    }
     PVNode *n = copy_pnode(node);
     uint32_t os = n->children[index]->size;
     uint32_t ns = new_child->size;
@@ -410,6 +419,23 @@ PVNode *pnode_replace_child(PVNode *node, uint8_t index, PVH* new_child) {
     n->header.size += ns;
     update_index_table(n);
     return n;
+}
+
+PVNode *pnode_remove_child(PVNode *node, uint8_t index) {
+    PVNode *copy = copy_pnode(node);
+    if (!node->children[index]) {
+        return copy;
+    }
+    uint32_t csize = copy->children[index]->size;
+    copy->children[index] = 0;
+    for (uint8_t i = index; i < BRANCH - 1; ++i) {
+        copy->children[i] = copy->children[i + 1];
+    }
+    copy->children[BRANCH - 1] = 0;
+    copy->header.size -= csize;
+    increment_children_refcount(copy);
+    update_index_table(copy);
+    return copy;
 }
 
 uint8_t can_join(PVH *l, PVH *r) {
@@ -476,7 +502,6 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
             balance_level((PVNode**)&l, (PVNode**)&r);
             balanced = 1;
         }
-        
         if (l && r) {
             if (ia == 0) {
                 if (can_join(l, r)) {
@@ -504,11 +529,30 @@ PVHead* pvector_combine_uint16(PVHead *a, PVHead *b) {
                 l = patha[ia - 1];
             }
         } else if (l) {
-            PVNode *n = (PVNode*)patha[ia - 1];
-            l = (PVH*)pnode_replace_child(n, pvnode_right_child_index(n), l);
-        } else {
-            PVNode *n = (PVNode*)pathb[ib - 1];
-            r = (PVH*)pnode_replace_child(n, 0, r);
+            if (ia > 0) {
+                PVNode *n = (PVNode*)patha[ia - 1];
+                uint8_t index = pvnode_right_child_index(n);
+                l = (PVH*)pnode_replace_child(n, index, l);
+            } else {
+                l = (PVH*)make_parent_node(l);
+            }
+            // Child was lost in balancing
+            if (ib > 0) {
+                r = pathb[ib - 1];
+                r = (PVH*)pnode_remove_child((PVNode*)r, 0);
+            }
+        } else if (ib > 0) {
+            if (ib > 0) {
+                PVNode *n = (PVNode*)pathb[ib - 1];
+                r = (PVH*)pnode_replace_child(n, 0, r);
+            } else {
+                r = (PVH*)make_parent_node(r);
+            }
+            // Child was lost in balancing
+            if (ia > 0) {
+                l = patha[ia - 1];
+                l = (PVH*)pnode_remove_child((PVNode*)l, pvnode_right_child_index((PVNode*)l));
+            }
         }
         if (ia > 0) ia--;
         if (ib > 0) ib--;
@@ -541,10 +585,9 @@ void balance_level(PVNode** left, PVNode** right) {
     PVNode *new_right = copy_pnode(*right);
     PVH *l = (*left)->children[0];
     PVH *r = 0;
-    uint8_t i = 0;
-    uint8_t ls = pvnode_branching(l);
     uint32_t lsize = 0;
     uint32_t rsize = 0;
+    uint8_t writeTo = 0;
     for (uint8_t i = 1; i < (BRANCH << 1); ++i) {
         if (l) {
             if (i < BRANCH) {
@@ -552,19 +595,22 @@ void balance_level(PVNode** left, PVNode** right) {
             } else {
                 r = new_right->children[i - BRANCH];
             }
-            PVH *overflow;
-            PVH *join = join_nodes(l, r, &overflow);
-            if (i > 1 && l) {
-                if (l->depth > 0) pnode_free((PVNode*)l);
-                else pleaf_free(l);
-            }
-            l = overflow;
-            if (i - 1 < BRANCH) {
-                new_left->children[i - 1] = join;
-                lsize += join->size;
-            } else {
-                new_right->children[i - 1 - BRANCH] = join;
-                rsize += join->size;
+            if (r) {
+                PVH *overflow;
+                PVH *join = join_nodes(l, r, &overflow);
+                if (writeTo > 0 && l) {
+                    if (l->depth > 0) pnode_free((PVNode*)l);
+                    else pleaf_free(l);
+                }
+                l = overflow;
+                if (writeTo < BRANCH) {
+                    new_left->children[writeTo] = join;
+                    lsize += join->size;
+                } else {
+                    new_right->children[writeTo - BRANCH] = join;
+                    rsize += join->size;
+                }
+                writeTo++;
             }
         } else {
             if (i < BRANCH) {
@@ -572,14 +618,17 @@ void balance_level(PVNode** left, PVNode** right) {
             } else {
                 r = new_right->children[i - BRANCH];
             }
-             if (i - 1 < BRANCH) {
-                new_left->children[i - 1] = r;
+            if (writeTo < BRANCH) {
+                new_left->children[writeTo] = r;
                 if (r) lsize += r->size;
             } else {
-                new_right->children[i - 1 - BRANCH] = r;
+                new_right->children[writeTo - BRANCH] = r;
                 if (r) rsize += r->size;
             }
-            if (r) r->refcount++;
+            if (r) {
+                r->refcount++;
+                writeTo++;
+            }
         }
     }
     if (l) {
@@ -588,14 +637,15 @@ void balance_level(PVNode** left, PVNode** right) {
     }
     new_right->children[BRANCH - 1] = 0;
     new_left->header.size = lsize;
-    new_right->header.size = rsize;
     if (rsize == 0) {
-        //TODO: Implement
-        fprintf(stderr, "Right hand side eliminated in balancing. Implement.");
-        exit(1);
+       //TODO: Fix
+       //pnode_free(new_right);
+       new_right = 0;
+    } else {
+        new_right->header.size = rsize;
+        update_index_table(new_right);
     }
     update_index_table(new_left);
-    update_index_table(new_right);
     *left = new_left;
     *right = new_right;
 }
