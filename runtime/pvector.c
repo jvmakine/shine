@@ -21,8 +21,6 @@ PVHead* pv_new() {
     PVHead* head = heap_calloc(1, sizeof(PVHead));
     head->ref.count = 1;
     head->ref.type = MEM_PVECTOR;
-    head->size = 0;
-    head->node = 0;
     return head;
 }
 
@@ -38,15 +36,11 @@ PVNode* pn_new(uint8_t depth) {
     PVNode* node = heap_calloc(1, sizeof(PVNode));
     node->header.refcount = 1;
     node->header.depth = depth;
-    node->header.size = 0;
-    node->indextable = 0;
     return node;
 }
 
 PVH* pl_new(uint32_t leaf_size) {
-    PVH* leaf = heap_calloc(1, leaf_size);
-    leaf->refcount = 1;
-    return leaf;
+    return heap_calloc(1, leaf_size);
 }
 
 void pn_free(PVH *n) {
@@ -456,9 +450,8 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
             if (ia == 0) {
                 if (pn_fits_into_one_node(l, r)) {
                     PVNode *n = (PVNode*)pathb[ib - 1];
-                    PVH *join =  pn_join_nodes(l, r, 0);
+                    PVH *join = pn_join_nodes(l, r, 0);
                     r = (PVH*)pn_replace_child(n, 0, join);
-                    pn_free(join);
                     l = 0;
                 } else {
                     l = (PVH*)pn_make_parent(l);
@@ -470,7 +463,6 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                     uint8_t index = pn_right_child_index(n);
                     PVH *join = pn_join_nodes(l, r, 0);
                     l = (PVH*)pn_replace_child(n, index, join);
-                    pn_free(join);
                     r = 0;
                 } else {
                     r = (PVH*)pn_make_parent(r);
@@ -527,8 +519,7 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
     } else {
         result = r;
     }
-    PVHead *head = pv_construct(result);
-    return head;
+    return pv_construct(result);
 }
 
 void pn_balance_level(PVNode* left, PVNode* right, PVNode **leftOut, PVNode **rightOut) {
