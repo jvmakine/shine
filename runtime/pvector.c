@@ -86,7 +86,6 @@ void pv_free(PVHead *vector) {
 PVNode *pn_copy(PVNode* node) {
     PVNode* res = heap_malloc(sizeof(PVNode));
     memcpy(res, node, sizeof(PVNode));
-    res->header.refcount = 1;
     if (node->indextable != 0) {
         res->indextable = heap_malloc(BRANCH*sizeof(uint32_t));
         memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));
