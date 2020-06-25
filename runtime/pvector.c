@@ -97,7 +97,6 @@ PVNode *pn_copy(PVNode* node) {
 void *pl_copy(PVH *leaf, uint32_t leaf_size) {
     PVH *res = heap_malloc(leaf_size);
     memcpy(res, leaf, leaf_size);
-    res->refcount = 1;
     return res;
 }
 
