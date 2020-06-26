@@ -47,7 +47,7 @@ void free_rc(RefCount* ref) {
     } else if (t == MEM_CLOSURE) {
         free_closure((Closure*)ref);
     } else {
-        fprintf(stderr, "invalid pointer\n");
+        fprintf(stderr, "invalid pointer %p\n", ref);
         exit(1);
     }
 }

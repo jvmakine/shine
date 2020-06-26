@@ -17,9 +17,9 @@ makeBigString = (size) => {
 S = (a, b)
 a = (x, f) => (y) => { f(x, y) }
 b = (n) => {
-    s = S(1, makeBigString(2))
+    s = S(1, makeBigString(8))
     r = a(1, (x, y) => { x + y + s.a })
     r(n) 
 }
 
-times(10000000, b, 0)
+times(500000, b, 0)

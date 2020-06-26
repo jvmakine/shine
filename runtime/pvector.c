@@ -17,6 +17,12 @@ uint32_t pv_length(PVHead *vector) {
     return vector->size;
 }
 
+void pn_incr_ref(PVH *p) {
+    if (p->refcount != CONSTANT_REF) {
+        p->refcount++;
+    }
+}
+
 PVHead* pv_new() {
     PVHead* head = heap_calloc(1, sizeof(PVHead));
     head->ref.count = 1;
@@ -28,13 +34,12 @@ PVHead* pv_construct(PVH *node) {
     PVHead* head = pv_new();
     head->node = node;
     head->size = node->size;
-    node->refcount++;
+    pn_incr_ref(node);
     return head;
 }
 
 PVNode* pn_new(uint8_t depth) {
     PVNode* node = heap_calloc(1, sizeof(PVNode));
-    node->header.refcount = 1;
     node->header.depth = depth;
     return node;
 }
@@ -83,6 +88,16 @@ void pv_free(PVHead *vector) {
     free(vector);
 }
 
+void pn_increment_children_ref(PVNode *node) {
+    PVH **children = node->children;
+    for (uint8_t i = 0; i < BRANCH; ++i) {
+        // Can not break here, as sometimes we disable children to be replaced before the call
+        if (children[i] != 0) {
+            pn_incr_ref(children[i]);
+        }
+    }
+}
+
 PVNode *pn_copy(PVNode* node) {
     PVNode* res = heap_malloc(sizeof(PVNode));
     memcpy(res, node, sizeof(PVNode));
@@ -90,6 +105,7 @@ PVNode *pn_copy(PVNode* node) {
         res->indextable = heap_malloc(BRANCH*sizeof(uint32_t));
         memcpy(res->indextable, node->indextable, BRANCH*sizeof(uint32_t));
     }
+    pn_increment_children_ref(res);
     return res;
 }
 
@@ -110,24 +126,11 @@ void pn_set_child(PVNode *n, PVH *c, uint8_t index) {
     n->children[index] = c;
     if (c) {
         ns = c->size;
-        c->refcount++;
+        pn_incr_ref(c);
     }
     n->header.size += ns;
     n->header.size -= os;
 }   
-
-void pn_increment_children_ref(PVNode *node) {
-    PVH **children = node->children;
-    for (uint8_t i = 0; i < BRANCH; ++i) {
-        // Can not break here, as sometimes we disable children to be replaced before the call
-        if (children[i] != 0) {
-            uint32_t rc = ((PVH*)children[i])->refcount;
-            if (rc > 0) {
-                ((PVH*)(children[i]))->refcount = rc + 1;
-            }
-        }
-    }
-}
 
 void* pv_get_leaf(PVHead *vector, uint32_t *inder_ptr) {
     uint32_t index = *inder_ptr;
@@ -449,10 +452,12 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                 if (pn_fits_into_one_node(l, r)) {
                     PVNode *n = (PVNode*)pathb[ib - 1];
                     PVH *join = pn_join_nodes(l, r, 0);
+                    if (balanced) pn_free(r);
                     r = (PVH*)pn_replace_child(n, 0, join);
                     l = 0;
                 } else {
-                    l = (PVH*)pn_make_parent(l);
+                    PVNode *p = pn_make_parent(l);
+                    l = (PVH*)p;
                 }
             } 
             if (ib == 0) {
@@ -460,10 +465,12 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                     PVNode *n = (PVNode*)patha[ia - 1];
                     uint8_t index = pn_right_child_index(n);
                     PVH *join = pn_join_nodes(l, r, 0);
+                    if (balanced) pn_free(l);
                     l = (PVH*)pn_replace_child(n, index, join);
                     r = 0;
                 } else {
-                    r = (PVH*)pn_make_parent(r);
+                    PVNode *p = pn_make_parent(r);
+                    r = (PVH*)p;
                 }
             } 
             if (ib > 0 && (r == pathb[ib] || balanced)) {
@@ -476,26 +483,32 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
             if (ia > 0) {
                 PVNode *n = (PVNode*)patha[ia - 1];
                 uint8_t index = pn_right_child_index(n);
-                l = (PVH*)pn_replace_child(n, index, l);
+                PVNode *nn = pn_replace_child(n, index, l);
+                l = (PVH*)nn;
             } else {
-                l = (PVH*)pn_make_parent(l);
+                PVNode *p = pn_make_parent(l);
+                l = (PVH*)p;
             }
             // Child was lost in balancing
             if (ib > 0) {
                 r = pathb[ib - 1];
-                r = (PVH*)pn_remove_child((PVNode*)r, 0);
+                PVNode *nn = pn_remove_child((PVNode*)r, 0);
+                r = (PVH*)nn;
             }
         } else if (ib > 0) {
             if (ib > 0) {
                 PVNode *n = (PVNode*)pathb[ib - 1];
-                r = (PVH*)pn_replace_child(n, 0, r);
+                PVNode *nn = pn_replace_child(n, 0, r);
+                r = (PVH*)nn;
             } else {
-                r = (PVH*)pn_make_parent(r);
+                PVNode *p = pn_make_parent(r);
+                r = (PVH*)p;
             }
             // Child was lost in balancing
             if (ia > 0) {
                 l = patha[ia - 1];
-                l = (PVH*)pn_remove_child((PVNode*)l, pn_right_child_index((PVNode*)l));
+                PVNode *nn = pn_remove_child((PVNode*)l, pn_right_child_index((PVNode*)l));
+                l = (PVH*)nn;
             }
         }
         if (ia > 0) ia--;

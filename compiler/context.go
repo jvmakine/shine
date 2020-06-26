@@ -249,7 +249,7 @@ func (c *context) freeIfUnboundRef(res cresult) {
 					c.freeRef(res.value)
 				}
 			}
-		} else if res.ast.Type().IsStructure() || res.ast.Type().IsString() {
+		} else if (res.ast.Type().IsStructure() || res.ast.Type().IsString()) && res.ast.Id == nil {
 			c.freeRef(res.value)
 		}
 	}
