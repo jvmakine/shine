@@ -404,6 +404,16 @@ PVNode *pn_make_parent(PVH *child) {
     return n;
 }
 
+void rassign(PVH **to, PVH *from) {
+    if (*to) {
+        pn_free(*to);
+    }
+    if (from) {
+        pn_incr_ref(from);
+    }
+    *to = from;
+}
+
 PVHead* pv_concatenate(PVHead *a, PVHead *b) {
     PVH* na = a->node;
     PVH* nb = b->node;
@@ -436,15 +446,17 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
     }
     pathb[ib] = nb;
 
-    PVH* l = patha[ia];
-    PVH* r = pathb[ib];
+    PVH* l = 0;
+    PVH* r = 0;
+    rassign(&l, patha[ia]);
+    rassign(&r, pathb[ib]);
     while (ia > 0 || ib > 0) {
         uint8_t balanced = 0;
         if (l && r && l->depth > 0 && pn_needs_rebalancing((PVNode*)l, (PVNode*)r)) {
             PVNode *lr, *rr;
             pn_balance_level((PVNode*)l, (PVNode*)r, &lr, &rr);
-            l = (PVH*)lr;
-            r = (PVH*)rr;
+            rassign(&l, (PVH*)lr);
+            rassign(&r, (PVH*)rr);
             balanced = 1;
         }
         if (l && r) {
@@ -452,12 +464,10 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                 if (pn_fits_into_one_node(l, r)) {
                     PVNode *n = (PVNode*)pathb[ib - 1];
                     PVH *join = pn_join_nodes(l, r, 0);
-                    if (balanced) pn_free(r);
-                    r = (PVH*)pn_replace_child(n, 0, join);
-                    l = 0;
+                    rassign(&l, 0);
+                    rassign(&r, (PVH*)pn_replace_child(n, 0, join));
                 } else {
-                    PVNode *p = pn_make_parent(l);
-                    l = (PVH*)p;
+                    rassign(&l, (PVH*)pn_make_parent(l));
                 }
             } 
             if (ib == 0) {
@@ -465,50 +475,46 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
                     PVNode *n = (PVNode*)patha[ia - 1];
                     uint8_t index = pn_right_child_index(n);
                     PVH *join = pn_join_nodes(l, r, 0);
-                    if (balanced) pn_free(l);
-                    l = (PVH*)pn_replace_child(n, index, join);
-                    r = 0;
+                    rassign(&l, (PVH*)pn_replace_child(n, index, join));
+                    rassign(&r, 0);
                 } else {
-                    PVNode *p = pn_make_parent(r);
-                    r = (PVH*)p;
+                    rassign(&r, (PVH*)pn_make_parent(r));
                 }
             } 
             if (ib > 0 && (r == pathb[ib] || balanced)) {
-                r = pathb[ib - 1];
+                rassign(&r, pathb[ib - 1]);
             }
             if (ia > 0 && (l == patha[ia] || balanced)) {
-                l = patha[ia - 1];
+                rassign(&l, patha[ia - 1]);
             }
         } else if (l) {
             if (ia > 0) {
                 PVNode *n = (PVNode*)patha[ia - 1];
                 uint8_t index = pn_right_child_index(n);
                 PVNode *nn = pn_replace_child(n, index, l);
-                l = (PVH*)nn;
+                rassign(&l, (PVH*)nn);
             } else {
-                PVNode *p = pn_make_parent(l);
-                l = (PVH*)p;
+                rassign(&l, (PVH*)pn_make_parent(l));
             }
             // Child was lost in balancing
             if (ib > 0) {
-                r = pathb[ib - 1];
-                PVNode *nn = pn_remove_child((PVNode*)r, 0);
-                r = (PVH*)nn;
+                PVNode *n = (PVNode*)pathb[ib - 1];
+                PVNode *nn = pn_remove_child(n, 0);
+                rassign(&r, (PVH*)nn);
             }
         } else if (ib > 0) {
             if (ib > 0) {
                 PVNode *n = (PVNode*)pathb[ib - 1];
                 PVNode *nn = pn_replace_child(n, 0, r);
-                r = (PVH*)nn;
+                rassign(&r, (PVH*)nn);
             } else {
-                PVNode *p = pn_make_parent(r);
-                r = (PVH*)p;
+                rassign(&r, (PVH*)pn_make_parent(r));
             }
             // Child was lost in balancing
             if (ia > 0) {
-                l = patha[ia - 1];
-                PVNode *nn = pn_remove_child((PVNode*)l, pn_right_child_index((PVNode*)l));
-                l = (PVH*)nn;
+                PVNode *n = (PVNode*)patha[ia - 1];
+                PVNode *nn = pn_remove_child(n, pn_right_child_index(n));
+                rassign(&l, (PVH*)nn);
             }
         }
         if (ia > 0) ia--;
@@ -518,6 +524,8 @@ PVHead* pv_concatenate(PVHead *a, PVHead *b) {
     PVH *overflow;
     if (l && r) {
         result = pn_join_nodes(l, r, &overflow);
+        pn_free(l);
+        pn_free(r);
         if (overflow) {
             PVNode *node = pn_new(result->depth + 1);
             pn_set_child(node, result, 0);
