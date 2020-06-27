@@ -1,11 +1,11 @@
-sums = (n) => {
-    agg = (x, to, sum) => {
+sums = (to) => {
+    agg = (x, sum) => {
         if (x >= to) sum else {
             addition = if (x % 3 == 0 || x % 5 == 0) x else 0
-            agg(x + 1, to, sum + addition)
+            agg(x + 1, sum + addition)
         }
     }
-    agg(1, n, 0)
+    agg(1, 0)
 }
 
 sums(1000)
