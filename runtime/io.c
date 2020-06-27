@@ -20,14 +20,15 @@ void print_bool(int8_t b) {
 }
 
 void print_string(PVHead *str) {
-    for (int i = 0; i < str->size; ++i) {
-        uint16_t c = pvector_get_uint16(str, i);
+    uint32_t size = str->size;
+    for (int i = 0; i < size; ++i) {
+        uint16_t c = pv_uint16_get(str, i);
         uint32_t code = c;
         if (code > 0xd7ff && code < 0xe000) {
             // see https://unicode.org/faq/utf_bom.html#utf16-3 
             uint16_t hi = c;
             i++;
-            uint16_t lo = pvector_get_uint16(str, i);
+            uint16_t lo = pv_uint16_get(str, i);
             uint32_t x = (hi & ((1 << 6) -1)) << 10 | (lo & ((1 << 10) -1));
             uint32_t w = (hi >> 6) & ((1 << 5) - 1);
             uint32_t u = w + 1;

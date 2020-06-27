@@ -10,6 +10,8 @@ typedef struct RefCount {
     uint32_t count;
 } RefCount;
 
+#define CONSTANT_REF 0xffffffff
+
 void *heap_malloc(int size);
 void *heap_calloc(int count, int size);
 void free_rc(RefCount *ptr);

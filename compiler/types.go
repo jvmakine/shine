@@ -40,11 +40,14 @@ func structureType(s *t.Structure, closure bool) types.Type {
 		} else if p.Type.IsFunction() {
 			ps[extra+structures] = FunType
 			structures++
+		} else if p.Type.IsString() {
+			ps[extra+structures] = StringPType
+			structures++
 		}
 	}
 	primitives := 0
 	for _, p := range s.Fields {
-		if !p.Type.IsFunction() && !p.Type.IsStructure() {
+		if !p.Type.IsFunction() && !p.Type.IsStructure() && !p.Type.IsString() {
 			ps[extra+structures+primitives] = getType(p.Type)
 			primitives++
 		}

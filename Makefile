@@ -1,9 +1,9 @@
 .DEFAULT_GOAL := runtime
-.PHONY: runtime
 
 SRC = runtime/memory.c runtime/io.c runtime/pvector.c runtime/structure.c
 LLS = memory.ll io.ll pvector.ll structure.ll
 
+.PHONY: runtime
 runtime:
 	clang-9 -shared -fPIC -o lib/runtime.so $(SRC)
 	clang-9 -S -emit-llvm $(SRC)
