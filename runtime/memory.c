@@ -27,6 +27,10 @@ void increase_refcount(RefCount *ref) {
     if (ref != NULL) {
         uint32_t refcount = ref->count;
         if (refcount != CONSTANT_REF) {
+            if (refcount == CONSTANT_REF - 1) {
+                fprintf(stderr, "too many references\n");
+                exit(1);
+            }
             ref->count = refcount + 1;
         }
     }

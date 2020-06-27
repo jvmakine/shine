@@ -19,6 +19,10 @@ uint32_t pv_length(PVHead *vector) {
 
 void pn_incr_ref(PVH *p) {
     if (p->refcount != CONSTANT_REF) {
+        if (p->refcount == CONSTANT_REF - 1) {
+            fprintf(stderr, "too many pnode references\n");
+            exit(1);
+        }
         p->refcount++;
     }
 }
