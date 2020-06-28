@@ -68,8 +68,8 @@ func convBlock(from *Block) *ast.Block {
 		}
 	}
 	return &ast.Block{
-		Assignments: assigns,
-		Value:       convExp(from.Value),
+		Defin: ast.Definitions{Assignments: assigns},
+		Value: convExp(from.Value),
 	}
 }
 

@@ -43,7 +43,7 @@ func (c *VisitContext) ParamOf(id string) *FParam {
 func (c *VisitContext) BlockOf(id string) *Block {
 	if c.block == nil {
 		return nil
-	} else if c.block.Assignments[id] != nil {
+	} else if c.block.Defin.Assignments[id] != nil {
 		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
@@ -55,7 +55,7 @@ func (c *VisitContext) NameOf(exp *Exp) string {
 	if c.block == nil {
 		return ""
 	}
-	for n, a := range c.block.Assignments {
+	for n, a := range c.block.Defin.Assignments {
 		if a == exp {
 			return n
 		}
@@ -67,8 +67,8 @@ func (c *VisitContext) NameOf(exp *Exp) string {
 }
 
 func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
-	if c.block != nil && c.block.Assignments[id] != nil {
-		return c.block.Assignments[id], c
+	if c.block != nil && c.block.Defin.Assignments[id] != nil {
+		return c.block.Defin.Assignments[id], c
 	} else if c.parent != nil {
 		return c.parent.resolve(id)
 	}
@@ -150,13 +150,13 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 	}
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, parent: ctx, def: ctx.def}
-		for n, a := range a.Block.Assignments {
+		for n, a := range a.Block.Defin.Assignments {
 			ssub := &VisitContext{assignment: n, block: sub.block, def: sub.def, parent: sub}
 			if err := a.visit(f, l, ssub); err != nil {
 				return err
 			}
 		}
-		for _, i := range a.Block.Interfaces {
+		for _, i := range a.Block.Defin.Interfaces {
 			for _, m := range i.Methods {
 				m.visit(f, l, sub)
 			}

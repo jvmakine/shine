@@ -23,10 +23,7 @@ func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 	}
 }
 
-func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
-	if a == nil {
-		return nil
-	}
+func (a Definitions) copy(ctx *types.TypeCopyCtx) Definitions {
 	ac := map[string]*Exp{}
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
@@ -35,11 +32,20 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	for k, v := range a.Interfaces {
 		ic[k] = v.copy(ctx)
 	}
-	return &Block{
+	return Definitions{
 		Assignments: ac,
 		Interfaces:  ic,
-		Value:       a.Value.CopyWithCtx(ctx),
-		ID:          a.ID,
+	}
+}
+
+func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
+	if a == nil {
+		return nil
+	}
+	return &Block{
+		Defin: a.Defin.copy(ctx),
+		Value: a.Value.CopyWithCtx(ctx),
+		ID:    a.ID,
 	}
 }
 

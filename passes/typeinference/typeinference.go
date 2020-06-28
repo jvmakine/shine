@@ -60,7 +60,7 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 	if ctx.Path()[id.Name] {
 		id.Type = MakeVariable()
 	} else if block != nil {
-		ref := ctx.BlockOf(id.Name).Assignments[id.Name]
+		ref := ctx.BlockOf(id.Name).Defin.Assignments[id.Name]
 		id.Type = ref.Type().Copy(NewTypeCopyCtx())
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.Type = p.Type
@@ -111,7 +111,7 @@ func initialiseVariables(exp *ast.Exp) error {
 			if err != nil {
 				return err
 			}
-			for name, value := range v.Block.Assignments {
+			for name, value := range v.Block.Defin.Assignments {
 				if value.Struct != nil {
 					ts := make([]types.Type, len(value.Struct.Fields)+1)
 					sf := make([]types.SField, len(value.Struct.Fields))
@@ -145,7 +145,7 @@ func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
 	if block == nil {
 		return Type{}, errors.New("type " + name + " is undefined")
 	}
-	exp := block.Assignments[name]
+	exp := block.Defin.Assignments[name]
 	if exp.Struct == nil {
 		return Type{}, errors.New(name + " is not a type")
 	}

@@ -11,12 +11,12 @@ func DeadCodeElimination(exp *ast.Exp) {
 	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
 		if v.Block != nil {
 			seen := map[string]*ast.Exp{}
-			for k, a := range v.Block.Assignments {
+			for k, a := range v.Block.Defin.Assignments {
 				if visited[a] {
 					seen[k] = a
 				}
 			}
-			v.Block.Assignments = seen
+			v.Block.Defin.Assignments = seen
 		}
 		return nil
 	})

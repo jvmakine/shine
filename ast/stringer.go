@@ -86,7 +86,7 @@ func (e *Exp) stringer(b *strings.Builder, indent int, options *Options) {
 	} else if e.Block != nil {
 		b.WriteString("{")
 		newline(b, indent+2)
-		for k, p := range e.Block.Assignments {
+		for k, p := range e.Block.Defin.Assignments {
 			b.WriteString(k)
 			b.WriteString(" = ")
 			p.stringer(b, indent+2, options)
