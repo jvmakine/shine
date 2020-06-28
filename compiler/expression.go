@@ -291,7 +291,7 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 
 	assigns := map[string]*ast.Exp{}
 	deps := map[string]map[string]bool{}
-	for k, c := range from.Defin.Assignments {
+	for k, c := range from.Def.Assignments {
 		assigns[k] = c
 		deps[k] = map[string]bool{}
 		for _, i := range collectDeps(c, ctx) {

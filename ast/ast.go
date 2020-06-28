@@ -79,7 +79,7 @@ type FDef struct {
 // Blocks
 
 type Block struct {
-	Defin Definitions
+	Def   Definitions
 	Value *Exp
 	ID    int
 }
@@ -134,7 +134,7 @@ func (b *Block) CheckValueCycles() error {
 	}
 	todo := []ToDo{}
 
-	for k, a := range b.Defin.Assignments {
+	for k, a := range b.Def.Assignments {
 		names[k] = a
 		todo = append(todo, ToDo{id: k, path: []string{}})
 	}
@@ -147,7 +147,7 @@ func (b *Block) CheckValueCycles() error {
 				return errors.New("recursive value: " + cycleToStr(i.path, i.id))
 			}
 		}
-		exp := b.Defin.Assignments[i.id]
+		exp := b.Def.Assignments[i.id]
 		if exp.Def == nil {
 			ids := exp.CollectIds()
 			for _, id := range ids {

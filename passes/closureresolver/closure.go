@@ -23,10 +23,10 @@ func CollectClosures(exp *ast.Exp) {
 		if v.Id != nil {
 			closureAt[v] = map[string]Type{v.Id.Name: v.Id.Type}
 			if b := ctx.BlockOf(v.Id.Name); b != nil {
-				if b.Defin.Assignments[v.Id.Name].Type().IsFunction() &&
-					b.Defin.Assignments[v.Id.Name].Def != nil &&
-					b.Defin.Assignments[v.Id.Name].Def.Closure != nil {
-					for _, c := range b.Defin.Assignments[v.Id.Name].Def.Closure.Fields {
+				if b.Def.Assignments[v.Id.Name].Type().IsFunction() &&
+					b.Def.Assignments[v.Id.Name].Def != nil &&
+					b.Def.Assignments[v.Id.Name].Def.Closure != nil {
+					for _, c := range b.Def.Assignments[v.Id.Name].Def.Closure.Fields {
 						closureAt[v][c.Name] = c.Type
 					}
 				}
@@ -42,10 +42,10 @@ func CollectClosures(exp *ast.Exp) {
 		} else if v.Block != nil {
 			closureAt[v] = map[string]Type{}
 			assigns := map[string]bool{}
-			for n := range v.Block.Defin.Assignments {
+			for n := range v.Block.Def.Assignments {
 				assigns[n] = true
 			}
-			for _, a := range v.Block.Defin.Assignments {
+			for _, a := range v.Block.Def.Assignments {
 				for k, b := range closureAt[a] {
 					if !assigns[k] {
 						closureAt[v][k] = b
@@ -69,7 +69,7 @@ func CollectClosures(exp *ast.Exp) {
 			}
 			result := Structure{Name: "", Fields: []SField{}}
 			for n, t := range closureAt[v] {
-				if block := ctx.BlockOf(n); block == nil || !block.Defin.Assignments[n].Type().IsFunction() {
+				if block := ctx.BlockOf(n); block == nil || !block.Def.Assignments[n].Type().IsFunction() {
 					result.Fields = append(result.Fields, SField{Name: n, Type: t})
 				}
 			}

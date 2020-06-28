@@ -20,7 +20,7 @@ func SequentialFunctionPass(exp *ast.Exp) {
 			if root.Id != nil {
 				id = root.Id.Name
 				if block = ctx.BlockOf(id); block != nil {
-					def = block.Defin.Assignments[id].CopyWithCtx(tctx).Def
+					def = block.Def.Assignments[id].CopyWithCtx(tctx).Def
 				}
 			} else if root.Def != nil {
 				def = root.CopyWithCtx(tctx).Def
@@ -45,8 +45,8 @@ func SequentialFunctionPass(exp *ast.Exp) {
 
 			if changed {
 				if block != nil {
-					block.Defin.Assignments[nid] = &ast.Exp{Def: def}
-					v.Call.Function = &ast.Exp{Id: &ast.Id{Name: nid, Type: block.Defin.Assignments[nid].Type()}}
+					block.Def.Assignments[nid] = &ast.Exp{Def: def}
+					v.Call.Function = &ast.Exp{Id: &ast.Id{Name: nid, Type: block.Def.Assignments[nid].Type()}}
 					v.Call.Params = params
 				} else {
 					v.Call.Params = params

@@ -6,7 +6,7 @@ type Expression struct {
 }
 
 type UTExpression struct {
-	Def  *Definition     `@@`
+	Def  *FDefinition    `@@`
 	If   *IfExpression   `| @@`
 	Comp *CompExpression `| @@`
 }
@@ -63,8 +63,28 @@ type Accessor struct {
 }
 
 type Block struct {
-	Assignments []*Assignment `@@*`
-	Value       *Expression   `@@ Newline*`
+	Def   *Definitions `@@`
+	Value *Expression  `@@ Newline*`
+}
+
+type Definition struct {
+	Assignment *Assignment `@@`
+	Binding    *Binding    `| @@`
+}
+
+type Definitions struct {
+	Defs []*Definition `@@*`
+}
+
+type Binding struct {
+	Name      *string      `Newline* @Ident`
+	Interface *Definitions `"~>" "{" Newline* @@ Newline* "}" Newline*`
+}
+
+type Assignment struct {
+	Name  *string     `Newline* @Ident`
+	Type  *TypeDef    `(":" @@)?`
+	Value *Expression `"=" @@ Newline+`
 }
 
 type CallParams struct {
@@ -86,12 +106,6 @@ type PValue struct {
 	Sub    *Expression `| "(" @@ ")"`
 }
 
-type Assignment struct {
-	Name  *string     `Newline* @Ident`
-	Type  *TypeDef    `(":" @@)?`
-	Value *Expression `"=" @@ Newline+`
-}
-
 type TypeFunc struct {
 	Params []*TypeDef `"(" (@@ ("," @@)*)? ")" "=>"`
 	Return *TypeDef   `@@`
@@ -108,7 +122,7 @@ type FunParam struct {
 	Type *TypeDef `(":" @@)?`
 }
 
-type Definition struct {
+type FDefinition struct {
 	Params []*FunParam  `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
 	Funct  *FunctionDef `(Newline* @@)?`
 }

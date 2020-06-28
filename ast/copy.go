@@ -43,7 +43,7 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 		return nil
 	}
 	return &Block{
-		Defin: a.Defin.copy(ctx),
+		Def: a.Def.copy(ctx),
 		Value: a.Value.CopyWithCtx(ctx),
 		ID:    a.ID,
 	}

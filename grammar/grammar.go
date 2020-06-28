@@ -58,17 +58,31 @@ func (prg *Program) ToAst() *ast.Exp {
 	}
 }
 
+func convInterface(from *Definitions) ast.Interface {
+	return ast.Interface{}
+}
+
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
-	for _, a := range from.Assignments {
-		assigns[*a.Name] = convExp(a.Value)
-		if a.Type != nil {
-			t := convTypeDef(a.Type)
-			assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+	interfs := map[string]ast.Interface{}
+	for _, d := range from.Def.Defs {
+		if d.Assignment != nil {
+			a := d.Assignment
+			assigns[*a.Name] = convExp(a.Value)
+			if a.Type != nil {
+				t := convTypeDef(a.Type)
+				assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+			}
+		} else if d.Binding != nil {
+			b := d.Binding
+			name := *b.Name
+			interfs[name] = convInterface(b.Interface)
+		} else {
+			panic("invalid definition")
 		}
 	}
 	return &ast.Block{
-		Defin: ast.Definitions{Assignments: assigns},
+		Def:   ast.Definitions{Assignments: assigns, Interfaces: interfs},
 		Value: convExp(from.Value),
 	}
 }
@@ -83,7 +97,7 @@ func convExp(from *Expression) *ast.Exp {
 
 func convUTExp(from *UTExpression) *ast.Exp {
 	if from.Def != nil {
-		return convDef(from.Def)
+		return convFDef(from.Def)
 	} else if from.If != nil {
 		return convIf(from.If)
 	} else if from.Comp != nil {
@@ -101,7 +115,7 @@ func convIf(from *IfExpression) *ast.Exp {
 	}
 }
 
-func convDef(from *Definition) *ast.Exp {
+func convFDef(from *FDefinition) *ast.Exp {
 	if fd := from.Funct; fd != nil {
 		params := make([]*ast.FParam, len(from.Params))
 		for i, p := range from.Params {

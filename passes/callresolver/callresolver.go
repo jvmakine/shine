@@ -24,14 +24,14 @@ func Collect(exp *ast.Exp) FCat {
 	result := FCat{}
 	exp.VisitAfter(func(v *ast.Exp, _ *ast.VisitContext) error {
 		if v.Block != nil {
-			for n, a := range v.Block.Defin.Assignments {
+			for n, a := range v.Block.Def.Assignments {
 				if a.Def != nil {
 					result[n] = FEntry{Def: a.Def}
-					delete(v.Block.Defin.Assignments, n)
+					delete(v.Block.Def.Assignments, n)
 				}
 				if a.Struct != nil {
 					result[n] = FEntry{Struct: a.Struct}
-					delete(v.Block.Defin.Assignments, n)
+					delete(v.Block.Def.Assignments, n)
 				}
 			}
 		}
@@ -52,7 +52,7 @@ func ResolveFunctions(exp *ast.Exp) {
 			anonCount++
 			typ := v.Type()
 			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, v.Type().TSignature())
-			ctx.Block().Defin.Assignments[fsig] = v.Copy()
+			ctx.Block().Def.Assignments[fsig] = v.Copy()
 			v.Def = nil
 			v.Id = &ast.Id{Name: fsig, Type: typ}
 		}
@@ -71,10 +71,10 @@ func resolveCall(v *ast.FCall) {
 
 func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 	name := v.Id.Name
-	if block := ctx.BlockOf(name); block != nil && (block.Defin.Assignments[name].Def != nil || block.Defin.Assignments[name].Struct != nil) {
+	if block := ctx.BlockOf(name); block != nil && (block.Def.Assignments[name].Def != nil || block.Def.Assignments[name].Struct != nil) {
 		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
-		if block.Defin.Assignments[fsig] == nil {
-			f := block.Defin.Assignments[v.Id.Name]
+		if block.Def.Assignments[fsig] == nil {
+			f := block.Def.Assignments[v.Id.Name]
 			cop := f.Copy()
 			subs, err := cop.Type().Unifier(v.Type())
 			if err != nil {
@@ -84,9 +84,9 @@ func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 			if cop.Type().HasFreeVars() {
 				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
-			block.Defin.Assignments[fsig] = cop
+			block.Def.Assignments[fsig] = cop
 		} else {
-			f := block.Defin.Assignments[v.Id.Name]
+			f := block.Def.Assignments[v.Id.Name]
 			cop := f.Copy()
 			_, err := cop.Type().Unifier(v.Type())
 			if err != nil {

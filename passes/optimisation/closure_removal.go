@@ -8,14 +8,14 @@ import (
 func ClosureRemoval(exp *ast.Exp) {
 	exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Block != nil {
-			for k, a := range v.Block.Defin.Assignments {
+			for k, a := range v.Block.Def.Assignments {
 				if a.Def != nil && a.Def.HasClosure() {
 					newname := k + "%flat"
 					newparams := a.Def.Params
 					for _, c := range a.Def.Closure.Fields {
 						newparams = append(newparams, &ast.FParam{Name: c.Name, Type: c.Type})
 					}
-					v.Block.Defin.Assignments[newname] = &ast.Exp{Def: &ast.FDef{
+					v.Block.Def.Assignments[newname] = &ast.Exp{Def: &ast.FDef{
 						Body:    a.Def.Body,
 						Params:  newparams,
 						Closure: types.MakeStructure("").Structure,
@@ -25,8 +25,8 @@ func ClosureRemoval(exp *ast.Exp) {
 		} else if v.Call != nil && v.Call.Function.Id != nil {
 			id := v.Call.Function.Id.Name
 			block := ctx.BlockOf(id)
-			if block != nil && block.Defin.Assignments[id].Def != nil {
-				f := block.Defin.Assignments[id]
+			if block != nil && block.Def.Assignments[id].Def != nil {
+				f := block.Def.Assignments[id]
 				if f.Def.HasClosure() {
 					newid := id + "%flat"
 					v.Call.Function.Id.Name = newid

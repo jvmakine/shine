@@ -37,7 +37,6 @@ func Op(name string) *ast.Exp {
 }
 
 type Assgs = map[string]*ast.Exp
-
 type Interfaces = map[string]ast.Interface
 
 func Block(a Assgs, e *ast.Exp) *ast.Exp {
@@ -48,9 +47,9 @@ func Block(a Assgs, e *ast.Exp) *ast.Exp {
 	return &ast.Exp{
 		Block: &ast.Block{
 			Value: e,
-			Defin: ast.Definitions{
+			Def: ast.Definitions{
 				Assignments: assign,
-				Interfaces:  nil,
+				Interfaces:  map[string]ast.Interface{},
 			},
 		},
 	}
