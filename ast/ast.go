@@ -80,9 +80,13 @@ type FDef struct {
 
 type Block struct {
 	Assignments map[string]*Exp
+	Interfaces  map[string]Interface
 	Value       *Exp
+	ID          int
+}
 
-	ID int
+type Interface struct {
+	Methods map[string]*Exp
 }
 
 // Types

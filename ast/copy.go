@@ -31,10 +31,25 @@ func (a *Block) copy(ctx *types.TypeCopyCtx) *Block {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
+	ic := map[string]Interface{}
+	for k, v := range a.Interfaces {
+		ic[k] = v.copy(ctx)
+	}
 	return &Block{
 		Assignments: ac,
+		Interfaces:  ic,
 		Value:       a.Value.CopyWithCtx(ctx),
 		ID:          a.ID,
+	}
+}
+
+func (i Interface) copy(ctx *types.TypeCopyCtx) Interface {
+	mc := map[string]*Exp{}
+	for k, v := range i.Methods {
+		mc[k] = v.CopyWithCtx(ctx)
+	}
+	return Interface{
+		Methods: mc,
 	}
 }
 

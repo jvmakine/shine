@@ -156,6 +156,11 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 				return err
 			}
 		}
+		for _, i := range a.Block.Interfaces {
+			for _, m := range i.Methods {
+				m.visit(f, l, sub)
+			}
+		}
 		if err := a.Block.Value.visit(f, l, sub); err != nil {
 			return err
 		}
