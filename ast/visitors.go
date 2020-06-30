@@ -2,11 +2,35 @@ package ast
 
 import "github.com/jvmakine/shine/types"
 
+type GlobalVCtx struct {
+	visited map[Expression]bool
+}
+
 type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
 	def        *FDef
 	assignment string
+	global     *GlobalVCtx
+}
+
+type VisitFunc = func(p Ast, ctx *VisitContext) error
+
+func (c *VisitContext) WithBlock(b *Block) *VisitContext {
+	return &VisitContext{parent: c, block: b, def: c.def, assignment: c.assignment, global: c.global}
+}
+
+func (c *VisitContext) WithDef(d *FDef) *VisitContext {
+	return &VisitContext{parent: c, block: c.block, def: d, assignment: c.assignment, global: c.global}
+}
+
+func (c *VisitContext) WithAssignment(a string) *VisitContext {
+	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: a, global: c.global}
+}
+
+func NewVisitCtx() *VisitContext {
+	global := &GlobalVCtx{visited: map[Expression]bool{}}
+	return &VisitContext{parent: nil, block: nil, def: nil, assignment: "", global: global}
 }
 
 func (c *VisitContext) Path() map[string]bool {
@@ -51,7 +75,7 @@ func (c *VisitContext) BlockOf(id string) *Block {
 	return nil
 }
 
-func (c *VisitContext) NameOf(exp *Exp) string {
+func (c *VisitContext) NameOf(exp Expression) string {
 	if c.block == nil {
 		return ""
 	}
@@ -66,182 +90,72 @@ func (c *VisitContext) NameOf(exp *Exp) string {
 	return ""
 }
 
-func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
+func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
 	if c.block != nil && c.block.Def.Assignments[id] != nil {
 		return c.block.Def.Assignments[id], c
 	} else if c.parent != nil {
-		return c.parent.resolve(id)
+		return c.parent.Resolve(id)
 	}
 	return nil, nil
 }
 
-type VisitFunc = func(p *Exp, ctx *VisitContext) error
-
-func nullVisitFun(_ *Exp, _ *VisitContext) error {
+func NullFun(_ Ast, _ *VisitContext) error {
 	return nil
 }
 
-func (a *Exp) Visit(f VisitFunc) error {
-	return a.visit(f, nullVisitFun, &VisitContext{})
-}
-
-func (a *Exp) VisitAfter(f VisitFunc) error {
-	return a.visit(nullVisitFun, f, &VisitContext{})
-}
-
-func (a *Exp) Crawl(f VisitFunc) (map[*Exp]bool, error) {
-	visited := map[*Exp]bool{}
-	return visited, a.crawl(f, nullVisitFun, &VisitContext{}, &visited)
-}
-
-func (a *Exp) CrawlAfter(f VisitFunc) (map[*Exp]bool, error) {
-	visited := map[*Exp]bool{}
-	return visited, a.crawl(nullVisitFun, f, &VisitContext{}, &visited)
-}
-
-func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*Exp]bool) error {
-	if (*visited)[a] {
-		return nil
-	}
-	(*visited)[a] = true
-	if err := f(a, ctx); err != nil {
-		return err
-	}
-	if a.Block != nil {
-		sub := &VisitContext{block: a.Block, def: ctx.def, parent: ctx}
-		if err := a.Block.Value.crawl(f, l, sub, visited); err != nil {
-			return err
-		}
-	} else if a.Def != nil {
-		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def}
-		if err := a.Def.Body.crawl(f, l, sub, visited); err != nil {
-			return err
-		}
-	} else if a.Call != nil {
-		if err := a.Call.Function.crawl(f, l, ctx, visited); err != nil {
-			return err
-		}
-		for _, p := range a.Call.Params {
-			if err := p.crawl(f, l, ctx, visited); err != nil {
-				return err
-			}
-		}
-	} else if a.Id != nil {
-		if r, c := ctx.resolve(a.Id.Name); r != nil {
-			sub := &VisitContext{assignment: a.Id.Name, block: c.block, def: c.def, parent: c}
-			if err := r.crawl(f, l, sub, visited); err != nil {
-				return err
-			}
-		}
-	} else if a.TDecl != nil {
-		a.TDecl.Exp.crawl(f, l, ctx, visited)
-	} else if a.FAccess != nil {
-		a.FAccess.Exp.crawl(f, l, ctx, visited)
-	}
-	if err := l(a, ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
-	if err := f(a, ctx); err != nil {
-		return err
-	}
-	if a.Block != nil {
-		sub := &VisitContext{block: a.Block, parent: ctx, def: ctx.def}
-		for n, a := range a.Block.Def.Assignments {
-			ssub := &VisitContext{assignment: n, block: sub.block, def: sub.def, parent: sub}
-			if err := a.visit(f, l, ssub); err != nil {
-				return err
-			}
-		}
-		for _, i := range a.Block.Def.Interfaces {
-			for _, m := range i.Methods {
-				m.visit(f, l, sub)
-			}
-		}
-		if err := a.Block.Value.visit(f, l, sub); err != nil {
-			return err
-		}
-	} else if a.Def != nil {
-		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def}
-		if err := a.Def.Body.visit(f, l, sub); err != nil {
-			return err
-		}
-	} else if a.Call != nil {
-		if err := a.Call.Function.visit(f, l, ctx); err != nil {
-			return err
-		}
-		for _, p := range a.Call.Params {
-			if err := p.visit(f, l, ctx); err != nil {
-				return err
-			}
-		}
-	} else if a.TDecl != nil {
-		a.TDecl.Exp.visit(f, l, ctx)
-	} else if a.FAccess != nil {
-		a.FAccess.Exp.visit(f, l, ctx)
-	}
-	if err := l(a, ctx); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, error)) error {
-	return a.VisitAfter(func(v *Exp, ctx *VisitContext) error {
-		if v.Op != nil {
-			t, err := f(v.Op.Type, ctx)
+func RewriteTypes(a Ast, f func(t types.Type, ctx *VisitContext) (types.Type, error)) error {
+	return a.Visit(NullFun, func(v Ast, ctx *VisitContext) error {
+		if op, ok := v.(*Op); ok {
+			t, err := f(op.Type(), ctx)
 			if err != nil {
 				return err
 			}
-			v.Op.Type = t
-		} else if v.Id != nil {
-			t, err := f(v.Id.Type, ctx)
+			op.OpType = t
+		} else if id, ok := v.(*Id); ok {
+			t, err := f(id.Type(), ctx)
 			if err != nil {
 				return err
 			}
-			v.Id.Type = t
-		} else if v.Const != nil {
-			t, err := f(v.Const.Type, ctx)
+			id.IdType = t
+		} else if c, ok := v.(*Const); ok {
+			t, err := f(c.ConstType, ctx)
 			if err != nil {
 				return err
 			}
-			v.Const.Type = t
-		} else if v.TDecl != nil {
-			t, err := f(v.TDecl.Type, ctx)
+			c.ConstType = t
+		} else if d, ok := v.(*TypeDecl); ok {
+			t, err := f(d.DeclType, ctx)
 			if err != nil {
 				return err
 			}
-			v.TDecl.Type = t
-		} else if v.FAccess != nil {
-			t, err := f(v.FAccess.Type, ctx)
+			d.DeclType = t
+		} else if a, ok := v.(*FieldAccessor); ok {
+			t, err := f(a.FAType, ctx)
 			if err != nil {
 				return err
 			}
-			v.FAccess.Type = t
-		} else if v.Call != nil {
-			t, err := f(v.Call.Type, ctx)
+			a.FAType = t
+		} else if c, ok := v.(*FCall); ok {
+			t, err := f(c.CallType, ctx)
 			if err != nil {
 				return err
 			}
-			v.Call.Type = t
-		} else if v.Def != nil {
-			for _, p := range v.Def.Params {
-				t, err := f(p.Type, ctx)
+			c.CallType = t
+		} else if d, ok := v.(*FDef); ok {
+			for _, p := range d.Params {
+				t, err := f(p.ParamType, ctx)
 				if err != nil {
 					return err
 				}
-				p.Type = t
+				p.ParamType = t
 			}
-		} else if v.Struct != nil {
-			t, err := f(v.Struct.Type, ctx)
+		} else if s, ok := v.(*Struct); ok {
+			t, err := f(s.StructType, ctx)
 			if err != nil {
 				return err
 			}
-			v.Struct.Type = t
-			for _, p := range v.Struct.Fields {
+			s.StructType = t
+			for _, p := range s.Fields {
 				t, err := f(p.Type, ctx)
 				if err != nil {
 					return err
@@ -250,5 +164,5 @@ func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, 
 			}
 		}
 		return nil
-	})
+	}, false, NewVisitCtx())
 }
