@@ -8,7 +8,7 @@ type FormatOptions struct {
 	Types bool
 }
 
-func String(e Expression) string {
+func Stringify(e Expression) string {
 	options := &FormatOptions{Types: true}
 	return Format(e, options)
 }

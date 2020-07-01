@@ -547,8 +547,8 @@ func (b *Block) CheckValueCycles() error {
 			}
 		}
 		exp := b.Def.Assignments[i.id]
-		if def, ok := exp.(*FDef); ok {
-			ids := CollectIds(def)
+		if _, ok := exp.(*FDef); !ok {
+			ids := CollectIds(exp)
 			for _, id := range ids {
 				if names[id] != nil {
 					todo = append(todo, ToDo{id: id, path: append(i.path, i.id)})

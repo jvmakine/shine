@@ -69,6 +69,8 @@ func (c *VisitContext) BlockOf(id string) *Block {
 		return nil
 	} else if c.block.Def.Assignments[id] != nil {
 		return c.block
+	} else if c.block.Def.TypeDefs[id] != nil {
+		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
 	}
@@ -101,6 +103,23 @@ func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
 
 func NullFun(_ Ast, _ *VisitContext) error {
 	return nil
+}
+
+func VisitBefore(a Ast, f VisitFunc) error {
+	return a.Visit(f, NullFun, false, NewVisitCtx())
+}
+
+func VisitAfter(a Ast, f VisitFunc) error {
+	return a.Visit(NullFun, f, false, NewVisitCtx())
+}
+
+func CrawlAfter(a Ast, f VisitFunc) (map[Ast]bool, error) {
+	res := map[Ast]bool{}
+	err := a.Visit(NullFun, func(v Ast, ctx *VisitContext) error {
+		res[v] = true
+		return f(v, ctx)
+	}, true, NewVisitCtx())
+	return res, err
 }
 
 func RewriteTypes(a Ast, f func(t types.Type, ctx *VisitContext) (types.Type, error)) error {
