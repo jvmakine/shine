@@ -1,56 +1,61 @@
 package optimisation
 
 import (
-	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/types"
 )
 
 // Optimise sequential function definitions into one when called with multiple arguments
-func SequentialFunctionPass(exp *ast.Exp) {
+func SequentialFunctionPass(exp Expression) {
 	tctx := types.NewTypeCopyCtx()
-	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
-		if v.Call != nil && v.Call.Function.Call != nil {
-			root := v.Call.RootFunc()
 
-			var def *ast.FDef
-			var block *ast.Block
+	CrawlBefore(exp, func(v Ast, ctx *VisitContext) error {
+		if c, ok := v.(*FCall); ok {
+			root := c.RootFunc()
+			var def *FDef
+			var block *Block
 			var id string
 			changed := false
 
-			if root.Id != nil {
-				id = root.Id.Name
+			if i, ok := root.(*Id); ok {
+				id = i.Name
 				if block = ctx.BlockOf(id); block != nil {
-					def = block.Def.Assignments[id].CopyWithCtx(tctx).Def
+					def = block.Def.Assignments[id].CopyWithCtx(tctx).(*FDef)
 				}
-			} else if root.Def != nil {
-				def = root.CopyWithCtx(tctx).Def
+			} else if _, ok := root.(*FDef); ok {
+				def = root.CopyWithCtx(tctx).(*FDef)
 			}
 
-			params := v.Call.Params
-			ptr := v
+			params := c.Params
 			nid := id
-			for ptr.Call.Function.Call != nil && def != nil && def.Body.Def != nil {
+			fcall, isFCall := c.Function.(*FCall)
+			isDefB := false
+			if def != nil {
+				_, isDefB = def.Body.(*FDef)
+			}
+			for isFCall && isDefB {
 				changed = true
-				params = append(ptr.Call.Function.Call.Params, params...)
-				ptr = ptr.Call.Function
-
-				def2 := def.Body.Def
+				params = append(fcall.Params, params...)
+				def2 := def.Body.(*FDef)
 				def.Params = append(def.Params, def2.Params...)
 				def.Body = def2.Body
 
 				if block != nil {
 					nid = nid + "%c"
 				}
+
+				_, isDefB = def.Body.(*FDef)
+				fcall, isFCall = fcall.Function.(*FCall)
 			}
 
 			if changed {
 				if block != nil {
-					block.Def.Assignments[nid] = &ast.Exp{Def: def}
-					v.Call.Function = &ast.Exp{Id: &ast.Id{Name: nid, Type: block.Def.Assignments[nid].Type()}}
-					v.Call.Params = params
+					block.Def.Assignments[nid] = def
+					c.Function = &Id{Name: nid, IdType: def.Type()}
+					c.Params = params
 				} else {
-					v.Call.Params = params
-					v.Call.Function = &ast.Exp{Def: def}
+					c.Params = params
+					c.Function = def
 				}
 			}
 		}

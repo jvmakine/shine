@@ -6,35 +6,26 @@ import (
 
 	"github.com/jvmakine/shine/passes/typeinference"
 
-	"github.com/jvmakine/shine/ast"
-	. "github.com/jvmakine/shine/test"
+	. "github.com/jvmakine/shine/ast"
 )
 
 func TestDCE(t *testing.T) {
 	type args struct {
-		exp *ast.Exp
+		exp Expression
 	}
 	tests := []struct {
 		name   string
-		before *ast.Exp
-		after  *ast.Exp
+		before Expression
+		after  Expression
 	}{{
 		name: "removes unused assignments from blocks",
-		before: Block(
-			Assgs{
-				"a": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x"),
-				"y": IConst(5),
-				"z": IConst(4),
-			},
-			Fcall(Id("a"), IConst(1)),
-		),
-		after: Block(
-			Assgs{
-				"a": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x"),
-				"y": IConst(5),
-			},
-			Fcall(Id("a"), IConst(1)),
-		),
+		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
+			WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x")).
+			WithAssignment("y", NewConst(5)).
+			WithAssignment("z", NewConst(4)),
+		after: NewBlock(NewFCall(NewId("a"), NewConst(1))).
+			WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x")).
+			WithAssignment("y", NewConst(5)),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

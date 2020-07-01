@@ -3,9 +3,8 @@ package optimisation
 import (
 	"testing"
 
-	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/typeinference"
-	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
 	"github.com/roamz/deepdiff"
 )
@@ -13,21 +12,15 @@ import (
 func TestSeqFN(t *testing.T) {
 	tests := []struct {
 		name   string
-		before *ast.Exp
-		after  *ast.Exp
+		before Expression
+		after  Expression
 	}{{
 		name: "combines sequential functions when possible",
-		before: Block(
-			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
-			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
-		),
-		after: Block(
-			Assgs{
-				"a":   Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x"),
-				"a%c": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-			},
-			Fcall(Id("a%c"), IConst(1), IConst(2)),
-		),
+		before: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
+			WithAssignment("a", NewFDef(NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "y"), "x")),
+		after: NewBlock(NewFCall(NewId("a%c"), NewConst(1), NewConst(2))).
+			WithAssignment("a", NewFDef(NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "y"), "x")).
+			WithAssignment("a%c", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -44,23 +37,13 @@ func TestSeqFN(t *testing.T) {
 	}
 }
 
-func eraseType(e *ast.Exp) {
-	e.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
-		if v.Id != nil {
-			v.Id.Type = types.IntP
-		} else if v.Op != nil {
-			v.Op.Type = types.IntP
-		} else if v.Const != nil {
-			v.Const.Type = types.IntP
-		} else if v.Call != nil {
-			v.Call.Type = types.IntP
-		} else if v.Def != nil {
-			for _, p := range v.Def.Params {
-				p.Type = types.IntP
-			}
-			v.Def.Closure = nil
-		} else if v.Block != nil {
-			v.Block.ID = 0
+func eraseType(e Expression) {
+	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
+		return types.IntP, nil
+	})
+	VisitAfter(e, func(a Ast, ctx *VisitContext) error {
+		if b, ok := a.(*Block); ok {
+			b.ID = 0
 		}
 		return nil
 	})

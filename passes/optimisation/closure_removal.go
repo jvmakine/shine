@@ -1,41 +1,44 @@
 package optimisation
 
 import (
-	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/types"
 )
 
-func ClosureRemoval(exp *ast.Exp) {
-	exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
-		if v.Block != nil {
-			for k, a := range v.Block.Def.Assignments {
-				if a.Def != nil && a.Def.HasClosure() {
+func ClosureRemoval(exp Expression) {
+	VisitBefore(exp, func(v Ast, ctx *VisitContext) error {
+		if b, ok := v.(*Block); ok {
+			for k, a := range b.Def.Assignments {
+				if d, ok := a.(*FDef); ok && d.HasClosure() {
 					newname := k + "%flat"
-					newparams := a.Def.Params
-					for _, c := range a.Def.Closure.Fields {
-						newparams = append(newparams, &ast.FParam{Name: c.Name, Type: c.Type})
+					newparams := d.Params
+					for _, c := range d.Closure.Fields {
+						newparams = append(newparams, &FParam{Name: c.Name, ParamType: c.Type})
 					}
-					v.Block.Def.Assignments[newname] = &ast.Exp{Def: &ast.FDef{
-						Body:    a.Def.Body,
+					b.Def.Assignments[newname] = &FDef{
+						Body:    d.Body,
 						Params:  newparams,
 						Closure: types.MakeStructure("").Structure,
-					}}
+					}
 				}
 			}
-		} else if v.Call != nil && v.Call.Function.Id != nil {
-			id := v.Call.Function.Id.Name
-			block := ctx.BlockOf(id)
-			if block != nil && block.Def.Assignments[id].Def != nil {
-				f := block.Def.Assignments[id]
-				if f.Def.HasClosure() {
-					newid := id + "%flat"
-					v.Call.Function.Id.Name = newid
-					newargs := v.Call.Params
-					for _, c := range f.Def.Closure.Fields {
-						a := &ast.Exp{Id: &ast.Id{Name: c.Name, Type: c.Type}}
-						newargs = append(newargs, a)
+		} else if c, ok := v.(*FCall); ok {
+			if i, ok := c.Function.(*Id); ok {
+				id := i.Name
+				block := ctx.BlockOf(id)
+				if block != nil {
+					if bd, ok := block.Def.Assignments[id].(*FDef); ok {
+						if bd.HasClosure() {
+							newid := id + "%flat"
+							i.Name = newid
+							newargs := c.Params
+							for _, c := range bd.Closure.Fields {
+								a := &Id{Name: c.Name, IdType: c.Type}
+								newargs = append(newargs, a)
+							}
+							c.Params = newargs
+						}
 					}
-					v.Call.Params = newargs
 				}
 			}
 		}

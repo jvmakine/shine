@@ -113,6 +113,15 @@ func VisitAfter(a Ast, f VisitFunc) error {
 	return a.Visit(NullFun, f, false, NewVisitCtx())
 }
 
+func CrawlBefore(a Ast, f VisitFunc) (map[Ast]bool, error) {
+	res := map[Ast]bool{}
+	err := a.Visit(func(v Ast, ctx *VisitContext) error {
+		res[v] = true
+		return f(v, ctx)
+	}, NullFun, true, NewVisitCtx())
+	return res, err
+}
+
 func CrawlAfter(a Ast, f VisitFunc) (map[Ast]bool, error) {
 	res := map[Ast]bool{}
 	err := a.Visit(NullFun, func(v Ast, ctx *VisitContext) error {

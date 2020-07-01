@@ -559,15 +559,19 @@ func (b *Block) CheckValueCycles() error {
 	return nil
 }
 
+func NewDefinitions() *Definitions {
+	return &Definitions{
+		Assignments: map[string]Expression{},
+		TypeDefs:    map[string]*Struct{},
+		Interfaces:  map[string]*Interface{},
+	}
+}
+
 func NewBlock(body Expression) *Block {
 	return &Block{
 		ID:    0,
 		Value: body,
-		Def: &Definitions{
-			Assignments: map[string]Expression{},
-			TypeDefs:    map[string]*Struct{},
-			Interfaces:  map[string]*Interface{},
-		},
+		Def:   NewDefinitions(),
 	}
 }
 
