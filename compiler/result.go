@@ -7,9 +7,9 @@ import (
 
 type cresult struct {
 	value value.Value
-	ast   *ast.Exp
+	ast   ast.Expression
 }
 
-func makeCR(e *ast.Exp, v value.Value) cresult {
+func makeCR(e ast.Expression, v value.Value) cresult {
 	return cresult{value: v, ast: e}
 }

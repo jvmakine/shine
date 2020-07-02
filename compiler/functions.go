@@ -14,7 +14,7 @@ func makeFDefs(fcat *callresolver.FCat, ctx *context) {
 			rtype := getType(def.Body.Type())
 			params := []*ir.Param{}
 			for _, p := range def.Params {
-				param := ir.NewParam(p.Name, getType(p.Type))
+				param := ir.NewParam(p.Name, getType(p.ParamType))
 				params = append(params, param)
 			}
 			params = append(params, ir.NewParam("+cls", ClosurePType))
@@ -45,7 +45,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 			body := f.Fun.NewBlock("")
 			subCtx := ctx.funcContext(body, f.Fun)
 			for _, p := range v.Def.Params {
-				param := ir.NewParam(p.Name, getType(p.Type))
+				param := ir.NewParam(p.Name, getType(p.ParamType))
 				_, err := subCtx.addId(p.Name, param)
 				if err != nil {
 					panic(err)
@@ -67,7 +67,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			s := subCtx.makeStructure(v.Struct.Type.FunctReturn().Structure, nil)
+			s := subCtx.makeStructure(v.Struct.StructType.Structure, nil)
 			subCtx.Block.NewRet(s)
 		}
 	}

@@ -38,7 +38,7 @@ func makeUtils(m *ir.Module) *utils {
 	}
 }
 
-func Compile(prg *ast.Exp, fcat *callresolver.FCat) *ir.Module {
+func Compile(prg ast.Expression, fcat *callresolver.FCat) *ir.Module {
 	module := ir.NewModule()
 	utils := makeUtils(module)
 

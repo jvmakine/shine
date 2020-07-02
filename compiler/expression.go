@@ -10,23 +10,23 @@ import (
 	"github.com/llir/llvm/ir/value"
 )
 
-func compileExp(from *ast.Exp, ctx *context, funcRoot bool) cresult {
-	if from.Const != nil {
-		return compileConst(from, ctx)
-	} else if from.Id != nil {
-		return compileID(from, ctx)
-	} else if from.Call != nil {
-		return compileCall(from, ctx, funcRoot)
-	} else if from.Def != nil {
-		panic("non resolved anonymous function: " + from.Type().Signature())
-	} else if from.Block != nil {
-		return compileBlock(from.Block, ctx, funcRoot)
-	} else if from.TDecl != nil {
-		return compileExp(from.TDecl.Exp, ctx, funcRoot)
-	} else if from.Struct != nil {
+func compileExp(from ast.Expression, ctx *context, funcRoot bool) cresult {
+	if c, ok := from.(*ast.Const); ok {
+		return compileConst(c, ctx)
+	} else if i, ok := from.(*ast.Id); ok {
+		return compileID(i, ctx)
+	} else if c, ok := from.(*ast.FCall); ok {
+		return compileCall(c, ctx, funcRoot)
+	} else if d, ok := from.(*ast.FDef); ok {
+		panic("non resolved anonymous function: " + d.Type().Signature())
+	} else if b, ok := from.(*ast.Block); ok {
+		return compileBlock(b, ctx, funcRoot)
+	} else if t, ok := from.(*ast.TypeDecl); ok {
+		return compileExp(t.Exp, ctx, funcRoot)
+	} else if _, ok := from.(*ast.Struct); ok {
 		panic("non resolved struct at compilation")
-	} else if from.FAccess != nil {
-		return compileFAccess(from, ctx)
+	} else if a, ok := from.(*ast.FieldAccessor); ok {
+		return compileFAccess(a, ctx)
 	}
 	panic("invalid empty expression")
 }
@@ -71,8 +71,7 @@ func getStructFieldIndex(s *t.Structure, name string) int {
 	return index
 }
 
-func compileFAccess(from *ast.Exp, ctx *context) cresult {
-	fa := from.FAccess
+func compileFAccess(fa *ast.FieldAccessor, ctx *context) cresult {
 	cstru := compileExp(fa.Exp, ctx, false)
 	tstru := fa.Exp.Type()
 	ctyp := structureType(tstru.Structure, false)
@@ -80,40 +79,40 @@ func compileFAccess(from *ast.Exp, ctx *context) cresult {
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
 	index := getStructFieldIndex(tstru.Structure, fa.Field)
 	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+3)))
-	res := ctx.Block.NewLoad(getType(from.Type()), ptr)
-	return makeCR(from, res)
+	res := ctx.Block.NewLoad(getType(fa.Type()), ptr)
+	return makeCR(fa, res)
 }
 
-func compileConst(from *ast.Exp, ctx *context) cresult {
-	if from.Const.Int != nil {
-		return makeCR(from, constant.NewInt(IntType, *from.Const.Int))
-	} else if from.Const.Bool != nil {
-		return makeCR(from, constant.NewBool(*from.Const.Bool))
-	} else if from.Const.Real != nil {
-		return makeCR(from, constant.NewFloat(RealType, *from.Const.Real))
-	} else if from.Const.String != nil {
-		sref := ctx.makeStringRefRoot(*from.Const.String)
+func compileConst(from *ast.Const, ctx *context) cresult {
+	if from.Int != nil {
+		return makeCR(from, constant.NewInt(IntType, *from.Int))
+	} else if from.Bool != nil {
+		return makeCR(from, constant.NewBool(*from.Bool))
+	} else if from.Real != nil {
+		return makeCR(from, constant.NewFloat(RealType, *from.Real))
+	} else if from.String != nil {
+		sref := ctx.makeStringRefRoot(*from.String)
 		bc := ctx.Block.NewBitCast(sref, StringPType)
 		return makeCR(from, bc)
 	}
 	panic("invalid constant at compilation")
 }
 
-func compileID(exp *ast.Exp, ctx *context) cresult {
-	name := exp.Id.Name
+func compileID(id *ast.Id, ctx *context) cresult {
+	name := id.Name
 	if ctx.isFun(name) {
 		f := ctx.global.functions[name]
 		clj := ctx.makeStructure(f.From.Closure, f.Fun)
-		return makeCR(exp, clj)
+		return makeCR(id, clj)
 	}
-	id, err := ctx.resolveId(name)
+	r, err := ctx.resolveId(name)
 	if err != nil {
 		panic(err)
 	}
-	return makeCR(exp, id)
+	return makeCR(id, r)
 }
 
-func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) cresult {
+func compileIf(c ast.Expression, t ast.Expression, f ast.Expression, ctx *context, funcRoot bool) cresult {
 	trueB := ctx.Func.NewBlock(ctx.newLabel())
 	falseB := ctx.Func.NewBlock(ctx.newLabel())
 	typ := getType(t.Type())
@@ -158,7 +157,7 @@ func compileIf(c *ast.Exp, t *ast.Exp, f *ast.Exp, ctx *context, funcRoot bool) 
 	}
 }
 
-func compileBinOp(from *ast.FCall, exp *ast.Exp, op string, params []cresult, ctx *context) cresult {
+func compileBinOp(from *ast.FCall, exp ast.Expression, op string, params []cresult, ctx *context) cresult {
 	switch op {
 	case "*":
 		if from.Params[0].Type().AsPrimitive() == t.Real {
@@ -223,11 +222,10 @@ func compileBinOp(from *ast.FCall, exp *ast.Exp, op string, params []cresult, ct
 	}
 }
 
-func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
-	from := exp.Call
-	if from.Function.Op != nil {
+func compileCall(from *ast.FCall, ctx *context, funcRoot bool) cresult {
+	if op, ok := from.Function.(*ast.Op); ok {
 		var params []cresult
-		name := from.Function.Op.Name
+		name := op.Name
 		if name == "if" { // Need to evaluate if parameters lazily
 			return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
 		}
@@ -235,7 +233,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			v := compileExp(p, ctx, false)
 			params = append(params, v)
 		}
-		result := compileBinOp(from, exp, name, params, ctx)
+		result := compileBinOp(from, from, name, params, ctx)
 		for _, p := range params {
 			ctx.freeIfUnboundRef(p)
 		}
@@ -252,8 +250,8 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			vparams[i] = p.value
 		}
 
-		if from.Function.Id != nil {
-			name := from.Function.Id.Name
+		if id, ok := from.Function.(*ast.Id); ok {
+			name := id.Name
 			if ctx.global.functions[name].Fun != nil {
 				f := ctx.global.functions[name]
 				vps := make([]value.Value, len(params))
@@ -264,7 +262,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 				for _, p := range params {
 					ctx.freeIfUnboundRef(p)
 				}
-				return makeCR(exp, res)
+				return makeCR(from, res)
 			}
 			id, err := ctx.resolveId(name)
 			if err != nil {
@@ -274,7 +272,7 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			for _, p := range params {
 				ctx.freeIfUnboundRef(p)
 			}
-			return makeCR(exp, res)
+			return makeCR(from, res)
 		}
 		fval := compileExp(from.Function, ctx, false)
 		res := ctx.call(fval.value, from.Function.Type(), vparams)
@@ -282,14 +280,14 @@ func compileCall(exp *ast.Exp, ctx *context, funcRoot bool) cresult {
 			ctx.freeIfUnboundRef(p)
 		}
 		ctx.freeIfUnboundRef(fval)
-		return makeCR(exp, res)
+		return makeCR(from, res)
 	}
 }
 
 func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	sub := ctx.subContext()
 
-	assigns := map[string]*ast.Exp{}
+	assigns := map[string]ast.Expression{}
 	deps := map[string]map[string]bool{}
 	for k, c := range from.Def.Assignments {
 		assigns[k] = c
@@ -319,12 +317,12 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 				}
 				if c.Type().IsFunction() {
 					closureids[k] = v.value
-					if c.Id != nil { // TODO: Optimise renames away
+					if _, isId := c.(*ast.Id); isId { // TODO: Optimise renames away
 						sub.incRef(v.value)
 					}
 				} else if c.Type().IsStructure() || c.Type().IsString() {
 					structids[k] = v.value
-					if c.Id != nil { // TODO: Optimise renames away
+					if _, isId := c.(*ast.Id); isId { // TODO: Optimise renames away
 						sub.incRef(v.value)
 					}
 				}
@@ -335,12 +333,12 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 
 	res := compileExp(from.Value, sub, funcRoot)
 	for id, v := range closureids {
-		if from.Value.Id == nil || from.Value.Id.Name != id {
+		if i, isId := from.Value.(*ast.Id); !isId || i.Name != id {
 			sub.freeRef(v)
 		}
 	}
 	for id, v := range structids {
-		if from.Value.Id == nil || from.Value.Id.Name != id {
+		if i, isId := from.Value.(*ast.Id); !isId || i.Name != id {
 			sub.freeRef(v)
 		}
 	}
@@ -348,13 +346,13 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 	return res
 }
 
-func collectDeps(exp *ast.Exp, c *context) []string {
+func collectDeps(exp ast.Expression, c *context) []string {
 	ids := map[string]bool{}
-	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
-		if v.Id != nil {
-			name := v.Id.Name
+	ast.VisitBefore(exp, func(v ast.Ast, _ *ast.VisitContext) error {
+		if id, ok := v.(*ast.Id); ok {
+			name := id.Name
 			ids[name] = true
-			if v.Type().IsFunction() && c.isFun(name) {
+			if id.Type().IsFunction() && c.isFun(name) {
 				f := c.resolveFun(name)
 				if f.From.HasClosure() {
 					for _, c := range f.From.Closure.Fields {

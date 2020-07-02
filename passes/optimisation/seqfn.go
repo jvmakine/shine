@@ -20,7 +20,12 @@ func SequentialFunctionPass(exp Expression) {
 			if i, ok := root.(*Id); ok {
 				id = i.Name
 				if block = ctx.BlockOf(id); block != nil {
-					def = block.Def.Assignments[id].CopyWithCtx(tctx).(*FDef)
+					assig := block.Def.Assignments[id]
+					if d, ok := assig.(*FDef); ok {
+						def = d.CopyWithCtx(tctx).(*FDef)
+					} else {
+						def = nil
+					}
 				}
 			} else if _, ok := root.(*FDef); ok {
 				def = root.CopyWithCtx(tctx).(*FDef)

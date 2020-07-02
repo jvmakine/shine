@@ -226,7 +226,7 @@ func (c *context) call(f value.Value, typ t.Type, params []value.Value) value.Va
 
 func (c *context) ret(v cresult) {
 	block := c.Block
-	if v.ast.Type().IsFunction() && v.ast.Id != nil && c.global.functions[v.ast.Id.Name].Fun == nil {
+	if id, ok := v.ast.(*ast.Id); v.ast.Type().IsFunction() && ok && c.global.functions[id.Name].Fun == nil {
 		c.incRef(v.value)
 	} else if v.ast.Type().IsStructure() || v.ast.Type().IsString() {
 		c.incRef(v.value)
@@ -240,16 +240,16 @@ func (c *context) malloc(size value.Value) value.Value {
 
 func (c *context) freeIfUnboundRef(res cresult) {
 	if res.ast != nil {
-		if res.ast.Type().IsFunction() && res.ast.Id == nil {
+		if _, isId := res.ast.(*ast.Id); res.ast.Type().IsFunction() && !isId {
 			c.freeRef(res.value)
 		} else if res.ast.Type().IsFunction() {
-			if c.isFun(res.ast.Id.Name) {
-				f := c.resolveFun(res.ast.Id.Name)
+			if c.isFun(res.ast.(*ast.Id).Name) {
+				f := c.resolveFun(res.ast.(*ast.Id).Name)
 				if f.From.HasClosure() {
 					c.freeRef(res.value)
 				}
 			}
-		} else if (res.ast.Type().IsStructure() || res.ast.Type().IsString()) && res.ast.Id == nil {
+		} else if _, isId := res.ast.(*ast.Id); (res.ast.Type().IsStructure() || res.ast.Type().IsString()) && !isId {
 			c.freeRef(res.value)
 		}
 	}
