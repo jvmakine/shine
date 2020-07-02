@@ -248,8 +248,8 @@ func TestInfer(tes *testing.T) {
 		name: "infer interface method types from the body",
 		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(true)), NewConst(false))).
 			WithInterface(types.Type{}, NewDefinitions().WithAssignment("sub", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
-		typ: "can not unify V1{add:V2} with bool",
-		err: nil,
+		typ: "",
+		err: errors.New("can not unify V1{add:V2} with bool"),
 	},
 	}
 	for _, tt := range tests {
