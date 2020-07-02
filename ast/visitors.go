@@ -15,6 +15,11 @@ type VisitContext struct {
 }
 
 type VisitFunc = func(p Ast, ctx *VisitContext) error
+type RewriteFunc = func(from Ast, ctx *VisitContext) Ast
+
+func IdRewrite(from Ast, ctx *VisitContext) Ast {
+	return from
+}
 
 func (c *VisitContext) WithBlock(b *Block) *VisitContext {
 	return &VisitContext{parent: c, block: b, def: c.def, assignment: c.assignment, global: c.global}
@@ -69,8 +74,6 @@ func (c *VisitContext) BlockOf(id string) *Block {
 		return nil
 	} else if c.block.Def.Assignments[id] != nil {
 		return c.block
-	} else if c.block.Def.TypeDefs[id] != nil {
-		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
 	}
@@ -106,11 +109,11 @@ func NullFun(_ Ast, _ *VisitContext) error {
 }
 
 func VisitBefore(a Ast, f VisitFunc) error {
-	return a.Visit(f, NullFun, false, NewVisitCtx())
+	return a.Visit(f, NullFun, false, IdRewrite, NewVisitCtx())
 }
 
 func VisitAfter(a Ast, f VisitFunc) error {
-	return a.Visit(NullFun, f, false, NewVisitCtx())
+	return a.Visit(NullFun, f, false, IdRewrite, NewVisitCtx())
 }
 
 func CrawlBefore(a Ast, f VisitFunc) (map[Ast]bool, error) {
@@ -118,7 +121,7 @@ func CrawlBefore(a Ast, f VisitFunc) (map[Ast]bool, error) {
 	err := a.Visit(func(v Ast, ctx *VisitContext) error {
 		res[v] = true
 		return f(v, ctx)
-	}, NullFun, true, NewVisitCtx())
+	}, NullFun, true, IdRewrite, NewVisitCtx())
 	return res, err
 }
 
@@ -127,7 +130,7 @@ func CrawlAfter(a Ast, f VisitFunc) (map[Ast]bool, error) {
 	err := a.Visit(NullFun, func(v Ast, ctx *VisitContext) error {
 		res[v] = true
 		return f(v, ctx)
-	}, true, NewVisitCtx())
+	}, true, IdRewrite, NewVisitCtx())
 	return res, err
 }
 
@@ -192,5 +195,11 @@ func RewriteTypes(a Ast, f func(t types.Type, ctx *VisitContext) (types.Type, er
 			}
 		}
 		return nil
-	}, false, NewVisitCtx())
+	}, false, IdRewrite, NewVisitCtx())
+}
+
+func ConvertTypes(e Expression, s types.Substitutions) {
+	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
+		return s.Apply(t), nil
+	})
 }

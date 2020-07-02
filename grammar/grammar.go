@@ -63,15 +63,12 @@ func convInterface(from *Definitions) *ast.Interface {
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]ast.Expression{}
 	interfs := map[string]*ast.Interface{}
-	typedecl := map[string]*ast.Struct{}
 	for _, d := range from.Def.Defs {
 		if d.Assignment != nil {
 			a := d.Assignment
 			raw := convAst(a.Value)
 			if e, ok := raw.(ast.Expression); ok {
 				assigns[*a.Name] = e
-			} else if s, ok := raw.(*ast.Struct); ok {
-				typedecl[*a.Name] = s
 			} else {
 				panic("invalid assignment")
 			}
@@ -88,7 +85,7 @@ func convBlock(from *Block) *ast.Block {
 		}
 	}
 	return &ast.Block{
-		Def:   &ast.Definitions{Assignments: assigns, Interfaces: interfs, TypeDefs: typedecl},
+		Def:   &ast.Definitions{Assignments: assigns, Interfaces: interfs},
 		Value: convExp(from.Value),
 	}
 }

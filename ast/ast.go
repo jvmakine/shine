@@ -11,7 +11,13 @@ import (
 )
 
 type Ast interface {
-	Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error
+	Visit(
+		before VisitFunc,
+		after VisitFunc,
+		crawl bool,
+		rewrite RewriteFunc,
+		ctx *VisitContext,
+	) error
 }
 
 type Expression interface {
@@ -43,7 +49,7 @@ func (e *Op) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *Op) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *Op) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
@@ -76,7 +82,7 @@ func (e *Id) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *Id) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *Id) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
@@ -85,7 +91,7 @@ func (e *Id) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitCont
 		if r, c := ctx.Resolve(e.Name); r != nil {
 			if !ctx.global.visited[r] {
 				ctx.global.visited[r] = true
-				if err := r.Visit(before, after, crawl, c.WithAssignment(e.Name)); err != nil {
+				if err := r.Visit(before, after, crawl, rewrite, c.WithAssignment(e.Name)); err != nil {
 					return err
 				}
 			}
@@ -125,7 +131,7 @@ func (e *Const) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	return e
 }
 
-func (e *Const) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *Const) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
@@ -187,12 +193,13 @@ func (e *TypeDecl) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *TypeDecl) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *TypeDecl) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
 	}
-	err = e.Exp.Visit(before, after, crawl, ctx)
+	e.Exp = rewrite(e.Exp, ctx).(Expression)
+	err = e.Exp.Visit(before, after, crawl, rewrite, ctx)
 	if err != nil {
 		return err
 	}
@@ -232,12 +239,13 @@ func (e *FieldAccessor) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
 	}
-	err = e.Exp.Visit(before, after, crawl, ctx)
+	e.Exp = rewrite(e.Exp, ctx).(Expression)
+	err = e.Exp.Visit(before, after, crawl, rewrite, ctx)
 	if err != nil {
 		return err
 	}
@@ -286,18 +294,23 @@ func (e *FCall) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *FCall) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *FCall) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
 	}
 	for _, p := range e.Params {
-		err := p.Visit(before, after, crawl, ctx)
+		err := p.Visit(before, after, crawl, rewrite, ctx)
 		if err != nil {
 			return err
 		}
 	}
-	err = e.Function.Visit(before, after, crawl, ctx)
+	e.Function = rewrite(e.Function, ctx).(Expression)
+	for i, p := range e.Params {
+		e.Params[i] = rewrite(p, ctx).(Expression)
+	}
+	err = e.Function.Visit(before, after, crawl, rewrite, ctx)
+
 	if err != nil {
 		return err
 	}
@@ -379,12 +392,13 @@ func (a *FDef) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *FDef) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *FDef) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
 	}
-	err = e.Body.Visit(before, after, crawl, ctx.WithDef(e))
+	e.Body = rewrite(e.Body, ctx).(Expression)
+	err = e.Body.Visit(before, after, crawl, rewrite, ctx.WithDef(e))
 	if err != nil {
 		return err
 	}
@@ -471,7 +485,7 @@ func (e *Block) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	}
 }
 
-func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
@@ -479,27 +493,24 @@ func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitC
 	sub := ctx.WithBlock(e)
 	if !crawl {
 		for n, a := range e.Def.Assignments {
-			err := a.Visit(before, after, crawl, sub.WithAssignment(n))
-			if err != nil {
-				return err
-			}
-		}
-		for n, a := range e.Def.TypeDefs {
-			err := a.Visit(before, after, crawl, sub.WithAssignment(n))
+			e.Def.Assignments[n] = rewrite(a, ctx).(Expression)
+			err := a.Visit(before, after, crawl, rewrite, sub.WithAssignment(n))
 			if err != nil {
 				return err
 			}
 		}
 		for _, i := range e.Def.Interfaces {
-			for _, m := range i.Methods {
-				err := m.Visit(before, after, crawl, sub)
+			for n, m := range i.Methods {
+				i.Methods[n] = rewrite(m, ctx).(Expression)
+				err := m.Visit(before, after, crawl, rewrite, sub)
 				if err != nil {
 					return err
 				}
 			}
 		}
 	}
-	err = e.Value.Visit(before, after, crawl, sub)
+	e.Value = rewrite(e.Value, ctx).(Expression)
+	err = e.Value.Visit(before, after, crawl, rewrite, sub)
 	if err != nil {
 		return err
 	}
@@ -562,7 +573,6 @@ func (b *Block) CheckValueCycles() error {
 func NewDefinitions() *Definitions {
 	return &Definitions{
 		Assignments: map[string]Expression{},
-		TypeDefs:    map[string]*Struct{},
 		Interfaces:  map[string]*Interface{},
 	}
 }
@@ -577,9 +587,7 @@ func NewBlock(body Expression) *Block {
 
 func (b *Block) WithAssignment(name string, value interface{}) *Block {
 	dc := b.Def.shallowCopy()
-	if td, ok := value.(*Struct); ok {
-		dc.TypeDefs[name] = td
-	} else if in, ok := value.(*Interface); ok {
+	if in, ok := value.(*Interface); ok {
 		dc.Interfaces[name] = in
 	} else if ex, ok := value.(Expression); ok {
 		dc.Assignments[name] = ex
@@ -595,7 +603,6 @@ func (b *Block) WithAssignment(name string, value interface{}) *Block {
 
 type Definitions struct {
 	Assignments map[string]Expression
-	TypeDefs    map[string]*Struct
 	Interfaces  map[string]*Interface
 }
 
@@ -608,14 +615,9 @@ func (a *Definitions) shallowCopy() *Definitions {
 	for k, v := range a.Interfaces {
 		ic[k] = v
 	}
-	td := map[string]*Struct{}
-	for k, v := range a.TypeDefs {
-		td[k] = v
-	}
 	return &Definitions{
 		Assignments: ac,
 		Interfaces:  ic,
-		TypeDefs:    td,
 	}
 }
 
@@ -626,16 +628,11 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 	}
 	ic := map[string]*Interface{}
 	for k, v := range a.Interfaces {
-		ic[k] = v.copy(ctx)
-	}
-	td := map[string]*Struct{}
-	for k, v := range a.TypeDefs {
-		td[k] = v.copy(ctx)
+		ic[k] = v.CopyWithCtx(ctx)
 	}
 	return &Definitions{
 		Assignments: ac,
 		Interfaces:  ic,
-		TypeDefs:    td,
 	}
 }
 
@@ -643,7 +640,7 @@ type Interface struct {
 	Methods map[string]Expression
 }
 
-func (i *Interface) copy(ctx *types.TypeCopyCtx) *Interface {
+func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {
 	res := map[string]Expression{}
 	for n, v := range i.Methods {
 		res[n] = v.CopyWithCtx(ctx)
@@ -676,7 +673,7 @@ func NewStruct(fields ...StructField) *Struct {
 	}
 }
 
-func (e *Struct) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *VisitContext) error {
+func (e *Struct) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
 	err := before(e, ctx)
 	if err != nil {
 		return err
@@ -684,7 +681,7 @@ func (e *Struct) Visit(before VisitFunc, after VisitFunc, crawl bool, ctx *Visit
 	return after(e, ctx)
 }
 
-func (s *Struct) copy(ctx *types.TypeCopyCtx) *Struct {
+func (s *Struct) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	fs := make([]*StructField, len(s.Fields))
 	for i, f := range s.Fields {
 		fs[i] = &StructField{
@@ -698,6 +695,19 @@ func (s *Struct) copy(ctx *types.TypeCopyCtx) *Struct {
 	}
 }
 
+func (s *Struct) Type() types.Type {
+	ts := make([]types.Type, len(s.Fields)+1)
+	for i, t := range s.Fields {
+		ts[i] = t.Type
+	}
+	ts[len(s.Fields)] = s.StructType
+	return types.MakeFunction(ts...)
+}
+
+func (s *Struct) Format(builder *strings.Builder, level int, options *FormatOptions) {
+	builder.WriteString("<structure>")
+}
+
 func CollectIds(exp Ast) []string {
 	ids := map[string]bool{}
 	exp.Visit(func(v Ast, c *VisitContext) error {
@@ -706,7 +716,7 @@ func CollectIds(exp Ast) []string {
 			ids[name] = true
 		}
 		return nil
-	}, NullFun, false, NewVisitCtx())
+	}, NullFun, false, IdRewrite, NewVisitCtx())
 	result := []string{}
 	for k := range ids {
 		result = append(result, k)
@@ -720,10 +730,4 @@ func cycleToStr(arr []string, v string) string {
 		res = res + a + " -> "
 	}
 	return res + v
-}
-
-func Convert(exp Expression, s types.Substitutions) {
-	RewriteTypes(exp, func(t types.Type, ctx *VisitContext) (types.Type, error) {
-		return s.Apply(t), nil
-	})
 }

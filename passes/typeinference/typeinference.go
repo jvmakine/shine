@@ -62,9 +62,6 @@ func typeId(id *Id, ctx *VisitContext) error {
 	} else if block != nil && ctx.BlockOf(id.Name).Def.Assignments[id.Name] != nil {
 		ref := ctx.BlockOf(id.Name).Def.Assignments[id.Name]
 		id.IdType = ref.Type().Copy(NewTypeCopyCtx())
-	} else if block != nil && ctx.BlockOf(id.Name).Def.TypeDefs[id.Name] != nil {
-		ref := ctx.BlockOf(id.Name).Def.TypeDefs[id.Name]
-		id.IdType = ref.StructType.Copy(NewTypeCopyCtx())
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.IdType = p.ParamType
 	} else {
@@ -82,12 +79,6 @@ func typeOp(op *Op, ctx *VisitContext) error {
 	return nil
 }
 
-func convert(e Expression, s Substitutions) {
-	RewriteTypes(e, func(t Type, ctx *VisitContext) (Type, error) {
-		return s.Apply(t), nil
-	})
-}
-
 func typeCall(call *FCall, unifier Substitutions) error {
 	call.CallType = MakeVariable()
 	ftype := call.MakeFunType()
@@ -97,7 +88,7 @@ func typeCall(call *FCall, unifier Substitutions) error {
 	}
 	call.CallType = s.Apply(call.CallType)
 	for _, p := range call.Params {
-		convert(p, s)
+		ConvertTypes(p, s)
 	}
 	unifier.Combine(s)
 	return nil
@@ -120,27 +111,29 @@ func initialiseVariables(exp Expression) error {
 			if err != nil {
 				return err
 			}
-			for name, value := range b.Def.TypeDefs {
-				ts := make([]types.Type, len(value.Fields)+1)
-				sf := make([]types.SField, len(value.Fields))
-				for i, v := range value.Fields {
-					typ := v.Type
-					if !typ.IsDefined() {
-						typ = MakeVariable()
-					}
-					v.Type = typ
+			for name, value := range b.Def.Assignments {
+				if s, ok := value.(*Struct); ok {
+					ts := make([]types.Type, len(s.Fields)+1)
+					sf := make([]types.SField, len(s.Fields))
+					for i, v := range s.Fields {
+						typ := v.Type
+						if !typ.IsDefined() {
+							typ = MakeVariable()
+						}
+						v.Type = typ
 
-					ts[i] = typ
-					sf[i] = SField{
-						Name: v.Name,
-						Type: typ,
+						ts[i] = typ
+						sf[i] = SField{
+							Name: v.Name,
+							Type: typ,
+						}
 					}
+
+					stru := types.MakeStructure(name, sf...)
+					ts[len(s.Fields)] = stru
+
+					s.StructType = stru
 				}
-
-				stru := types.MakeStructure(name, sf...)
-				ts[len(value.Fields)] = stru
-
-				value.StructType = types.MakeFunction(ts...)
 			}
 		}
 		return nil
@@ -152,8 +145,12 @@ func resolveNamed(name string, ctx *VisitContext) (Type, error) {
 	if block == nil {
 		return Type{}, errors.New("type " + name + " is undefined")
 	}
-	struc := block.Def.TypeDefs[name]
-	if struc == nil {
+	value := block.Def.Assignments[name]
+	if value == nil {
+		return Type{}, errors.New(name + " is not a type")
+	}
+	struc, ok := value.(*Struct)
+	if !ok {
 		return Type{}, errors.New(name + " is not a type")
 	}
 	fs := make([]types.SField, len(struc.Fields))
@@ -197,6 +194,13 @@ func Infer(exp Expression) error {
 		} else if b, ok := v.(*Block); ok {
 			blockCount++
 			b.ID = blockCount
+			ConvertTypes(b.Value, unifier)
+			for _, a := range b.Def.Assignments {
+				_, isDef := a.(*FDef)
+				if !isDef {
+					ConvertTypes(a, unifier)
+				}
+			}
 		} else if i, ok := v.(*Id); ok {
 			if err := typeId(i, ctx); err != nil {
 				return err
@@ -210,7 +214,7 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if d, ok := v.(*FDef); ok {
-			convert(d, unifier)
+			ConvertTypes(d, unifier)
 		} else if t, ok := v.(*TypeDecl); ok {
 			uni, err := t.DeclType.Unifier(t.Exp.Type())
 			if err != nil {

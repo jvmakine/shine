@@ -16,11 +16,6 @@ func DeadCodeElimination(exp Expression) {
 					newDef.Assignments[k] = a
 				}
 			}
-			for k, a := range b.Def.TypeDefs {
-				if visited[a] {
-					newDef.TypeDefs[k] = a
-				}
-			}
 			b.Def = newDef
 		}
 		return nil

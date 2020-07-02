@@ -4,7 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/types"
 )
 
 type FSign = string
@@ -14,24 +15,24 @@ func MakeFSign(name string, blockId int, sign string) FSign {
 }
 
 type FEntry struct {
-	Def    *ast.FDef
-	Struct *ast.Struct
+	Def    *FDef
+	Struct *Struct
 }
 
 type FCat = map[FSign]FEntry
 
-func Collect(exp *ast.Exp) FCat {
+func Collect(exp Expression) FCat {
 	result := FCat{}
-	exp.VisitAfter(func(v *ast.Exp, _ *ast.VisitContext) error {
-		if v.Block != nil {
-			for n, a := range v.Block.Def.Assignments {
-				if a.Def != nil {
-					result[n] = FEntry{Def: a.Def}
-					delete(v.Block.Def.Assignments, n)
+	VisitAfter(exp, func(v Ast, _ *VisitContext) error {
+		if b, ok := v.(*Block); ok {
+			for n, a := range b.Def.Assignments {
+				if d, ok := a.(*FDef); ok {
+					result[n] = FEntry{Def: d}
+					delete(b.Def.Assignments, n)
 				}
-				if a.Struct != nil {
-					result[n] = FEntry{Struct: a.Struct}
-					delete(v.Block.Def.Assignments, n)
+				if s, ok := a.(*Struct); ok {
+					result[n] = FEntry{Struct: s}
+					delete(b.Def.Assignments, n)
 				}
 			}
 		}
@@ -40,59 +41,68 @@ func Collect(exp *ast.Exp) FCat {
 	return result
 }
 
-func ResolveFunctions(exp *ast.Exp) {
+func ResolveFunctions(exp Expression) {
 	anonCount := 0
-	exp.Crawl(func(v *ast.Exp, ctx *ast.VisitContext) error {
-		if v.Call != nil {
-			resolveCall(v.Call)
+	exp.Visit(NullFun, NullFun, true, func(v Ast, ctx *VisitContext) Ast {
+		switch e := v.(type) {
+		case *FCall:
+			resolveCall(e)
+		case *Id:
+			if e.Type().IsFunction() && !strings.Contains(e.Name, "%%") {
+				resolveIdFunct(e, ctx)
+			}
+		case *FDef:
+			if ctx.NameOf(e) == "" {
+				anonCount++
+				typ := e.Type()
+				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, e.Type().TSignature())
+				ctx.Block().Def.Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
+				return &Id{Name: fsig, IdType: typ}
+			}
 		}
-		if v.Id != nil && v.Type().IsFunction() && !strings.Contains(v.Id.Name, "%%") {
-			resolveIdFunct(v, ctx)
-		} else if v.Def != nil && ctx.NameOf(v) == "" {
-			anonCount++
-			typ := v.Type()
-			fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, v.Type().TSignature())
-			ctx.Block().Def.Assignments[fsig] = v.Copy()
-			v.Def = nil
-			v.Id = &ast.Id{Name: fsig, Type: typ}
-		}
-		return nil
-	})
+		return v
+	}, NewVisitCtx())
 }
 
-func resolveCall(v *ast.FCall) {
+func resolveCall(v *FCall) {
 	fun := v.MakeFunType()
 	uni, err := fun.Unifier(v.Function.Type())
 	if err != nil {
 		panic(err)
 	}
-	v.Function.Convert(uni)
+	ConvertTypes(v.Function, uni)
 }
 
-func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
-	name := v.Id.Name
-	if block := ctx.BlockOf(name); block != nil && (block.Def.Assignments[name].Def != nil || block.Def.Assignments[name].Struct != nil) {
-		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
-		if block.Def.Assignments[fsig] == nil {
-			f := block.Def.Assignments[v.Id.Name]
-			cop := f.Copy()
-			subs, err := cop.Type().Unifier(v.Type())
-			if err != nil {
-				panic(err)
-			}
-			cop.Convert(subs)
-			if cop.Type().HasFreeVars() {
-				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
-			}
-			block.Def.Assignments[fsig] = cop
-		} else {
-			f := block.Def.Assignments[v.Id.Name]
-			cop := f.Copy()
-			_, err := cop.Type().Unifier(v.Type())
-			if err != nil {
-				panic(err)
+func resolveIdFunct(v *Id, ctx *VisitContext) {
+	name := v.Name
+	if block := ctx.BlockOf(name); block != nil {
+		assig := block.Def.Assignments[name]
+		if assig != nil {
+			_, isDef := assig.(*FDef)
+			_, isStruct := assig.(*Struct)
+			if isDef || isStruct {
+				fsig := MakeFSign(v.Name, block.ID, v.Type().TSignature())
+				if block.Def.Assignments[fsig] == nil {
+					cop := assig.CopyWithCtx(types.NewTypeCopyCtx())
+					subs, err := cop.Type().Unifier(v.Type())
+					if err != nil {
+						panic(err)
+					}
+					ConvertTypes(cop, subs)
+					if cop.Type().HasFreeVars() {
+						panic("could not unify " + assig.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
+					}
+					block.Def.Assignments[fsig] = cop
+				} else {
+					f := block.Def.Assignments[v.Name]
+					cop := f.CopyWithCtx(types.NewTypeCopyCtx())
+					_, err := cop.Type().Unifier(v.Type())
+					if err != nil {
+						panic(err)
+					}
+				}
+				v.Name = fsig
 			}
 		}
-		v.Id.Name = fsig
 	}
 }

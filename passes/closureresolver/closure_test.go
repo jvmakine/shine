@@ -1,50 +1,38 @@
 package closureresolver
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/callresolver"
 	"github.com/jvmakine/shine/passes/optimisation"
 	"github.com/jvmakine/shine/passes/typeinference"
-	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
 	. "github.com/jvmakine/shine/types"
+	"github.com/roamz/deepdiff"
 )
 
 func TestResolveFunctionDef(tes *testing.T) {
 	tests := []struct {
 		name string
-		exp  *ast.Exp
+		exp  Expression
 		want map[string]map[string]Type
 	}{{
 		name: "resolves empty Closure for function without closure",
-		exp: Block(
-			Assgs{
-				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-			},
-			Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
-		),
+		exp: NewBlock(NewFCall(NewId("a"), NewConst(true), NewConst(true), NewConst(false))).
+			WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
 		want: map[string]map[string]Type{
 			"a%%1%%(bool,bool,bool)=>bool": map[string]Type{},
 		},
 	}, {
 		name: "resolve closure parameters for function referring to outer ids",
-		exp: Block(
-			Assgs{
-				"a": Fdef(Block(
-					Assgs{
-						"b": Fdef(Block(
-							Assgs{"c": Id("y")},
-							Fcall(Op("if"), Id("c"), Id("x"), IConst(2)),
-						)),
-					},
-					Fcall(Id("b")),
-				), "x", "y"),
-			},
-			Fcall(Id("a"), IConst(1), BConst(true)),
-		),
+		exp: NewBlock(NewFCall(NewId("a"), NewConst(1), NewConst(true))).
+			WithAssignment("a", NewFDef(NewBlock(NewFCall(NewId("b"))).
+				WithAssignment("b", NewFDef(NewBlock(NewFCall(NewOp("if"), NewId("c"), NewId("x"), NewConst(2))).
+					WithAssignment("c", NewId("y")),
+				)),
+				"x", "y")),
 		want: map[string]map[string]Type{
 			"a%%3%%(int,bool)=>int": map[string]Type{},
 			"b%%2%%()=>int": map[string]Type{
@@ -54,14 +42,10 @@ func TestResolveFunctionDef(tes *testing.T) {
 		},
 	}, {
 		name: "not include static function references in the closure",
-		exp: Block(
-			Assgs{
-				"a": Fdef(Fcall(Id("b"), Id("x"), Id("s")), "x"),
-				"b": Fdef(Fcall(Op("+"), Fcall(Id("f"), Id("y")), IConst(2)), "y", "f"),
-				"s": Fdef(Fcall(Op("+"), Id("y"), IConst(3)), "y"),
-			},
-			Fcall(Id("a"), IConst(1)),
-		),
+		exp: NewBlock(NewFCall(NewId("a"), NewConst(1))).
+			WithAssignment("a", NewFDef(NewFCall(NewId("b"), NewId("x"), NewId("s")), "x")).
+			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewFCall(NewId("f"), NewId("y")), NewConst(2)), "y", "f")).
+			WithAssignment("s", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewConst(3)), "y")),
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=>int":            map[string]Type{},
 			"b%%1%%(int,(int)=>int)=>int": map[string]Type{},
@@ -69,10 +53,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 		},
 	}, {
 		name: "resolves closures for sequential functions",
-		exp: Block(
-			Assgs{"a": Fdef(Fdef(Fdef(Fcall(Op("+"), Fcall(Op("+"), Id("x"), Id("y")), Id("z")), "z"), "y"), "x")},
-			Fcall(Fcall(Fcall(Id("a"), IConst(1)), IConst(2)), IConst(3)),
-		),
+		exp: NewBlock(NewFCall(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2)), NewConst(3))).
+			WithAssignment("a", NewFDef(NewFDef(NewFDef(NewFCall(NewOp("+"), NewFCall(NewOp("+"), NewId("x"), NewId("y")), NewId("z")), "z"), "y"), "x")),
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=>(int)=>(int)=>int": map[string]Type{},
 			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
@@ -85,14 +67,10 @@ func TestResolveFunctionDef(tes *testing.T) {
 		},
 	}, {
 		name: "resolves structures as closures",
-		exp: Block(
-			Assgs{
-				"S": Struct(ast.StructField{"x", IntP}),
-				"a": Fcall(Id("S"), IConst(1)),
-				"f": Fdef(Fcall(Op("+"), Id("y"), Faccess(Id("a"), "x")), "y"),
-			},
-			Fcall(Id("f"), IConst(2)),
-		),
+		exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
+			WithAssignment("S", NewStruct(ast.StructField{"x", IntP})).
+			WithAssignment("a", NewFCall(NewId("S"), NewConst(1))).
+			WithAssignment("f", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewFieldAccessor("x", NewId("a"))), "y")),
 		want: map[string]map[string]Type{
 			"f%%1%%(int)=>int": map[string]Type{
 				"a": types.MakeStructure("S", SField{"x", IntP}),
@@ -110,8 +88,9 @@ func TestResolveFunctionDef(tes *testing.T) {
 			CollectClosures(tt.exp)
 			fcat := callresolver.Collect(tt.exp)
 			result := collectClosures(&fcat)
-			if !reflect.DeepEqual(result, tt.want) {
-				t.Errorf("Resolve() = %v, want %v", result, tt.want)
+			ok, err := deepdiff.DeepDiff(result, tt.want)
+			if !ok {
+				t.Error(err)
 			}
 		})
 	}

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/typeinference"
-	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
 	"github.com/roamz/deepdiff"
 )
@@ -13,91 +13,55 @@ import (
 func TestResolveFunctions(t *testing.T) {
 	tests := []struct {
 		name   string
-		before *ast.Exp
-		after  *ast.Exp
+		before Expression
+		after  Expression
 	}{{
 		name: "resolves function signatures based on the call type",
-		before: Block(
-			Assgs{
-				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-			},
-			Fcall(Op("if"),
-				Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
-				Fcall(Id("a"), BConst(true), IConst(5), IConst(6)),
-				IConst(7)),
-		),
-		after: Block(
-			Assgs{
-				"a":                            Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
-			},
-			Fcall(Op("if"),
-				Fcall(Id("a%%1%%(bool,bool,bool)=>bool"), BConst(true), BConst(true), BConst(false)),
-				Fcall(Id("a%%1%%(bool,int,int)=>int"), BConst(true), IConst(5), IConst(6)),
-				IConst(7)),
-		),
+		before: NewBlock(NewFCall(NewOp("if"),
+			NewFCall(NewId("a"), NewConst(true), NewConst(true), NewConst(false)),
+			NewFCall(NewId("a"), NewConst(true), NewConst(5), NewConst(6)),
+			NewConst(7)),
+		).WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
+		after: NewBlock(NewFCall(NewOp("if"),
+			NewFCall(NewId("a%%1%%(bool,bool,bool)=>bool"), NewConst(true), NewConst(true), NewConst(false)),
+			NewFCall(NewId("a%%1%%(bool,int,int)=>int"), NewConst(true), NewConst(5), NewConst(6)),
+			NewConst(7)),
+		).WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
+			WithAssignment("a%%1%%(bool,bool,bool)=>bool", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
+			WithAssignment("a%%1%%(bool,int,int)=>int", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
 	}, {
 		name: "resolves functions as arguments",
-		before: Block(
-			Assgs{
-				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-			},
-			Fcall(Id("a"), Id("b")),
-		),
-		after: Block(
-			Assgs{
-				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b":                           Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"b%%1%%(int,int)=>int":        Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-			},
-			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
-		),
+		before: NewBlock(NewFCall(NewId("a"), NewId("b"))).
+			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
+		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("b%%1%%(int,int)=>int"))).
+			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
 	}, {
 		name: "resolves anonymous functions",
-		before: Block(
-			Assgs{
-				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-			},
-			Fcall(Id("a"), Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y")),
-		),
-		after: Block(
-			Assgs{
-				"a":                           Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
-				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
-			},
-			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
-		),
+		before: NewBlock(NewFCall(NewId("a"), NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y"))).
+			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")),
+		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("<anon1>%%1%%(int,int)=>int"))).
+			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
 	}, {
 		name: "resolves simple structures",
-		before: Block(
-			Assgs{"a": Struct(ast.StructField{"x", types.IntP})},
-			Fcall(Id("a"), IConst(1)),
-		),
-		after: Block(
-			Assgs{
-				"a":                     Struct(ast.StructField{"x", types.IntP}),
-				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
-			},
-			Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1)),
-		),
+		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})),
+		after: NewBlock(NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1))).
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})).
+			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})),
 	}, {
 		name: "resolves multitype structures",
-		before: Block(
-			Assgs{"a": Struct(ast.StructField{"x", types.MakeVariable()})},
-			Fcall(Id("a"), Fcall(Id("a"), IConst(1))),
-		),
-		after: Block(
-			Assgs{
-				"a":                     Struct(ast.StructField{"x", types.MakeVariable()}),
-				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
-				"a%%1%%(a{x:int})=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
-			},
-			Fcall(Id("a%%1%%(a{x:int})=>a"), Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1))),
-		),
+		before: NewBlock(NewFCall(NewId("a"), NewFCall(NewId("a"), NewConst(1)))).
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})),
+		after: NewBlock(NewFCall(NewId("a%%1%%(a{x:int})=>a"), NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1)))).
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})).
+			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})).
+			WithAssignment("a%%1%%(a{x:int})=>a", NewStruct(ast.StructField{"x", types.MakeNamed("a")})),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -113,13 +77,13 @@ func TestResolveFunctions(t *testing.T) {
 	}
 }
 
-func eraseType(e *ast.Exp) {
-	e.RewriteTypes(func(t types.Type, ctx *ast.VisitContext) (types.Type, error) {
+func eraseType(e Expression) {
+	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
 		return types.IntP, nil
 	})
-	e.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
-		if v.Block != nil {
-			v.Block.ID = 0
+	VisitBefore(e, func(v Ast, ctx *VisitContext) error {
+		if b, ok := v.(*Block); ok {
+			b.ID = 0
 		}
 		return nil
 	})

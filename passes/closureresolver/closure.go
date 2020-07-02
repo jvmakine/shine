@@ -1,7 +1,7 @@
 package closureresolver
 
 import (
-	"github.com/jvmakine/shine/ast"
+	. "github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/types"
 )
 
@@ -16,53 +16,53 @@ func combine(a map[string]Type, b map[string]Type) map[string]Type {
 	return res
 }
 
-func CollectClosures(exp *ast.Exp) {
-	closureAt := map[*ast.Exp]map[string]Type{}
-	exp.CrawlAfter(func(v *ast.Exp, ctx *ast.VisitContext) error {
+func CollectClosures(exp Expression) {
+	closureAt := map[Ast]map[string]Type{}
+	CrawlAfter(exp, func(v Ast, ctx *VisitContext) error {
 		closureAt[v] = map[string]Type{}
-		if v.Id != nil {
-			closureAt[v] = map[string]Type{v.Id.Name: v.Id.Type}
-			if b := ctx.BlockOf(v.Id.Name); b != nil {
-				if b.Def.Assignments[v.Id.Name].Type().IsFunction() &&
-					b.Def.Assignments[v.Id.Name].Def != nil &&
-					b.Def.Assignments[v.Id.Name].Def.Closure != nil {
-					for _, c := range b.Def.Assignments[v.Id.Name].Def.Closure.Fields {
+		switch a := v.(type) {
+		case *Id:
+			closureAt[v] = map[string]Type{a.Name: a.IdType}
+			if b := ctx.BlockOf(a.Name); b != nil {
+				def := b.Def.Assignments[a.Name]
+				if d, ok := def.(*FDef); ok && def.Type().IsFunction() && d.Closure != nil {
+					for _, c := range d.Closure.Fields {
 						closureAt[v][c.Name] = c.Type
 					}
 				}
 			}
-		} else if v.Call != nil {
+		case *FCall:
 			closureAt[v] = map[string]Type{}
-			for _, p := range v.Call.Params {
+			for _, p := range a.Params {
 				closureAt[v] = combine(closureAt[v], closureAt[p])
 			}
-			closureAt[v] = combine(closureAt[v], closureAt[v.Call.Function])
-		} else if v.Const != nil {
+			closureAt[v] = combine(closureAt[v], closureAt[a.Function])
+		case *Const:
 			closureAt[v] = map[string]Type{}
-		} else if v.Block != nil {
+		case *Block:
 			closureAt[v] = map[string]Type{}
 			assigns := map[string]bool{}
-			for n := range v.Block.Def.Assignments {
+			for n := range a.Def.Assignments {
 				assigns[n] = true
 			}
-			for _, a := range v.Block.Def.Assignments {
+			for _, a := range a.Def.Assignments {
 				for k, b := range closureAt[a] {
 					if !assigns[k] {
 						closureAt[v][k] = b
 					}
 				}
 			}
-			for k, b := range closureAt[v.Block.Value] {
+			for k, b := range closureAt[a.Value] {
 				if !assigns[k] {
 					closureAt[v][k] = b
 				}
 			}
-		} else if v.Def != nil {
+		case *FDef:
 			params := map[string]bool{}
-			for _, n := range v.Def.Params {
+			for _, n := range a.Params {
 				params[n.Name] = true
 			}
-			for k, b := range closureAt[v.Def.Body] {
+			for k, b := range closureAt[a.Body] {
 				if !params[k] {
 					closureAt[v][k] = b
 				}
@@ -73,9 +73,9 @@ func CollectClosures(exp *ast.Exp) {
 					result.Fields = append(result.Fields, SField{Name: n, Type: t})
 				}
 			}
-			v.Def.Closure = &result
-		} else if v.FAccess != nil {
-			closureAt[v] = closureAt[v.FAccess.Exp]
+			a.Closure = &result
+		case *FieldAccessor:
+			closureAt[v] = closureAt[a.Exp]
 		}
 		return nil
 	})
