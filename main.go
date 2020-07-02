@@ -11,6 +11,7 @@ import (
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/passes/callresolver"
 	"github.com/jvmakine/shine/passes/closureresolver"
+	"github.com/jvmakine/shine/passes/interfaceresolver"
 	"github.com/jvmakine/shine/passes/optimisation"
 	"github.com/jvmakine/shine/passes/typeinference"
 )
@@ -35,6 +36,11 @@ func Compile(text string) (*ir.Module, error) {
 	ast := parsed.ToAst()
 
 	err = typeinference.Infer(ast)
+	if err != nil {
+		return nil, err
+	}
+
+	err = interfaceresolver.Resolve(ast)
 	if err != nil {
 		return nil, err
 	}
