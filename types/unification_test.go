@@ -180,6 +180,12 @@ func TestType_Unify(t *testing.T) {
 		want: Type{},
 		err:  errors.New("can not unify int with real"),
 	}, {
+		name: "fails on structural variables with primitives",
+		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
+		b:    IntP,
+		want: Type{},
+		err:  errors.New("can not unify V1{x:int} with int"),
+	}, {
 		name: "unifies structural variables with structures",
 		a:    MakeStructure("a", SField{"x", IntP}),
 		b:    MakeStructuralVar(map[string]Type{"x": MakeVariable()}),

@@ -65,7 +65,15 @@ func typeId(id *Id, ctx *VisitContext) error {
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.IdType = p.ParamType
 	} else {
-		return errors.New("undefined id " + id.Name)
+		if id.Name == "$" {
+			inter := ctx.Interface()
+			if inter == nil {
+				panic("$ id outside of an interface")
+			}
+			id.IdType = inter.InterfaceType
+		} else {
+			return errors.New("undefined id " + id.Name)
+		}
 	}
 	return nil
 }
@@ -111,7 +119,8 @@ func initialiseVariables(exp Expression) error {
 			if err != nil {
 				return err
 			}
-			for name, value := range b.Def.Assignments {
+		} else if d, ok := v.(*Definitions); ok {
+			for name, value := range d.Assignments {
 				if s, ok := value.(*Struct); ok {
 					ts := make([]types.Type, len(s.Fields)+1)
 					sf := make([]types.SField, len(s.Fields))
@@ -133,6 +142,14 @@ func initialiseVariables(exp Expression) error {
 					ts[len(s.Fields)] = stru
 
 					s.StructType = stru
+				}
+				if free := d.Interfaces[types.Type{}]; free != nil {
+					delete(d.Interfaces, types.Type{})
+					varit := MakeVariable()
+					d.Interfaces[varit] = free
+					for _, in := range free {
+						in.InterfaceType = varit
+					}
 				}
 			}
 		}
@@ -226,6 +243,7 @@ func Infer(exp Expression) error {
 			typ := MakeStructuralVar(map[string]Type{a.Field: vari})
 			uni, err := a.Exp.Type().Unifier(typ)
 			if err != nil {
+				// TODO: Find a valid interface
 				return err
 			}
 			unifier.Combine(uni)

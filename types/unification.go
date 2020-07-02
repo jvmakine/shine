@@ -48,6 +48,12 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if (o.IsFunction() && t.IsStructure()) || (o.IsStructure() && t.IsFunction()) {
 		return Substitutions{}, UnificationError(o, t)
 	}
+	if (o.IsPrimitive() && t.IsStructuralVar()) || (o.IsStructuralVar() && t.IsPrimitive()) {
+		return Substitutions{}, UnificationError(o, t)
+	}
+	if (o.IsFunction() && t.IsStructuralVar()) || (o.IsStructuralVar() && t.IsFunction()) {
+		return Substitutions{}, UnificationError(o, t)
+	}
 	if t.IsVariable() && o.IsVariable() {
 		return unifyVariables(t, o, ctx)
 	}

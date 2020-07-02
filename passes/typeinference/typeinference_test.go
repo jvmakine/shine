@@ -206,6 +206,11 @@ func TestInfer(tes *testing.T) {
 		typ: "",
 		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
 	}, {
+		name: "fail on invalid field access",
+		exp:  NewBlock(NewFieldAccessor("xx", NewConst(1))),
+		typ:  "",
+		err:  errors.New("can not unify V1{xx:V2} with int"),
+	}, {
 		name: "fail on unknown named type",
 		exp:  NewBlock(NewTypeDecl(types.MakeNamed("t"), NewId("a"))),
 		typ:  "",
@@ -227,6 +232,12 @@ func TestInfer(tes *testing.T) {
 		exp:  NewBlock(NewFDef(NewFCall(NewOp("+"), NewFieldAccessor("a", NewId("x")), NewConst(1)), "x")),
 		typ:  "(V1{a:int})=>int",
 		err:  nil,
+	}, {
+		name: "infer interface function calls",
+		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
+			WithInterface(types.IntP, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+		typ: "int",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {

@@ -566,7 +566,10 @@ func NewDefinitions() *Definitions {
 }
 
 func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
-
+	err := before(e, ctx)
+	if err != nil {
+		return err
+	}
 	for n, a := range e.Assignments {
 		e.Assignments[n] = rewrite(a, ctx).(Expression)
 		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
@@ -576,13 +579,13 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 	}
 	for _, i := range e.Interfaces {
 		for _, in := range i {
-			err := in.Definitions.Visit(before, after, crawl, rewrite, ctx)
+			err := in.Definitions.Visit(before, after, crawl, rewrite, ctx.WithInterface(in))
 			if err != nil {
 				return err
 			}
 		}
 	}
-	return nil
+	return after(e, ctx)
 }
 
 func NewBlock(body Expression) *Block {
@@ -669,7 +672,8 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 }
 
 type Interface struct {
-	Definitions *Definitions
+	Definitions   *Definitions
+	InterfaceType types.Type
 }
 
 func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {

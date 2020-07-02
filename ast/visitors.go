@@ -9,6 +9,7 @@ type GlobalVCtx struct {
 type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
+	interf     *Interface
 	def        *FDef
 	assignment string
 	global     *GlobalVCtx
@@ -22,20 +23,24 @@ func IdRewrite(from Ast, ctx *VisitContext) Ast {
 }
 
 func (c *VisitContext) WithBlock(b *Block) *VisitContext {
-	return &VisitContext{parent: c, block: b, def: c.def, assignment: c.assignment, global: c.global}
+	return &VisitContext{parent: c, block: b, def: c.def, assignment: c.assignment, interf: c.interf, global: c.global}
 }
 
 func (c *VisitContext) WithDef(d *FDef) *VisitContext {
-	return &VisitContext{parent: c, block: c.block, def: d, assignment: c.assignment, global: c.global}
+	return &VisitContext{parent: c, block: c.block, def: d, assignment: c.assignment, interf: c.interf, global: c.global}
 }
 
 func (c *VisitContext) WithAssignment(a string) *VisitContext {
-	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: a, global: c.global}
+	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: a, interf: c.interf, global: c.global}
+}
+
+func (c *VisitContext) WithInterface(i *Interface) *VisitContext {
+	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: c.assignment, interf: i, global: c.global}
 }
 
 func NewVisitCtx() *VisitContext {
 	global := &GlobalVCtx{visited: map[Expression]bool{}}
-	return &VisitContext{parent: nil, block: nil, def: nil, assignment: "", global: global}
+	return &VisitContext{parent: nil, block: nil, def: nil, assignment: "", interf: nil, global: global}
 }
 
 func (c *VisitContext) Path() map[string]bool {
@@ -55,6 +60,10 @@ func (c *VisitContext) Def() *FDef {
 
 func (c *VisitContext) Block() *Block {
 	return c.block
+}
+
+func (c *VisitContext) Interface() *Interface {
+	return c.interf
 }
 
 func (c *VisitContext) ParamOf(id string) *FParam {

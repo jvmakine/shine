@@ -66,7 +66,8 @@ func convInterface(name *TypedName, from *Definitions) *ast.Interface {
 		return a
 	}, ast.NewVisitCtx())
 	return &ast.Interface{
-		Definitions: defs,
+		Definitions:   defs,
+		InterfaceType: convTypeDef(name.Type),
 	}
 }
 
