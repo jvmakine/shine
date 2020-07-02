@@ -3,7 +3,7 @@ package ast
 import "github.com/jvmakine/shine/types"
 
 type GlobalVCtx struct {
-	visited map[Expression]bool
+	visited map[Ast]bool
 }
 
 type VisitContext struct {
@@ -39,7 +39,7 @@ func (c *VisitContext) WithInterface(i *Interface) *VisitContext {
 }
 
 func NewVisitCtx() *VisitContext {
-	global := &GlobalVCtx{visited: map[Expression]bool{}}
+	global := &GlobalVCtx{visited: map[Ast]bool{}}
 	return &VisitContext{parent: nil, block: nil, def: nil, assignment: "", interf: nil, global: global}
 }
 
@@ -109,6 +109,22 @@ func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
 		return c.block.Def.Assignments[id], c
 	} else if c.parent != nil {
 		return c.parent.Resolve(id)
+	}
+	return nil, nil
+}
+
+func (c *VisitContext) InterfaceWith(id string) (*Interface, *VisitContext) {
+	if c.block != nil {
+		for _, is := range c.block.Def.Interfaces {
+			for _, i := range is {
+				if i.Definitions.Assignments[id] != nil {
+					return i, c.WithInterface(i)
+				}
+			}
+		}
+	}
+	if c.parent != nil {
+		return c.parent.InterfaceWith(id)
 	}
 	return nil, nil
 }
@@ -207,7 +223,7 @@ func RewriteTypes(a Ast, f func(t types.Type, ctx *VisitContext) (types.Type, er
 	}, false, IdRewrite, NewVisitCtx())
 }
 
-func ConvertTypes(e Expression, s types.Substitutions) {
+func ConvertTypes(e Ast, s types.Substitutions) {
 	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
 		return s.Apply(t), nil
 	})

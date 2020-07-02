@@ -149,6 +149,12 @@ func initialiseVariables(exp Expression) error {
 					d.Interfaces[varit] = free
 					for _, in := range free {
 						in.InterfaceType = varit
+						for _, d := range in.Definitions.Assignments {
+							_, isDef := d.(*FDef)
+							if !isDef {
+								return errors.New("only methods are supported in interfaces")
+							}
+						}
 					}
 				}
 			}
@@ -218,6 +224,11 @@ func Infer(exp Expression) error {
 					ConvertTypes(a, unifier)
 				}
 			}
+			for _, is := range b.Def.Interfaces {
+				for _, i := range is {
+					ConvertTypes(i.Definitions, unifier)
+				}
+			}
 		} else if i, ok := v.(*Id); ok {
 			if err := typeId(i, ctx); err != nil {
 				return err
@@ -243,8 +254,17 @@ func Infer(exp Expression) error {
 			typ := MakeStructuralVar(map[string]Type{a.Field: vari})
 			uni, err := a.Exp.Type().Unifier(typ)
 			if err != nil {
-				// TODO: Find a valid interface
-				return err
+				inter, _ := ctx.InterfaceWith(a.Field)
+				if inter != nil {
+					assig := inter.Definitions.Assignments[a.Field]
+					atyp := assig.Type()
+					uni, err = atyp.Unifier(vari)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 			unifier.Combine(uni)
 			a.FAType = vari

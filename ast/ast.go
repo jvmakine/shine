@@ -246,6 +246,14 @@ func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, rew
 	}
 	e.Exp = rewrite(e.Exp, ctx).(Expression)
 	err = e.Exp.Visit(before, after, crawl, rewrite, ctx)
+	if interf, nc := ctx.InterfaceWith(e.Field); interf != nil {
+		assig := interf.Definitions.Assignments[e.Field]
+		if !ctx.global.visited[assig] {
+			if err := assig.Visit(before, after, crawl, rewrite, nc); err != nil {
+				return err
+			}
+		}
+	}
 	if err != nil {
 		return err
 	}
