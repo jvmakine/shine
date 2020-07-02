@@ -192,6 +192,9 @@ func convFDef(from *FDefinition) ast.Ast {
 }
 
 func convTypeDef(t *TypeDef) types.Type {
+	if t == nil {
+		return types.Type{}
+	}
 	if t.Primitive != "" {
 		switch t.Primitive {
 		case "int":

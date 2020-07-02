@@ -285,6 +285,15 @@ func TestExpressionParsing(tes *testing.T) {
 			WithInterface(types.IntP, a.NewDefinitions().WithAssignment(
 				"sub", a.NewFDef(a.NewFCall(a.NewOp("-"), a.NewId("$"), a.NewId("x")), "x"),
 			)),
+	}, {
+		name: "parse untyped interfaces",
+		input: `a ~> { add = (b) => a + b }
+				1.0.add(4.0)
+		`,
+		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1.0)), a.NewConst(4.0))).
+			WithInterface(types.Type{}, a.NewDefinitions().WithAssignment(
+				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
+			)),
 	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
