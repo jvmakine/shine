@@ -635,7 +635,8 @@ func (d *Definitions) WithAssignment(name string, value interface{}) *Definition
 func (d *Definitions) WithInterface(typ types.Type, defs *Definitions) *Definitions {
 	dc := d.shallowCopy()
 	dc.Interfaces[typ] = append(dc.Interfaces[typ], &Interface{
-		Definitions: defs,
+		Definitions:   defs,
+		InterfaceType: typ,
 	})
 	return dc
 }

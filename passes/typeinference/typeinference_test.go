@@ -233,9 +233,15 @@ func TestInfer(tes *testing.T) {
 		typ:  "(V1{a:int})=>int",
 		err:  nil,
 	}, {
-		name: "infer interface function calls",
+		name: "infer typed interface function calls",
 		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
 			WithInterface(types.IntP, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+		typ: "int",
+		err: nil,
+	}, {
+		name: "infer untyped interface function calls",
+		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
+			WithInterface(types.Type{}, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
 		typ: "int",
 		err: nil,
 	},
