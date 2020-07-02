@@ -492,15 +492,9 @@ func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rew
 	}
 	sub := ctx.WithBlock(e)
 	if !crawl {
-		for n, a := range e.Def.Assignments {
-			e.Def.Assignments[n] = rewrite(a, ctx).(Expression)
-			err := a.Visit(before, after, crawl, rewrite, sub.WithAssignment(n))
-			if err != nil {
-				return err
-			}
-		}
-		for _, i := range e.Def.Interfaces {
-			i.Definitions.Visit(before, after, crawl, rewrite, sub)
+		err := e.Def.Visit(before, after, crawl, rewrite, sub)
+		if err != nil {
+			return err
 		}
 	}
 	e.Value = rewrite(e.Value, ctx).(Expression)
@@ -567,15 +561,12 @@ func (b *Block) CheckValueCycles() error {
 func NewDefinitions() *Definitions {
 	return &Definitions{
 		Assignments: map[string]Expression{},
-		Interfaces:  map[types.Type]*Interface{},
+		Interfaces:  map[types.Type][]*Interface{},
 	}
 }
 
 func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
-	err := before(e, ctx)
-	if err != nil {
-		return err
-	}
+
 	for n, a := range e.Assignments {
 		e.Assignments[n] = rewrite(a, ctx).(Expression)
 		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
@@ -584,9 +575,14 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 		}
 	}
 	for _, i := range e.Interfaces {
-		i.Definitions.Visit(before, after, crawl, rewrite, ctx)
+		for _, in := range i {
+			err := in.Definitions.Visit(before, after, crawl, rewrite, ctx)
+			if err != nil {
+				return err
+			}
+		}
 	}
-	return after(e, ctx)
+	return nil
 }
 
 func NewBlock(body Expression) *Block {
@@ -606,8 +602,8 @@ func (b *Block) WithAssignment(name string, value interface{}) *Block {
 	}
 }
 
-func (b *Block) WithInterface(name string, typ types.Type, defs *Definitions) *Block {
-	dc := b.Def.WithInterface(name, typ, defs)
+func (b *Block) WithInterface(typ types.Type, defs *Definitions) *Block {
+	dc := b.Def.WithInterface(typ, defs)
 	return &Block{
 		ID:    b.ID,
 		Value: b.Value,
@@ -625,18 +621,17 @@ func (d *Definitions) WithAssignment(name string, value interface{}) *Definition
 	return dc
 }
 
-func (d *Definitions) WithInterface(name string, typ types.Type, defs *Definitions) *Definitions {
+func (d *Definitions) WithInterface(typ types.Type, defs *Definitions) *Definitions {
 	dc := d.shallowCopy()
-	dc.Interfaces[typ] = &Interface{
-		ParamName:   name,
+	dc.Interfaces[typ] = append(dc.Interfaces[typ], &Interface{
 		Definitions: defs,
-	}
+	})
 	return dc
 }
 
 type Definitions struct {
 	Assignments map[string]Expression
-	Interfaces  map[types.Type]*Interface
+	Interfaces  map[types.Type][]*Interface
 }
 
 func (a *Definitions) shallowCopy() *Definitions {
@@ -644,7 +639,7 @@ func (a *Definitions) shallowCopy() *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v
 	}
-	ic := map[types.Type]*Interface{}
+	ic := map[types.Type][]*Interface{}
 	for k, v := range a.Interfaces {
 		ic[k] = v
 	}
@@ -659,9 +654,13 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
-	ic := map[types.Type]*Interface{}
-	for k, v := range a.Interfaces {
-		ic[k] = v.CopyWithCtx(ctx)
+	ic := map[types.Type][]*Interface{}
+	for k, lst := range a.Interfaces {
+		is := make([]*Interface, len(lst))
+		for i, in := range lst {
+			is[i] = in.CopyWithCtx(ctx)
+		}
+		ic[k] = is
 	}
 	return &Definitions{
 		Assignments: ac,
@@ -670,13 +669,11 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 }
 
 type Interface struct {
-	ParamName   string
 	Definitions *Definitions
 }
 
 func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {
 	return &Interface{
-		ParamName:   i.ParamName,
 		Definitions: i.Definitions.copy(ctx),
 	}
 }

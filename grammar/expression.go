@@ -83,7 +83,7 @@ type Binding struct {
 
 type Assignment struct {
 	Name  *TypedName  `Newline* @@`
-	Value *Expression `"=" @@ Newline+`
+	Value *Expression `"=" @@ Newline*`
 }
 
 type CallParams struct {

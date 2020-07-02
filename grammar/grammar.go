@@ -58,9 +58,15 @@ func (prg *Program) ToAst() ast.Expression {
 }
 
 func convInterface(name *TypedName, from *Definitions) *ast.Interface {
+	defs := convDefinitions(from)
+	defs.Visit(ast.NullFun, ast.NullFun, false, func(a ast.Ast, ctx *ast.VisitContext) ast.Ast {
+		if id, ok := a.(*ast.Id); ok && id.Name == (*name.Name) {
+			return ast.NewId("$")
+		}
+		return a
+	}, ast.NewVisitCtx())
 	return &ast.Interface{
-		ParamName:   *name.Name,
-		Definitions: convDefinitions(from),
+		Definitions: defs,
 	}
 }
 
@@ -80,7 +86,9 @@ func convDefinitions(from *Definitions) *ast.Definitions {
 				res.Assignments[*a.Name.Name] = &ast.TypeDecl{Exp: res.Assignments[*a.Name.Name], DeclType: t}
 			}
 		} else if d.Binding != nil {
-			res.Interfaces[convTypeDef(d.Binding.Name.Type)] = convInterface(d.Binding.Name, d.Binding.Interface)
+			oldI := res.Interfaces[convTypeDef(d.Binding.Name.Type)]
+			newI := convInterface(d.Binding.Name, d.Binding.Interface)
+			res.Interfaces[convTypeDef(d.Binding.Name.Type)] = append(oldI, newI)
 		}
 	}
 	return res
@@ -88,7 +96,7 @@ func convDefinitions(from *Definitions) *ast.Definitions {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]ast.Expression{}
-	interfs := map[types.Type]*ast.Interface{}
+	interfs := map[types.Type][]*ast.Interface{}
 	for _, d := range from.Def.Defs {
 		if d.Assignment != nil {
 			a := d.Assignment
@@ -104,7 +112,9 @@ func convBlock(from *Block) *ast.Block {
 			}
 		} else if d.Binding != nil {
 			b := d.Binding
-			interfs[convTypeDef(b.Name.Type)] = convInterface(b.Name, b.Interface)
+			oldI := interfs[convTypeDef(b.Name.Type)]
+			newI := convInterface(b.Name, b.Interface)
+			interfs[convTypeDef(b.Name.Type)] = append(oldI, newI)
 		} else {
 			panic("invalid definition")
 		}
