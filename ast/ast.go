@@ -500,13 +500,7 @@ func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rew
 			}
 		}
 		for _, i := range e.Def.Interfaces {
-			for n, m := range i.Methods {
-				i.Methods[n] = rewrite(m, ctx).(Expression)
-				err := m.Visit(before, after, crawl, rewrite, sub)
-				if err != nil {
-					return err
-				}
-			}
+			i.Definitions.Visit(before, after, crawl, rewrite, sub)
 		}
 	}
 	e.Value = rewrite(e.Value, ctx).(Expression)
@@ -577,6 +571,24 @@ func NewDefinitions() *Definitions {
 	}
 }
 
+func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
+	err := before(e, ctx)
+	if err != nil {
+		return err
+	}
+	for n, a := range e.Assignments {
+		e.Assignments[n] = rewrite(a, ctx).(Expression)
+		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
+		if err != nil {
+			return err
+		}
+	}
+	for _, i := range e.Interfaces {
+		i.Definitions.Visit(before, after, crawl, rewrite, ctx)
+	}
+	return after(e, ctx)
+}
+
 func NewBlock(body Expression) *Block {
 	return &Block{
 		ID:    0,
@@ -586,17 +598,40 @@ func NewBlock(body Expression) *Block {
 }
 
 func (b *Block) WithAssignment(name string, value interface{}) *Block {
-	dc := b.Def.shallowCopy()
-	if ex, ok := value.(Expression); ok {
-		dc.Assignments[name] = ex
-	} else {
-		panic("invalid assignment")
-	}
+	dc := b.Def.WithAssignment(name, value)
 	return &Block{
 		ID:    b.ID,
 		Value: b.Value,
 		Def:   dc,
 	}
+}
+
+func (b *Block) WithInterface(name string, typ types.Type, defs *Definitions) *Block {
+	dc := b.Def.WithInterface(name, typ, defs)
+	return &Block{
+		ID:    b.ID,
+		Value: b.Value,
+		Def:   dc,
+	}
+}
+
+func (d *Definitions) WithAssignment(name string, value interface{}) *Definitions {
+	dc := d.shallowCopy()
+	if ex, ok := value.(Expression); ok {
+		dc.Assignments[name] = ex
+	} else {
+		panic("invalid assignment")
+	}
+	return dc
+}
+
+func (d *Definitions) WithInterface(name string, typ types.Type, defs *Definitions) *Definitions {
+	dc := d.shallowCopy()
+	dc.Interfaces[typ] = &Interface{
+		ParamName:   name,
+		Definitions: defs,
+	}
+	return dc
 }
 
 type Definitions struct {
@@ -635,16 +670,14 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 }
 
 type Interface struct {
-	Methods map[string]Expression
+	ParamName   string
+	Definitions *Definitions
 }
 
 func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {
-	res := map[string]Expression{}
-	for n, v := range i.Methods {
-		res[n] = v.CopyWithCtx(ctx)
-	}
 	return &Interface{
-		Methods: res,
+		ParamName:   i.ParamName,
+		Definitions: i.Definitions.copy(ctx),
 	}
 }
 

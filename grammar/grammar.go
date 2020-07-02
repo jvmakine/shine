@@ -17,6 +17,7 @@ func Parse(str string) (*Program, error) {
 		LineComment = ("//") { "\u0000"…"\uffff"-"\n" } .
 		BlockComment = ("/*") { "\u0000"…"\uffff"-"*/" } ("*/") .
 		Fun = "=>" .
+		Binder = "~>" .
 		Newline = "\n" .
 		Whitespace = " " | "\r" | "\t" .
 		Reserved = "if" | "else" | "true" | "false" .
@@ -37,7 +38,7 @@ func Parse(str string) (*Program, error) {
 	`)
 	parser, err := participle.Build(
 		&Program{},
-		participle.UseLookahead(2),
+		participle.UseLookahead(3),
 		participle.Lexer(lexer),
 		participle.Elide("Whitespace", "LineComment", "BlockComment"),
 	)
@@ -56,8 +57,33 @@ func (prg *Program) ToAst() ast.Expression {
 	return convBlock(prg.Body)
 }
 
-func convInterface(from *Definitions) *ast.Interface {
-	return &ast.Interface{}
+func convInterface(name *TypedName, from *Definitions) *ast.Interface {
+	return &ast.Interface{
+		ParamName:   *name.Name,
+		Definitions: convDefinitions(from),
+	}
+}
+
+func convDefinitions(from *Definitions) *ast.Definitions {
+	res := ast.NewDefinitions()
+	for _, d := range from.Defs {
+		if d.Assignment != nil {
+			a := d.Assignment
+			raw := convAst(a.Value)
+			if e, ok := raw.(ast.Expression); ok {
+				res.Assignments[*a.Name.Name] = e
+			} else {
+				panic("invalid assignment")
+			}
+			if a.Name.Type != nil {
+				t := convTypeDef(a.Name.Type)
+				res.Assignments[*a.Name.Name] = &ast.TypeDecl{Exp: res.Assignments[*a.Name.Name], DeclType: t}
+			}
+		} else if d.Binding != nil {
+			res.Interfaces[convTypeDef(d.Binding.Name.Type)] = convInterface(d.Binding.Name, d.Binding.Interface)
+		}
+	}
+	return res
 }
 
 func convBlock(from *Block) *ast.Block {
@@ -78,7 +104,7 @@ func convBlock(from *Block) *ast.Block {
 			}
 		} else if d.Binding != nil {
 			b := d.Binding
-			interfs[convTypeDef(b.Name.Type)] = convInterface(b.Interface)
+			interfs[convTypeDef(b.Name.Type)] = convInterface(b.Name, b.Interface)
 		} else {
 			panic("invalid definition")
 		}

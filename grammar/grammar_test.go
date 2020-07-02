@@ -272,8 +272,18 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.
 			NewBlock(a.NewId("a")).
 			WithAssignment("a", a.NewTypeDecl(types.IntP, a.NewConst(5))),
-	},
-	}
+	}, {
+		name: "parse interface bindings to a primitive",
+		input: `a:int ~> {
+					add = (b) => a + b
+				}
+				a.add(4)
+		`,
+		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewId("a")), a.NewConst(4))).
+			WithInterface("a", types.IntP, a.NewDefinitions().WithAssignment(
+				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("a"), a.NewId("b")), "b"),
+			)),
+	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
 			prog, err := Parse(tt.input)
