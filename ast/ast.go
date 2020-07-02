@@ -573,7 +573,7 @@ func (b *Block) CheckValueCycles() error {
 func NewDefinitions() *Definitions {
 	return &Definitions{
 		Assignments: map[string]Expression{},
-		Interfaces:  map[string]*Interface{},
+		Interfaces:  map[types.Type]*Interface{},
 	}
 }
 
@@ -587,9 +587,7 @@ func NewBlock(body Expression) *Block {
 
 func (b *Block) WithAssignment(name string, value interface{}) *Block {
 	dc := b.Def.shallowCopy()
-	if in, ok := value.(*Interface); ok {
-		dc.Interfaces[name] = in
-	} else if ex, ok := value.(Expression); ok {
+	if ex, ok := value.(Expression); ok {
 		dc.Assignments[name] = ex
 	} else {
 		panic("invalid assignment")
@@ -603,7 +601,7 @@ func (b *Block) WithAssignment(name string, value interface{}) *Block {
 
 type Definitions struct {
 	Assignments map[string]Expression
-	Interfaces  map[string]*Interface
+	Interfaces  map[types.Type]*Interface
 }
 
 func (a *Definitions) shallowCopy() *Definitions {
@@ -611,7 +609,7 @@ func (a *Definitions) shallowCopy() *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v
 	}
-	ic := map[string]*Interface{}
+	ic := map[types.Type]*Interface{}
 	for k, v := range a.Interfaces {
 		ic[k] = v
 	}
@@ -626,7 +624,7 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
-	ic := map[string]*Interface{}
+	ic := map[types.Type]*Interface{}
 	for k, v := range a.Interfaces {
 		ic[k] = v.CopyWithCtx(ctx)
 	}

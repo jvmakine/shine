@@ -77,13 +77,12 @@ type Definitions struct {
 }
 
 type Binding struct {
-	Name      *string      `Newline* @Ident`
+	Name      *TypedName   `Newline* @@`
 	Interface *Definitions `"~>" "{" Newline* @@ Newline* "}" Newline*`
 }
 
 type Assignment struct {
-	Name  *string     `Newline* @Ident`
-	Type  *TypeDef    `(":" @@)?`
+	Name  *TypedName  `Newline* @@`
 	Value *Expression `"=" @@ Newline+`
 }
 
@@ -117,13 +116,13 @@ type TypeDef struct {
 	Named     string    `| @Ident`
 }
 
-type FunParam struct {
+type TypedName struct {
 	Name *string  `@Ident`
 	Type *TypeDef `(":" @@)?`
 }
 
 type FDefinition struct {
-	Params []*FunParam  `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
+	Params []*TypedName `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
 	Funct  *FunctionDef `(Newline* @@)?`
 }
 

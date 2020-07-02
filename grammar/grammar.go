@@ -62,24 +62,23 @@ func convInterface(from *Definitions) *ast.Interface {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]ast.Expression{}
-	interfs := map[string]*ast.Interface{}
+	interfs := map[types.Type]*ast.Interface{}
 	for _, d := range from.Def.Defs {
 		if d.Assignment != nil {
 			a := d.Assignment
 			raw := convAst(a.Value)
 			if e, ok := raw.(ast.Expression); ok {
-				assigns[*a.Name] = e
+				assigns[*a.Name.Name] = e
 			} else {
 				panic("invalid assignment")
 			}
-			if a.Type != nil {
-				t := convTypeDef(a.Type)
-				assigns[*a.Name] = &ast.TypeDecl{Exp: assigns[*a.Name], DeclType: t}
+			if a.Name.Type != nil {
+				t := convTypeDef(a.Name.Type)
+				assigns[*a.Name.Name] = &ast.TypeDecl{Exp: assigns[*a.Name.Name], DeclType: t}
 			}
 		} else if d.Binding != nil {
 			b := d.Binding
-			name := *b.Name
-			interfs[name] = convInterface(b.Interface)
+			interfs[convTypeDef(b.Name.Type)] = convInterface(b.Interface)
 		} else {
 			panic("invalid definition")
 		}
@@ -183,7 +182,7 @@ func convTypeDef(t *TypeDef) types.Type {
 	panic("invalid type")
 }
 
-func convFParam(from *FunParam) *ast.FParam {
+func convFParam(from *TypedName) *ast.FParam {
 	typ := types.Type{}
 	if from.Type != nil {
 		typ = convTypeDef(from.Type)
