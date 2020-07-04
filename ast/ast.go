@@ -498,15 +498,14 @@ func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rew
 	if err != nil {
 		return err
 	}
-	sub := ctx.WithBlock(e)
 	if !crawl {
-		err := e.Def.Visit(before, after, crawl, rewrite, sub)
+		err := e.Def.Visit(before, after, crawl, rewrite, ctx)
 		if err != nil {
 			return err
 		}
 	}
 	e.Value = rewrite(e.Value, ctx).(Expression)
-	err = e.Value.Visit(before, after, crawl, rewrite, sub)
+	err = e.Value.Visit(before, after, crawl, rewrite, ctx.WithBlock(e))
 	if err != nil {
 		return err
 	}
@@ -579,9 +578,10 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 	if err != nil {
 		return err
 	}
+	sub := ctx.WithDefinitions(e)
 	for _, i := range e.Interfaces {
 		for _, in := range i {
-			err := in.Definitions.Visit(before, after, crawl, rewrite, ctx.WithInterface(in))
+			err := in.Definitions.Visit(before, after, crawl, rewrite, sub.WithInterface(in))
 			if err != nil {
 				return err
 			}
@@ -589,7 +589,7 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 	}
 	for n, a := range e.Assignments {
 		e.Assignments[n] = rewrite(a, ctx).(Expression)
-		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
+		err := a.Visit(before, after, crawl, rewrite, sub.WithAssignment(n))
 		if err != nil {
 			return err
 		}

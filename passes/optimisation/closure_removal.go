@@ -25,9 +25,9 @@ func ClosureRemoval(exp Expression) {
 		} else if c, ok := v.(*FCall); ok {
 			if i, ok := c.Function.(*Id); ok {
 				id := i.Name
-				block := ctx.BlockOf(id)
-				if block != nil {
-					if bd, ok := block.Def.Assignments[id].(*FDef); ok {
+				defin := ctx.DefinitionOf(id)
+				if defin != nil {
+					if bd, ok := defin.Assignments[id].(*FDef); ok {
 						if bd.HasClosure() {
 							newid := id + "%flat"
 							i.Name = newid

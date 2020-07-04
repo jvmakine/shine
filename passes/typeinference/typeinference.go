@@ -56,11 +56,11 @@ func typeConstant(constant *Const) {
 }
 
 func typeId(id *Id, ctx *VisitContext) error {
-	block := ctx.BlockOf(id.Name)
+	defin := ctx.DefinitionOf(id.Name)
 	if ctx.Path()[id.Name] {
 		id.IdType = MakeVariable()
-	} else if block != nil && ctx.BlockOf(id.Name).Def.Assignments[id.Name] != nil {
-		ref := ctx.BlockOf(id.Name).Def.Assignments[id.Name]
+	} else if defin != nil && ctx.DefinitionOf(id.Name).Assignments[id.Name] != nil {
+		ref := ctx.DefinitionOf(id.Name).Assignments[id.Name]
 		id.IdType = ref.Type().Copy(NewTypeCopyCtx())
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.IdType = p.ParamType
@@ -107,7 +107,7 @@ func initialiseVariables(exp Expression) error {
 		if d, ok := v.(*FDef); ok {
 			for _, p := range d.Params {
 				name := p.Name
-				if ctx.BlockOf(name) != nil || ctx.ParamOf(name) != nil {
+				if ctx.DefinitionOf(name) != nil || ctx.ParamOf(name) != nil {
 					return errors.New("redefinition of " + name)
 				}
 				if !p.ParamType.IsDefined() {
@@ -168,11 +168,11 @@ func initialiseVariables(exp Expression) error {
 }
 
 func resolveNamed(name string, ctx *VisitContext) (Type, error) {
-	block := ctx.BlockOf(name)
-	if block == nil {
+	defin := ctx.DefinitionOf(name)
+	if defin == nil {
 		return Type{}, errors.New("type " + name + " is undefined")
 	}
-	value := block.Def.Assignments[name]
+	value := defin.Assignments[name]
 	if value == nil {
 		return Type{}, errors.New(name + " is not a type")
 	}

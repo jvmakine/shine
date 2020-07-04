@@ -5,7 +5,8 @@ a ~> {
 
 b = {
     a ~> { add = (x) => a + x }
-    (x:int) => x.add(7).add(3).sub(1)
+    f = (x:int) => x.add(7).add(3).sub(1)
+    f
 }
 
-b(3)
+b(4).add(1)

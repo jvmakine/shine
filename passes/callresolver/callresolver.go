@@ -55,8 +55,8 @@ func ResolveFunctions(exp Expression) {
 			if ctx.NameOf(e) == "" {
 				anonCount++
 				typ := e.Type()
-				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().Def.ID, e.Type().TSignature())
-				ctx.Block().Def.Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
+				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Definitions().ID, e.Type().TSignature())
+				ctx.Definitions().Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
 				return &Id{Name: fsig, IdType: typ}
 			}
 		}
@@ -75,14 +75,14 @@ func resolveCall(v *FCall) {
 
 func resolveIdFunct(v *Id, ctx *VisitContext) {
 	name := v.Name
-	if block := ctx.BlockOf(name); block != nil {
-		assig := block.Def.Assignments[name]
+	if defin := ctx.DefinitionOf(name); defin != nil {
+		assig := defin.Assignments[name]
 		if assig != nil {
 			_, isDef := assig.(*FDef)
 			_, isStruct := assig.(*Struct)
 			if isDef || isStruct {
-				fsig := MakeFSign(v.Name, block.Def.ID, v.Type().TSignature())
-				if block.Def.Assignments[fsig] == nil {
+				fsig := MakeFSign(v.Name, defin.ID, v.Type().TSignature())
+				if defin.Assignments[fsig] == nil {
 					cop := assig.CopyWithCtx(types.NewTypeCopyCtx())
 					subs, err := cop.Type().Unifier(v.Type())
 					if err != nil {
@@ -92,9 +92,9 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 					if cop.Type().HasFreeVars() {
 						panic("could not unify " + assig.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 					}
-					block.Def.Assignments[fsig] = cop
+					defin.Assignments[fsig] = cop
 				} else {
-					f := block.Def.Assignments[v.Name]
+					f := defin.Assignments[v.Name]
 					cop := f.CopyWithCtx(types.NewTypeCopyCtx())
 					_, err := cop.Type().Unifier(v.Type())
 					if err != nil {

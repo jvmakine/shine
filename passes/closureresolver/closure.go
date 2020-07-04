@@ -23,8 +23,8 @@ func CollectClosures(exp Expression) {
 		switch a := v.(type) {
 		case *Id:
 			closureAt[v] = map[string]Type{a.Name: a.IdType}
-			if b := ctx.BlockOf(a.Name); b != nil {
-				def := b.Def.Assignments[a.Name]
+			if b := ctx.DefinitionOf(a.Name); b != nil {
+				def := b.Assignments[a.Name]
 				if d, ok := def.(*FDef); ok && def.Type().IsFunction() && d.Closure != nil {
 					for _, c := range d.Closure.Fields {
 						closureAt[v][c.Name] = c.Type
@@ -69,7 +69,7 @@ func CollectClosures(exp Expression) {
 			}
 			result := Structure{Name: "", Fields: []SField{}}
 			for n, t := range closureAt[v] {
-				if block := ctx.BlockOf(n); block == nil || !block.Def.Assignments[n].Type().IsFunction() {
+				if d := ctx.DefinitionOf(n); d == nil || !d.Assignments[n].Type().IsFunction() {
 					result.Fields = append(result.Fields, SField{Name: n, Type: t})
 				}
 			}

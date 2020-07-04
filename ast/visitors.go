@@ -8,7 +8,7 @@ type GlobalVCtx struct {
 
 type VisitContext struct {
 	parent     *VisitContext
-	block      *Block
+	defin      *Definitions
 	interf     *Interface
 	def        *FDef
 	assignment string
@@ -23,24 +23,28 @@ func IdRewrite(from Ast, ctx *VisitContext) Ast {
 }
 
 func (c *VisitContext) WithBlock(b *Block) *VisitContext {
-	return &VisitContext{parent: c, block: b, def: c.def, assignment: c.assignment, interf: c.interf, global: c.global}
+	return &VisitContext{parent: c, defin: b.Def, def: c.def, assignment: c.assignment, interf: c.interf, global: c.global}
+}
+
+func (c *VisitContext) WithDefinitions(d *Definitions) *VisitContext {
+	return &VisitContext{parent: c, defin: d, def: c.def, assignment: c.assignment, interf: c.interf, global: c.global}
 }
 
 func (c *VisitContext) WithDef(d *FDef) *VisitContext {
-	return &VisitContext{parent: c, block: c.block, def: d, assignment: c.assignment, interf: c.interf, global: c.global}
+	return &VisitContext{parent: c, defin: c.defin, def: d, assignment: c.assignment, interf: c.interf, global: c.global}
 }
 
 func (c *VisitContext) WithAssignment(a string) *VisitContext {
-	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: a, interf: c.interf, global: c.global}
+	return &VisitContext{parent: c, defin: c.defin, def: c.def, assignment: a, interf: c.interf, global: c.global}
 }
 
 func (c *VisitContext) WithInterface(i *Interface) *VisitContext {
-	return &VisitContext{parent: c, block: c.block, def: c.def, assignment: c.assignment, interf: i, global: c.global}
+	return &VisitContext{parent: c, defin: c.defin, def: c.def, assignment: c.assignment, interf: i, global: c.global}
 }
 
 func NewVisitCtx() *VisitContext {
 	global := &GlobalVCtx{visited: map[Ast]bool{}}
-	return &VisitContext{parent: nil, block: nil, def: nil, assignment: "", interf: nil, global: global}
+	return &VisitContext{parent: nil, defin: nil, def: nil, assignment: "", interf: nil, global: global}
 }
 
 func (c *VisitContext) Path() map[string]bool {
@@ -58,8 +62,8 @@ func (c *VisitContext) Def() *FDef {
 	return c.def
 }
 
-func (c *VisitContext) Block() *Block {
-	return c.block
+func (c *VisitContext) Definitions() *Definitions {
+	return c.defin
 }
 
 func (c *VisitContext) Interface() *Interface {
@@ -78,22 +82,22 @@ func (c *VisitContext) ParamOf(id string) *FParam {
 	return nil
 }
 
-func (c *VisitContext) BlockOf(id string) *Block {
-	if c.block == nil {
+func (c *VisitContext) DefinitionOf(id string) *Definitions {
+	if c.defin == nil {
 		return nil
-	} else if c.block.Def.Assignments[id] != nil {
-		return c.block
+	} else if c.defin.Assignments[id] != nil {
+		return c.defin
 	} else if c.parent != nil {
-		return c.parent.BlockOf(id)
+		return c.parent.DefinitionOf(id)
 	}
 	return nil
 }
 
 func (c *VisitContext) NameOf(exp Expression) string {
-	if c.block == nil {
+	if c.defin == nil {
 		return ""
 	}
-	for n, a := range c.block.Def.Assignments {
+	for n, a := range c.defin.Assignments {
 		if a == exp {
 			return n
 		}
@@ -105,8 +109,8 @@ func (c *VisitContext) NameOf(exp Expression) string {
 }
 
 func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
-	if c.block != nil && c.block.Def.Assignments[id] != nil {
-		return c.block.Def.Assignments[id], c
+	if c.defin != nil && c.defin.Assignments[id] != nil {
+		return c.defin.Assignments[id], c
 	} else if c.parent != nil {
 		return c.parent.Resolve(id)
 	}
@@ -114,8 +118,8 @@ func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
 }
 
 func (c *VisitContext) InterfaceWith(id string) (*Interface, *VisitContext) {
-	if c.block != nil {
-		for _, is := range c.block.Def.Interfaces {
+	if c.defin != nil {
+		for _, is := range c.defin.Interfaces {
 			for _, i := range is {
 				if i.Definitions.Assignments[id] != nil {
 					return i, c.WithInterface(i)

@@ -119,8 +119,8 @@ func TestExpressionParsing(tes *testing.T) {
 		input: "if(2 > 3) { 1 } else { 2 }",
 		want: a.NewBlock(a.NewFCall(a.NewOp("if"),
 			a.NewFCall(a.NewOp(">"), a.NewConst(2), a.NewConst(3)),
-			a.NewBlock(a.NewConst(1)),
-			a.NewBlock(a.NewConst(2)),
+			a.NewBlock(a.NewConst(1)).WithID(1),
+			a.NewBlock(a.NewConst(2)).WithID(2),
 		)),
 	}, {
 		name:  "parse if else if expression",
@@ -146,8 +146,8 @@ func TestExpressionParsing(tes *testing.T) {
 		name:  "parse functions as values",
 		input: "f((x) => {x + 2}, (y) => {y + 1})",
 		want: a.NewBlock(a.NewFCall(a.NewId("f"),
-			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewConst(2))), "x"),
-			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("y"), a.NewConst(1))), "y"),
+			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewConst(2))).WithID(1), "x"),
+			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("y"), a.NewConst(1))).WithID(2), "y"),
 		)),
 	}, {
 		name: "parse several assignments",
@@ -169,7 +169,7 @@ func TestExpressionParsing(tes *testing.T) {
 				a(1, 2)
 			`,
 		want: a.
-			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).
+			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).WithID(1).
 			WithAssignment("a", a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewId("y"))), "x", "y")),
 	}, {
 		name: "parse a nested function definition",
@@ -181,9 +181,9 @@ func TestExpressionParsing(tes *testing.T) {
 			a(1, 2)
 		`,
 		want: a.
-			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).
+			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).WithID(2).
 			WithAssignment("a", a.NewFDef(a.
-				NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewFCall(a.NewId("b"), a.NewId("y")))).
+				NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewFCall(a.NewId("b"), a.NewId("y")))).WithID(1).
 				WithAssignment("b", a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("z"), a.NewConst(1))), "z")),
 				"x", "y",
 			)),
@@ -279,6 +279,7 @@ func TestExpressionParsing(tes *testing.T) {
 				1.add(4)
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1)), a.NewConst(4))).
+			WithID(2).
 			WithInterface(types.IntP, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)).
@@ -291,6 +292,7 @@ func TestExpressionParsing(tes *testing.T) {
 				1.0.add(4.0)
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1.0)), a.NewConst(4.0))).
+			WithID(1).
 			WithInterface(types.Type{}, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)),

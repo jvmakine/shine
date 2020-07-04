@@ -13,7 +13,7 @@ func SequentialFunctionPass(exp Expression) {
 		if c, ok := v.(*FCall); ok {
 			root := c.RootFunc()
 			var def *FDef
-			var block *Block
+			var defin *Definitions
 			var id string
 			var typ types.Type
 			changed := false
@@ -21,8 +21,8 @@ func SequentialFunctionPass(exp Expression) {
 			if i, ok := root.(*Id); ok {
 				id = i.Name
 				typ = i.IdType
-				if block = ctx.BlockOf(id); block != nil {
-					assig := block.Def.Assignments[id]
+				if defin = ctx.DefinitionOf(id); defin != nil {
+					assig := defin.Assignments[id]
 					if d, ok := assig.(*FDef); ok {
 						def = d.CopyWithCtx(tctx).(*FDef)
 					} else {
@@ -49,7 +49,7 @@ func SequentialFunctionPass(exp Expression) {
 				def.Params = append(def.Params, def2.Params...)
 				def.Body = def2.Body
 
-				if block != nil {
+				if defin != nil {
 					nid = nid + "%c"
 				}
 
@@ -60,8 +60,8 @@ func SequentialFunctionPass(exp Expression) {
 			}
 
 			if changed {
-				if block != nil {
-					block.Def.Assignments[nid] = def
+				if defin != nil {
+					defin.Assignments[nid] = def
 					c.Function = &Id{Name: nid, IdType: typ}
 					c.Params = params
 				} else {

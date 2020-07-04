@@ -126,8 +126,10 @@ func convBlock(from *Block, ctx *ConvCtx) *ast.Block {
 			panic("invalid definition")
 		}
 	}
+	id := ctx.DefCount
+	ctx.DefCount++
 	return &ast.Block{
-		Def:   &ast.Definitions{Assignments: assigns, Interfaces: interfs},
+		Def:   &ast.Definitions{Assignments: assigns, Interfaces: interfs, ID: id},
 		Value: convExp(from.Value, ctx),
 	}
 }
