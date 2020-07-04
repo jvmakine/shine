@@ -158,6 +158,8 @@ func initialiseVariables(exp Expression) error {
 					}
 				}
 			}
+		} else if fa, ok := v.(*FieldAccessor); ok {
+			fa.FAType = MakeVariable()
 		}
 		return nil
 	})
@@ -250,9 +252,12 @@ func Infer(exp Expression) error {
 			}
 			unifier.Combine(uni)
 		} else if a, ok := v.(*FieldAccessor); ok {
-			vari := MakeVariable()
+			vari := a.FAType
 			typ := MakeStructuralVar(map[string]Type{a.Field: vari})
 			uni, err := a.Exp.Type().Unifier(typ)
+			if err == nil {
+				err = unifier.Combine(uni)
+			}
 			if err != nil {
 				inter, _ := ctx.InterfaceWith(a.Field)
 				if inter != nil {
@@ -265,9 +270,11 @@ func Infer(exp Expression) error {
 				} else {
 					return err
 				}
+				err = unifier.Combine(uni)
+				if err != nil {
+					return err
+				}
 			}
-			unifier.Combine(uni)
-			a.FAType = vari
 		}
 		return nil
 	}

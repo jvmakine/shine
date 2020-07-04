@@ -1,3 +1,5 @@
 a:int ~> { add = (x) => a + x }
 
-5.add(7)
+result = (x: int) => x.add(7).add(2)
+
+result(3)

@@ -245,11 +245,18 @@ func TestInfer(tes *testing.T) {
 		typ: "int",
 		err: nil,
 	}, {
-		name: "infer interface method types from the body",
-		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(true)), NewConst(false))).
-			WithInterface(types.Type{}, NewDefinitions().WithAssignment("sub", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
-		typ: "",
-		err: errors.New("can not unify V1{add:V2} with bool"),
+		name: "infer multiple interface invocations",
+		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))), NewConst(3))).
+			WithInterface(types.Type{}, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+		typ: "int",
+		err: nil,
+	}, {
+		name: "infer interface usage in functions",
+		exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
+			WithInterface(types.Type{}, NewDefinitions().WithAssignment("isOdd", NewFDef(NewFCall(NewOp("=="), NewConst(0), NewFCall(NewOp("%"), NewId("$"), NewConst(2)))))).
+			WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.IntP})),
+		typ: "bool",
+		err: nil,
 	},
 	}
 	for _, tt := range tests {

@@ -580,19 +580,19 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 	if err != nil {
 		return err
 	}
-	for n, a := range e.Assignments {
-		e.Assignments[n] = rewrite(a, ctx).(Expression)
-		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
-		if err != nil {
-			return err
-		}
-	}
 	for _, i := range e.Interfaces {
 		for _, in := range i {
 			err := in.Definitions.Visit(before, after, crawl, rewrite, ctx.WithInterface(in))
 			if err != nil {
 				return err
 			}
+		}
+	}
+	for n, a := range e.Assignments {
+		e.Assignments[n] = rewrite(a, ctx).(Expression)
+		err := a.Visit(before, after, crawl, rewrite, ctx.WithAssignment(n))
+		if err != nil {
+			return err
 		}
 	}
 	return after(e, ctx)

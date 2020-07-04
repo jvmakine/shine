@@ -73,16 +73,16 @@ type Definition struct {
 }
 
 type Definitions struct {
-	Defs []*Definition `@@*`
+	Defs []*Definition `(Newline* @@)*`
 }
 
 type Binding struct {
-	Name      *TypedName   `Newline* @@`
+	Name      *TypedName   `@@`
 	Interface *Definitions `"~>" "{" Newline* @@ Newline* "}" Newline*`
 }
 
 type Assignment struct {
-	Name  *TypedName  `Newline* @@`
+	Name  *TypedName  `@@`
 	Value *Expression `"=" @@ Newline*`
 }
 
