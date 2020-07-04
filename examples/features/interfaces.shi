@@ -1,2 +1,13 @@
-a ~> { add = (x) => a + x }
-3.add(7).add(2)
+a ~> { 
+    add = (x) => a - x
+    sub = (x) => a - x
+}
+
+b = {
+    a ~> { add = (x) => a + x }
+    f = (x:int) => x.add(7).add(3).sub(1)
+
+    f(3)
+}
+
+b
