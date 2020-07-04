@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/llir/llvm/ir"
-
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/passes/callresolver"
@@ -14,6 +12,7 @@ import (
 	"github.com/jvmakine/shine/passes/interfaceresolver"
 	"github.com/jvmakine/shine/passes/optimisation"
 	"github.com/jvmakine/shine/passes/typeinference"
+	"github.com/llir/llvm/ir"
 )
 
 func main() {

@@ -207,7 +207,6 @@ func rewriteNamed(exp Expression) error {
 }
 
 func Infer(exp Expression) error {
-	blockCount := 0
 	if err := initialiseVariables(exp); err != nil {
 		return err
 	}
@@ -219,8 +218,6 @@ func Infer(exp Expression) error {
 		if c, ok := v.(*Const); ok {
 			typeConstant(c)
 		} else if b, ok := v.(*Block); ok {
-			blockCount++
-			b.ID = blockCount
 			ConvertTypes(b.Value, unifier)
 			for _, a := range b.Def.Assignments {
 				_, isDef := a.(*FDef)

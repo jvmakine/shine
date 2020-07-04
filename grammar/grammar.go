@@ -8,6 +8,10 @@ import (
 	"github.com/jvmakine/shine/ast"
 )
 
+type ConvCtx struct {
+	DefCount int
+}
+
 type Program struct {
 	Body *Block `@@`
 }
@@ -54,11 +58,12 @@ func Parse(str string) (*Program, error) {
 }
 
 func (prg *Program) ToAst() ast.Expression {
-	return convBlock(prg.Body)
+	ctx := &ConvCtx{}
+	return convBlock(prg.Body, ctx)
 }
 
-func convInterface(name *TypedName, from *Definitions) *ast.Interface {
-	defs := convDefinitions(from)
+func convInterface(name *TypedName, from *Definitions, ctx *ConvCtx) *ast.Interface {
+	defs := convDefinitions(from, ctx)
 	defs.Visit(ast.NullFun, ast.NullFun, false, func(a ast.Ast, ctx *ast.VisitContext) ast.Ast {
 		if id, ok := a.(*ast.Id); ok && id.Name == (*name.Name) {
 			return ast.NewId("$")
@@ -71,12 +76,13 @@ func convInterface(name *TypedName, from *Definitions) *ast.Interface {
 	}
 }
 
-func convDefinitions(from *Definitions) *ast.Definitions {
-	res := ast.NewDefinitions()
+func convDefinitions(from *Definitions, ctx *ConvCtx) *ast.Definitions {
+	res := ast.NewDefinitions(ctx.DefCount)
+	ctx.DefCount++
 	for _, d := range from.Defs {
 		if d.Assignment != nil {
 			a := d.Assignment
-			raw := convAst(a.Value)
+			raw := convAst(a.Value, ctx)
 			if e, ok := raw.(ast.Expression); ok {
 				res.Assignments[*a.Name.Name] = e
 			} else {
@@ -88,20 +94,20 @@ func convDefinitions(from *Definitions) *ast.Definitions {
 			}
 		} else if d.Binding != nil {
 			oldI := res.Interfaces[convTypeDef(d.Binding.Name.Type)]
-			newI := convInterface(d.Binding.Name, d.Binding.Interface)
+			newI := convInterface(d.Binding.Name, d.Binding.Interface, ctx)
 			res.Interfaces[convTypeDef(d.Binding.Name.Type)] = append(oldI, newI)
 		}
 	}
 	return res
 }
 
-func convBlock(from *Block) *ast.Block {
+func convBlock(from *Block, ctx *ConvCtx) *ast.Block {
 	assigns := map[string]ast.Expression{}
 	interfs := map[types.Type][]*ast.Interface{}
 	for _, d := range from.Def.Defs {
 		if d.Assignment != nil {
 			a := d.Assignment
-			raw := convAst(a.Value)
+			raw := convAst(a.Value, ctx)
 			if e, ok := raw.(ast.Expression); ok {
 				assigns[*a.Name.Name] = e
 			} else {
@@ -114,7 +120,7 @@ func convBlock(from *Block) *ast.Block {
 		} else if d.Binding != nil {
 			b := d.Binding
 			oldI := interfs[convTypeDef(b.Name.Type)]
-			newI := convInterface(b.Name, b.Interface)
+			newI := convInterface(b.Name, b.Interface, ctx)
 			interfs[convTypeDef(b.Name.Type)] = append(oldI, newI)
 		} else {
 			panic("invalid definition")
@@ -122,51 +128,51 @@ func convBlock(from *Block) *ast.Block {
 	}
 	return &ast.Block{
 		Def:   &ast.Definitions{Assignments: assigns, Interfaces: interfs},
-		Value: convExp(from.Value),
+		Value: convExp(from.Value, ctx),
 	}
 }
 
-func convExp(from *Expression) ast.Expression {
-	ut := convAst(from)
+func convExp(from *Expression, ctx *ConvCtx) ast.Expression {
+	ut := convAst(from, ctx)
 	if e, ok := ut.(ast.Expression); ok {
 		return e
 	}
 	panic("non expression AST")
 }
 
-func convAst(from *Expression) ast.Ast {
-	ut := convUTE(from.Exp)
+func convAst(from *Expression, ctx *ConvCtx) ast.Ast {
+	ut := convUTE(from.Exp, ctx)
 	if e, ok := ut.(ast.Expression); ok && from.Type != nil {
 		return &ast.TypeDecl{Exp: e, DeclType: convTypeDef(from.Type)}
 	}
 	return ut
 }
 
-func convUTE(from *UTExpression) ast.Ast {
+func convUTE(from *UTExpression, ctx *ConvCtx) ast.Ast {
 	if from.Def != nil {
-		return convFDef(from.Def)
+		return convFDef(from.Def, ctx)
 	} else if from.If != nil {
-		return convIf(from.If)
+		return convIf(from.If, ctx)
 	} else if from.Comp != nil {
-		return convOpComp(convComp(from.Comp.Left), from.Comp.Right)
+		return convOpComp(convComp(from.Comp.Left, ctx), from.Comp.Right, ctx)
 	}
 	panic("invalid expression")
 }
 
-func convIf(from *IfExpression) ast.Expression {
+func convIf(from *IfExpression, ctx *ConvCtx) ast.Expression {
 	return &ast.FCall{
 		Function: &ast.Op{Name: "if"},
-		Params:   []ast.Expression{convExp(from.Cond), convExp(from.True), convExp(from.False)},
+		Params:   []ast.Expression{convExp(from.Cond, ctx), convExp(from.True, ctx), convExp(from.False, ctx)},
 	}
 }
 
-func convFDef(from *FDefinition) ast.Ast {
+func convFDef(from *FDefinition, ctx *ConvCtx) ast.Ast {
 	if fd := from.Funct; fd != nil {
 		params := make([]*ast.FParam, len(from.Params))
 		for i, p := range from.Params {
 			params[i] = convFParam(p)
 		}
-		body := convExp(fd.Body)
+		body := convExp(fd.Body, ctx)
 		if fd.ReturnType != nil {
 			body = &ast.TypeDecl{Exp: body, DeclType: convTypeDef(fd.ReturnType)}
 		}
@@ -233,39 +239,39 @@ func convFParam(from *TypedName) *ast.FParam {
 	}
 }
 
-func convOpComp(left ast.Expression, right []*OpComp) ast.Expression {
+func convOpComp(left ast.Expression, right []*OpComp, ctx *ConvCtx) ast.Expression {
 	if right == nil || len(right) == 0 {
 		return left
 	}
 	res := &ast.FCall{
 		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convComp(right[0].Right)},
+		Params:   []ast.Expression{left, convComp(right[0].Right, ctx)},
 	}
-	return convOpComp(res, right[1:])
+	return convOpComp(res, right[1:], ctx)
 }
 
-func convComp(from *Comp) ast.Expression {
-	return convOpTerm(convTerm(from.Left), from.Right)
+func convComp(from *Comp, ctx *ConvCtx) ast.Expression {
+	return convOpTerm(convTerm(from.Left, ctx), from.Right, ctx)
 }
 
-func convOpTerm(left ast.Expression, right []*OpTerm) ast.Expression {
+func convOpTerm(left ast.Expression, right []*OpTerm, ctx *ConvCtx) ast.Expression {
 	if right == nil || len(right) == 0 {
 		return left
 	}
 	res := &ast.FCall{
 		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convTerm(right[0].Right)},
+		Params:   []ast.Expression{left, convTerm(right[0].Right, ctx)},
 	}
-	return convOpTerm(res, right[1:])
+	return convOpTerm(res, right[1:], ctx)
 }
 
-func convTerm(from *Term) ast.Expression {
-	return convOpFact(convAccessor(from.Left), from.Right)
+func convTerm(from *Term, ctx *ConvCtx) ast.Expression {
+	return convOpFact(convAccessor(from.Left, ctx), from.Right, ctx)
 }
 
-func convAccessor(from *Accessor) ast.Expression {
+func convAccessor(from *Accessor, ctx *ConvCtx) ast.Expression {
 	acc := from.Right
-	res := convFVal(from.Left)
+	res := convFVal(from.Left, ctx)
 	for len(acc) > 0 {
 		res = &ast.FieldAccessor{
 			Exp:   res,
@@ -277,7 +283,7 @@ func convAccessor(from *Accessor) ast.Expression {
 			calls = calls[1:]
 			params := make([]ast.Expression, len(call.Params))
 			for i, p := range call.Params {
-				params[i] = convExp(p)
+				params[i] = convExp(p, ctx)
 			}
 			res = &ast.FCall{
 				Function: res,
@@ -289,24 +295,24 @@ func convAccessor(from *Accessor) ast.Expression {
 	return res
 }
 
-func convOpFact(left ast.Expression, right []*OpFactor) ast.Expression {
+func convOpFact(left ast.Expression, right []*OpFactor, ctx *ConvCtx) ast.Expression {
 	if right == nil || len(right) == 0 {
 		return left
 	}
 	res := &ast.FCall{
 		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convAccessor(right[0].Right)},
+		Params:   []ast.Expression{left, convAccessor(right[0].Right, ctx)},
 	}
-	return convOpFact(res, right[1:])
+	return convOpFact(res, right[1:], ctx)
 }
 
-func convFVal(from *FValue) ast.Expression {
-	pval := convPVal(from.Value)
+func convFVal(from *FValue, ctx *ConvCtx) ast.Expression {
+	pval := convPVal(from.Value, ctx)
 	if len(from.Calls) > 0 {
 		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]ast.Expression, len(call.Params))
 		for i, p := range call.Params {
-			params[i] = convExp(p)
+			params[i] = convExp(p, ctx)
 		}
 		res := &ast.FCall{
 			Function: pval,
@@ -316,7 +322,7 @@ func convFVal(from *FValue) ast.Expression {
 			call, calls = calls[0], calls[1:]
 			params := make([]ast.Expression, len(call.Params))
 			for i, p := range call.Params {
-				params[i] = convExp(p)
+				params[i] = convExp(p, ctx)
 			}
 			res = &ast.FCall{
 				Function: res,
@@ -328,9 +334,9 @@ func convFVal(from *FValue) ast.Expression {
 	return pval
 }
 
-func convPVal(from *PValue) ast.Expression {
+func convPVal(from *PValue, ctx *ConvCtx) ast.Expression {
 	if from.Block != nil {
-		return convBlock(from.Block)
+		return convBlock(from.Block, ctx)
 	} else if from.Int != nil {
 		return &ast.Const{Int: from.Int}
 	} else if from.Real != nil {
@@ -346,7 +352,7 @@ func convPVal(from *PValue) ast.Expression {
 		str = str[1:(len(str) - 1)]
 		return &ast.Const{String: &str}
 	} else if from.Sub != nil {
-		return convExp(from.Sub)
+		return convExp(from.Sub, ctx)
 	} else if from.Id != nil {
 		return &ast.Id{Name: *from.Id}
 	}

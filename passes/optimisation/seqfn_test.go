@@ -43,7 +43,7 @@ func eraseType(e Expression) {
 	})
 	VisitAfter(e, func(a Ast, ctx *VisitContext) error {
 		if b, ok := a.(*Block); ok {
-			b.ID = 0
+			b.Def.ID = 0
 		}
 		return nil
 	})

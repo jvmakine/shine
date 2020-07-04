@@ -10,7 +10,7 @@ func DeadCodeElimination(exp Expression) {
 	})
 	VisitBefore(exp, func(v Ast, _ *VisitContext) error {
 		if b, ok := v.(*Block); ok {
-			newDef := NewDefinitions()
+			newDef := NewDefinitions(b.Def.ID)
 			for k, a := range b.Def.Assignments {
 				if visited[a] {
 					newDef.Assignments[k] = a

@@ -55,7 +55,7 @@ func ResolveFunctions(exp Expression) {
 			if ctx.NameOf(e) == "" {
 				anonCount++
 				typ := e.Type()
-				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().ID, e.Type().TSignature())
+				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Block().Def.ID, e.Type().TSignature())
 				ctx.Block().Def.Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
 				return &Id{Name: fsig, IdType: typ}
 			}
@@ -81,7 +81,7 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 			_, isDef := assig.(*FDef)
 			_, isStruct := assig.(*Struct)
 			if isDef || isStruct {
-				fsig := MakeFSign(v.Name, block.ID, v.Type().TSignature())
+				fsig := MakeFSign(v.Name, block.Def.ID, v.Type().TSignature())
 				if block.Def.Assignments[fsig] == nil {
 					cop := assig.CopyWithCtx(types.NewTypeCopyCtx())
 					subs, err := cop.Type().Unifier(v.Type())

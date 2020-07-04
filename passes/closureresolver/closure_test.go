@@ -19,17 +19,18 @@ func TestResolveFunctionDef(tes *testing.T) {
 		exp  Expression
 		want map[string]map[string]Type
 	}{{
-		name: "resolves empty Closure for function without closure",
+		name: "resolves empty closure for function without closure",
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(true), NewConst(true), NewConst(false))).
-			WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
+			WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
+			WithID(1),
 		want: map[string]map[string]Type{
 			"a%%1%%(bool,bool,bool)=>bool": map[string]Type{},
 		},
 	}, {
 		name: "resolve closure parameters for function referring to outer ids",
-		exp: NewBlock(NewFCall(NewId("a"), NewConst(1), NewConst(true))).
-			WithAssignment("a", NewFDef(NewBlock(NewFCall(NewId("b"))).
-				WithAssignment("b", NewFDef(NewBlock(NewFCall(NewOp("if"), NewId("c"), NewId("x"), NewConst(2))).
+		exp: NewBlock(NewFCall(NewId("a"), NewConst(1), NewConst(true))).WithID(3).
+			WithAssignment("a", NewFDef(NewBlock(NewFCall(NewId("b"))).WithID(2).
+				WithAssignment("b", NewFDef(NewBlock(NewFCall(NewOp("if"), NewId("c"), NewId("x"), NewConst(2))).WithID(1).
 					WithAssignment("c", NewId("y")),
 				)),
 				"x", "y")),
@@ -45,7 +46,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(1))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("b"), NewId("x"), NewId("s")), "x")).
 			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewFCall(NewId("f"), NewId("y")), NewConst(2)), "y", "f")).
-			WithAssignment("s", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewConst(3)), "y")),
+			WithAssignment("s", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewConst(3)), "y")).
+			WithID(1),
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=>int":            map[string]Type{},
 			"b%%1%%(int,(int)=>int)=>int": map[string]Type{},
@@ -54,7 +56,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 	}, {
 		name: "resolves closures for sequential functions",
 		exp: NewBlock(NewFCall(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2)), NewConst(3))).
-			WithAssignment("a", NewFDef(NewFDef(NewFDef(NewFCall(NewOp("+"), NewFCall(NewOp("+"), NewId("x"), NewId("y")), NewId("z")), "z"), "y"), "x")),
+			WithAssignment("a", NewFDef(NewFDef(NewFDef(NewFCall(NewOp("+"), NewFCall(NewOp("+"), NewId("x"), NewId("y")), NewId("z")), "z"), "y"), "x")).
+			WithID(1),
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=>(int)=>(int)=>int": map[string]Type{},
 			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
@@ -70,7 +73,8 @@ func TestResolveFunctionDef(tes *testing.T) {
 		exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
 			WithAssignment("S", NewStruct(ast.StructField{"x", IntP})).
 			WithAssignment("a", NewFCall(NewId("S"), NewConst(1))).
-			WithAssignment("f", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewFieldAccessor("x", NewId("a"))), "y")),
+			WithAssignment("f", NewFDef(NewFCall(NewOp("+"), NewId("y"), NewFieldAccessor("x", NewId("a"))), "y")).
+			WithID(1),
 		want: map[string]map[string]Type{
 			"f%%1%%(int)=>int": map[string]Type{
 				"a": types.MakeStructure("S", SField{"x", IntP}),

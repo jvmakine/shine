@@ -235,25 +235,25 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "infer typed interface function calls",
 		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
-			WithInterface(types.IntP, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+			WithInterface(types.IntP, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer untyped interface function calls",
 		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
-			WithInterface(types.Type{}, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer multiple interface invocations",
 		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))), NewConst(3))).
-			WithInterface(types.Type{}, NewDefinitions().WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
+			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"))),
 		typ: "int",
 		err: nil,
 	}, {
 		name: "infer interface usage in functions",
 		exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
-			WithInterface(types.Type{}, NewDefinitions().WithAssignment("isOdd", NewFDef(NewFCall(NewOp("=="), NewConst(0), NewFCall(NewOp("%"), NewId("$"), NewConst(2)))))).
+			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("isOdd", NewFDef(NewFCall(NewOp("=="), NewConst(0), NewFCall(NewOp("%"), NewId("$"), NewConst(2)))))).
 			WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.IntP})),
 		typ: "bool",
 		err: nil,

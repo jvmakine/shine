@@ -279,10 +279,10 @@ func TestExpressionParsing(tes *testing.T) {
 				1.add(4)
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1)), a.NewConst(4))).
-			WithInterface(types.IntP, a.NewDefinitions().WithAssignment(
+			WithInterface(types.IntP, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)).
-			WithInterface(types.IntP, a.NewDefinitions().WithAssignment(
+			WithInterface(types.IntP, a.NewDefinitions(1).WithAssignment(
 				"sub", a.NewFDef(a.NewFCall(a.NewOp("-"), a.NewId("$"), a.NewId("x")), "x"),
 			)),
 	}, {
@@ -291,7 +291,7 @@ func TestExpressionParsing(tes *testing.T) {
 				1.0.add(4.0)
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1.0)), a.NewConst(4.0))).
-			WithInterface(types.Type{}, a.NewDefinitions().WithAssignment(
+			WithInterface(types.Type{}, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)),
 	}}

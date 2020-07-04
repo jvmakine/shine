@@ -21,7 +21,9 @@ func TestResolveFunctions(t *testing.T) {
 			NewFCall(NewId("a"), NewConst(true), NewConst(true), NewConst(false)),
 			NewFCall(NewId("a"), NewConst(true), NewConst(5), NewConst(6)),
 			NewConst(7)),
-		).WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
+		).WithID(1).WithAssignment("a",
+			NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x"),
+		),
 		after: NewBlock(NewFCall(NewOp("if"),
 			NewFCall(NewId("a%%1%%(bool,bool,bool)=>bool"), NewConst(true), NewConst(true), NewConst(false)),
 			NewFCall(NewId("a%%1%%(bool,int,int)=>int"), NewConst(true), NewConst(5), NewConst(6)),
@@ -33,35 +35,43 @@ func TestResolveFunctions(t *testing.T) {
 		name: "resolves functions as arguments",
 		before: NewBlock(NewFCall(NewId("a"), NewId("b"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
+			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("b%%1%%(int,int)=>int"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
+			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithID(1),
 	}, {
 		name: "resolves anonymous functions",
 		before: NewBlock(NewFCall(NewId("a"), NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y"))).
-			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")),
+			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
+			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("<anon1>%%1%%(int,int)=>int"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")),
+			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithID(1),
 	}, {
 		name: "resolves simple structures",
 		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})),
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})).
+			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1))).
 			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})).
-			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})),
+			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})).
+			WithID(1),
 	}, {
 		name: "resolves multitype structures",
 		before: NewBlock(NewFCall(NewId("a"), NewFCall(NewId("a"), NewConst(1)))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})),
+			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})).
+			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%(a{x:int})=>a"), NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1)))).
 			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})).
 			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})).
-			WithAssignment("a%%1%%(a{x:int})=>a", NewStruct(ast.StructField{"x", types.MakeNamed("a")})),
+			WithAssignment("a%%1%%(a{x:int})=>a", NewStruct(ast.StructField{"x", types.MakeNamed("a")})).
+			WithID(1),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -83,7 +93,7 @@ func eraseType(e Expression) {
 	})
 	VisitBefore(e, func(v Ast, ctx *VisitContext) error {
 		if b, ok := v.(*Block); ok {
-			b.ID = 0
+			b.Def.ID = 0
 		}
 		return nil
 	})

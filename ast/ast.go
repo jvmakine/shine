@@ -480,7 +480,6 @@ func NewFDef(body Expression, params ...interface{}) *FDef {
 type Block struct {
 	Def   *Definitions
 	Value Expression
-	ID    int
 }
 
 func (e *Block) Type() types.Type {
@@ -491,7 +490,6 @@ func (e *Block) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	return &Block{
 		Def:   e.Def.copy(ctx),
 		Value: e.Value.CopyWithCtx(ctx),
-		ID:    e.ID,
 	}
 }
 
@@ -568,10 +566,11 @@ func (b *Block) CheckValueCycles() error {
 	return nil
 }
 
-func NewDefinitions() *Definitions {
+func NewDefinitions(id int) *Definitions {
 	return &Definitions{
 		Assignments: map[string]Expression{},
 		Interfaces:  map[types.Type][]*Interface{},
+		ID:          id,
 	}
 }
 
@@ -600,16 +599,23 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 
 func NewBlock(body Expression) *Block {
 	return &Block{
-		ID:    0,
 		Value: body,
-		Def:   NewDefinitions(),
+		Def:   NewDefinitions(0),
+	}
+}
+
+func (b *Block) WithID(id int) *Block {
+	dc := b.Def.shallowCopy()
+	dc.ID = id
+	return &Block{
+		Value: b.Value,
+		Def:   dc,
 	}
 }
 
 func (b *Block) WithAssignment(name string, value interface{}) *Block {
 	dc := b.Def.WithAssignment(name, value)
 	return &Block{
-		ID:    b.ID,
 		Value: b.Value,
 		Def:   dc,
 	}
@@ -618,7 +624,6 @@ func (b *Block) WithAssignment(name string, value interface{}) *Block {
 func (b *Block) WithInterface(typ types.Type, defs *Definitions) *Block {
 	dc := b.Def.WithInterface(typ, defs)
 	return &Block{
-		ID:    b.ID,
 		Value: b.Value,
 		Def:   dc,
 	}
@@ -646,6 +651,8 @@ func (d *Definitions) WithInterface(typ types.Type, defs *Definitions) *Definiti
 type Definitions struct {
 	Assignments map[string]Expression
 	Interfaces  map[types.Type][]*Interface
+
+	ID int
 }
 
 func (a *Definitions) shallowCopy() *Definitions {
@@ -660,6 +667,7 @@ func (a *Definitions) shallowCopy() *Definitions {
 	return &Definitions{
 		Assignments: ac,
 		Interfaces:  ic,
+		ID:          a.ID,
 	}
 }
 
@@ -679,6 +687,7 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 	return &Definitions{
 		Assignments: ac,
 		Interfaces:  ic,
+		ID:          a.ID,
 	}
 }
 
