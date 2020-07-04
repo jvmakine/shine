@@ -51,6 +51,7 @@ func Compile(text string) (*ir.Module, error) {
 	optimisation.DeadCodeElimination(ast)
 
 	fcat := callresolver.Collect(ast)
+
 	module := compiler.Compile(ast, &fcat)
 	return module, nil
 }

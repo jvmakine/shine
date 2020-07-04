@@ -124,7 +124,17 @@ func TestCompile(t *testing.T) {
 			b
 		`,
 		err: nil,
-	}}
+	}, /*{
+		name: "support closures in functions as values",
+		program: `
+			b = {
+				add = (x, y) => x + y
+				(z, w) => add(z, w)
+			}
+			b(1, 2)
+		`,
+		err: nil,
+	}*/}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Compile(tt.program)

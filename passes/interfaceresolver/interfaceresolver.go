@@ -23,6 +23,7 @@ func mergeInterfaces(ins []*Interface) (*Interface, error) {
 		Definitions: &Definitions{
 			Assignments: methods,
 			Interfaces:  subins,
+			ID:          ins[0].Definitions.ID,
 		},
 	}, nil
 }
@@ -41,7 +42,7 @@ func Resolve(exp Ast) error {
 				in.InterfaceType = typ
 
 				for name, method := range in.Definitions.Assignments {
-					newName := name + "%interface%" + strconv.Itoa(def.ID) + "%" + typ.Signature()
+					newName := name + "%interface%" + strconv.Itoa(in.Definitions.ID) + "%" + typ.Signature()
 					newDef := NewFDef(method, "$")
 					newDef.Params[0].ParamType = typ
 					def.Assignments[newName] = newDef
@@ -56,9 +57,9 @@ func Resolve(exp Ast) error {
 
 	return exp.Visit(NullFun, NullFun, false, func(from Ast, ctx *VisitContext) Ast {
 		if fa, ok := from.(*FieldAccessor); ok {
-			res, c := ctx.InterfaceWith(fa.Field)
+			res, _ := ctx.InterfaceWith(fa.Field)
 			if res != nil {
-				newName := fa.Field + "%interface%" + strconv.Itoa(c.Definitions().ID) + "%" + res.InterfaceType.Signature()
+				newName := fa.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
 				id := NewId(newName)
 				ts := append([]types.Type{fa.Exp.Type()}, fa.Type())
 				typ := types.MakeFunction(ts...)
