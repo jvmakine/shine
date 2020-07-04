@@ -1,5 +1,2 @@
-a:int ~> { add = (x) => a + x }
-
-result = (x: int) => x.add(7).add(2)
-
-result(3)
+a ~> { add = (x) => a + x }
+3.add(7).add(2)

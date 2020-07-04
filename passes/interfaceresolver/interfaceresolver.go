@@ -34,6 +34,7 @@ func Resolve(exp Ast) error {
 					return err
 				}
 				delete(def.Interfaces, typ)
+
 				def.Interfaces[typ] = []*Interface{in}
 				in.InterfaceType = typ
 
@@ -55,12 +56,13 @@ func Resolve(exp Ast) error {
 		if fa, ok := from.(*FieldAccessor); ok {
 			res, _ := ctx.InterfaceWith(fa.Field)
 			if res != nil {
-				method := res.Definitions.Assignments[fa.Field]
 				newName := fa.Field + "%interface%" + res.InterfaceType.Signature()
 				id := NewId(newName)
-				id.IdType = method.Type()
+				ts := append([]types.Type{fa.Exp.Type()}, fa.Type())
+				typ := types.MakeFunction(ts...)
+				id.IdType = typ
 				call := NewFCall(id, fa.Exp)
-				call.CallType = method.Type().FunctReturn()
+				call.CallType = typ.FunctReturn()
 				return call
 			}
 		}

@@ -143,8 +143,10 @@ func initialiseVariables(exp Expression) error {
 
 					s.StructType = stru
 				}
-				if free := d.Interfaces[types.Type{}]; free != nil {
-					delete(d.Interfaces, types.Type{})
+			}
+			for k, free := range d.Interfaces {
+				if !k.IsDefined() {
+					delete(d.Interfaces, k)
 					varit := MakeVariable()
 					d.Interfaces[varit] = free
 					for _, in := range free {

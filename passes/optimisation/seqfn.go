@@ -15,10 +15,12 @@ func SequentialFunctionPass(exp Expression) {
 			var def *FDef
 			var block *Block
 			var id string
+			var typ types.Type
 			changed := false
 
 			if i, ok := root.(*Id); ok {
 				id = i.Name
+				typ = i.IdType
 				if block = ctx.BlockOf(id); block != nil {
 					assig := block.Def.Assignments[id]
 					if d, ok := assig.(*FDef); ok {
@@ -29,6 +31,7 @@ func SequentialFunctionPass(exp Expression) {
 				}
 			} else if _, ok := root.(*FDef); ok {
 				def = root.CopyWithCtx(tctx).(*FDef)
+				typ = def.Type()
 			}
 
 			params := c.Params
@@ -38,6 +41,7 @@ func SequentialFunctionPass(exp Expression) {
 			if def != nil {
 				_, isDefB = def.Body.(*FDef)
 			}
+
 			for isFCall && isDefB {
 				changed = true
 				params = append(fcall.Params, params...)
@@ -51,12 +55,14 @@ func SequentialFunctionPass(exp Expression) {
 
 				_, isDefB = def.Body.(*FDef)
 				fcall, isFCall = fcall.Function.(*FCall)
+				ts := append(typ.FunctParams(), (*typ.FunctReturn().Function)...)
+				typ = types.MakeFunction(ts...)
 			}
 
 			if changed {
 				if block != nil {
 					block.Def.Assignments[nid] = def
-					c.Function = &Id{Name: nid, IdType: def.Type()}
+					c.Function = &Id{Name: nid, IdType: typ}
 					c.Params = params
 				} else {
 					c.Params = params
