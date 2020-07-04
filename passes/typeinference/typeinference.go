@@ -264,7 +264,7 @@ func Infer(exp Expression) error {
 				inter, _ := ctx.InterfaceWith(a.Field)
 				if inter != nil {
 					assig := inter.Definitions.Assignments[a.Field]
-					atyp := assig.Type()
+					atyp := assig.Type().Copy(types.NewTypeCopyCtx())
 					uni, err = atyp.Unifier(vari)
 					if err != nil {
 						return err

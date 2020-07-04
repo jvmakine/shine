@@ -109,8 +109,19 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile interfaces",
 		program: `
-			a ~> { add = (x) => a + x }
-			3.add(7).add(2)
+			a ~> { 
+				add = (x) => a - x
+				sub = (x) => a - x
+			}
+			
+			b = {
+				a ~> { add = (x) => a + x }
+				f = (x:int) => x.add(7).add(3).sub(1)
+				
+				if (1.0.add(1.0) > 1.0) f(3) else f(0)
+			}
+			
+			b
 		`,
 		err: nil,
 	}}
