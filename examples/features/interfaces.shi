@@ -1,14 +1,20 @@
-a ~> { 
+a ~> {
     mod = (x) => a - x
     sub = (x) => a - x
 }
 
 b = {
-    a ~> { 
+    a ~> {
         mod = (x) => a + x
         add = (x) => a + x
     }
-    (x:int) => x.mod(7).add(3).sub(1)
+    (x:int) => {
+        if ("a".add("b") == "ab") {
+            x.mod(7).add(3).sub(1)
+        } else {
+            5
+        }
+    }
 }
 
 b(4).mod(1)
