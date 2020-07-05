@@ -1,6 +1,7 @@
 package interfaceresolver
 
 import (
+	"errors"
 	"strconv"
 
 	. "github.com/jvmakine/shine/ast"
@@ -8,11 +9,13 @@ import (
 )
 
 func mergeInterfaces(ins []*Interface) (*Interface, error) {
-	// TODO errors
 	methods := map[string]Expression{}
 	subins := map[types.Type][]*Interface{}
 	for _, in := range ins {
 		for n, m := range in.Definitions.Assignments {
+			if methods[n] != nil {
+				return nil, errors.New(n + " declared twice for the same type")
+			}
 			methods[n] = m
 		}
 		for t, i := range in.Definitions.Interfaces {
