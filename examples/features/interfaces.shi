@@ -1,11 +1,11 @@
 a ~> { 
-    add = (x) => a - x
+    mod = (x) => a - x
     sub = (x) => a - x
 }
 
 b = {
-    a ~> { add = (x) => a + x }
-    (x:int) => x.add(7).add(3).sub(1)
+    a ~> { mod = (x) => a + x }
+    (x:int) => x.mod(7).mod(3).sub(1)
 }
 
-b(4).add(1)
+b(4).mod(1)
