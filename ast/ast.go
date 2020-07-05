@@ -504,8 +504,9 @@ func (e *Block) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rew
 			return err
 		}
 	}
-	e.Value = rewrite(e.Value, ctx).(Expression)
-	err = e.Value.Visit(before, after, crawl, rewrite, ctx.WithBlock(e))
+	sub := ctx.WithBlock(e)
+	e.Value = rewrite(e.Value, sub).(Expression)
+	err = e.Value.Visit(before, after, crawl, rewrite, sub)
 	if err != nil {
 		return err
 	}

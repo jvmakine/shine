@@ -80,7 +80,8 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 		if assig != nil {
 			_, isDef := assig.(*FDef)
 			_, isStruct := assig.(*Struct)
-			if isDef || isStruct {
+			_, isBlock := assig.(*Block)
+			if isDef || isStruct || isBlock {
 				fsig := MakeFSign(v.Name, defin.ID, v.Type().TSignature())
 				if defin.Assignments[fsig] == nil {
 					cop := assig.CopyWithCtx(types.NewTypeCopyCtx())
