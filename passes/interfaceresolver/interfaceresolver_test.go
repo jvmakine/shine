@@ -1,6 +1,7 @@
 package interfaceresolver
 
 import (
+	"errors"
 	"testing"
 
 	. "github.com/jvmakine/shine/ast"
@@ -26,16 +27,37 @@ func TestResolve(t *testing.T) {
 			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
 				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
 			)),
+	}, {
+		name: "returns an error if a method s declared twice for the same type",
+		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
+			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			)).
+			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			)),
+		after: nil,
+		err:   errors.New("a declared twice for the same type: int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			typeinference.Infer(tt.before)
-			Resolve(tt.before)
-			eraseType(tt.after)
+			rerr := Resolve(tt.before)
+			if tt.after != nil {
+				eraseType(tt.after)
+			}
 			eraseType(tt.before)
-			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
-			if !ok {
-				t.Error(err)
+			if tt.err != nil {
+				if rerr != nil && tt.err.Error() != rerr.Error() {
+					t.Error("wrong error: " + rerr.Error() + ", expected: " + tt.err.Error())
+				} else if rerr == nil {
+					t.Error("expected an error, got none")
+				}
+			} else {
+				ok, err := deepdiff.DeepDiff(tt.before, tt.after)
+				if !ok {
+					t.Error(err)
+				}
 			}
 		})
 	}

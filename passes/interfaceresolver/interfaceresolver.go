@@ -8,13 +8,13 @@ import (
 	"github.com/jvmakine/shine/types"
 )
 
-func mergeInterfaces(ins []*Interface) (*Interface, error) {
+func mergeInterfaces(ins []*Interface, typ types.Type) (*Interface, error) {
 	methods := map[string]Expression{}
 	subins := map[types.Type][]*Interface{}
 	for _, in := range ins {
 		for n, m := range in.Definitions.Assignments {
 			if methods[n] != nil {
-				return nil, errors.New(n + " declared twice for the same type")
+				return nil, errors.New(n + " declared twice for the same type: " + typ.Signature())
 			}
 			methods[n] = m
 		}
@@ -35,7 +35,7 @@ func Resolve(exp Ast) error {
 	err := VisitBefore(exp, func(a Ast, ctx *VisitContext) error {
 		if def, ok := a.(*Definitions); ok {
 			for typ, ins := range def.Interfaces {
-				in, err := mergeInterfaces(ins)
+				in, err := mergeInterfaces(ins, typ)
 				if err != nil {
 					return err
 				}
