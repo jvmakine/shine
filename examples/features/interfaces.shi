@@ -9,7 +9,7 @@ b = {
         add = (x) => a + x
     }
     (x:int) => {
-        if ("a".add("b") == "ab") {
+        if ("a".mod("b") == "ab") {
             x.mod(7).add(3).sub(1)
         } else {
             5
