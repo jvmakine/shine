@@ -34,6 +34,7 @@ func mergeInterfaces(ins []*Interface, typ types.Type) (*Interface, error) {
 func Resolve(exp Ast) error {
 	err := VisitBefore(exp, func(a Ast, ctx *VisitContext) error {
 		if def, ok := a.(*Definitions); ok {
+			methods := map[string][]types.Type{}
 			for typ, ins := range def.Interfaces {
 				in, err := mergeInterfaces(ins, typ)
 				if err != nil {
@@ -43,6 +44,18 @@ func Resolve(exp Ast) error {
 
 				def.Interfaces[typ] = []*Interface{in}
 				in.InterfaceType = typ
+
+				for n := range in.Definitions.Assignments {
+					if methods[n] == nil {
+						methods[n] = []types.Type{}
+					}
+					for _, oit := range methods[n] {
+						if oit.UnifiesWith(typ) {
+							return errors.New(n + " declared twice for unifiable types: " + typ.Signature() + ", " + oit.Signature())
+						}
+					}
+					methods[n] = append(methods[n], typ)
+				}
 
 				for name, method := range in.Definitions.Assignments {
 					newName := name + "%interface%" + strconv.Itoa(in.Definitions.ID) + "%" + typ.Signature()

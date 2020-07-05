@@ -28,7 +28,7 @@ func TestResolve(t *testing.T) {
 				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
 			)),
 	}, {
-		name: "returns an error if a method s declared twice for the same type",
+		name: "returns an error if a method is declared twice for the same type",
 		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
 			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
 				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
@@ -38,6 +38,17 @@ func TestResolve(t *testing.T) {
 			)),
 		after: nil,
 		err:   errors.New("a declared twice for the same type: int"),
+	}, {
+		name: "returns an error if a method could unify to two different implementations",
+		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
+			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			)).
+			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			)),
+		after: nil,
+		err:   errors.New("a declared twice for unifiable types: V1, int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

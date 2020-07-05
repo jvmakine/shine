@@ -35,6 +35,11 @@ func (t Type) Unifier(o Type) (Substitutions, error) {
 	return unifier(t, o, ctx)
 }
 
+func (t Type) UnifiesWith(o Type) bool {
+	_, e := t.Unifier(o)
+	return e == nil
+}
+
 func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
 		return Substitutions{}, UnificationError(o, t)
