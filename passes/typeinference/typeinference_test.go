@@ -257,6 +257,12 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.IntP})),
 		typ: "bool",
 		err: nil,
+	}, {
+		name: "fail on invalid interface call",
+		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
+			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
+		typ: "",
+		err: errors.New("can not unify string with V1[int|real]"),
 	},
 	}
 	for _, tt := range tests {

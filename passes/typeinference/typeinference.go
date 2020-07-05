@@ -98,8 +98,7 @@ func typeCall(call *FCall, unifier Substitutions) error {
 	for _, p := range call.Params {
 		ConvertTypes(p, s)
 	}
-	unifier.Combine(s)
-	return nil
+	return unifier.Combine(s)
 }
 
 func initialiseVariables(exp Expression) error {
