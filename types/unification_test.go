@@ -31,32 +31,32 @@ func TestType_Unify(t *testing.T) {
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "unifies union variables to subsets",
-		a:    MakeUnionVar("int", "bool", "real"),
-		b:    MakeUnionVar("bool", "real", "foo"),
-		want: MakeUnionVar("bool", "real"),
+		a:    MakeUnionVar(IntP, BoolP, RealP),
+		b:    MakeUnionVar(BoolP, RealP, StringP),
+		want: MakeUnionVar(BoolP, RealP),
 		err:  nil,
 	}, {
 		name: "unifies union variables to primitives",
-		a:    MakeUnionVar("int", "bool"),
-		b:    MakeUnionVar("bool", "real"),
+		a:    MakeUnionVar(IntP, BoolP),
+		b:    MakeUnionVar(BoolP, RealP),
 		want: MakePrimitive("bool"),
 		err:  nil,
 	}, {
 		name: "fails to unify disjoint restricted primitives",
-		a:    MakeUnionVar("int", "bool"),
-		b:    MakeUnionVar("bar", "foo"),
+		a:    MakeUnionVar(IntP, BoolP),
+		b:    MakeUnionVar(StringP, RealP),
 		want: Type{},
-		err:  errors.New("can not unify V1[bar|foo] with V1[int|bool]"),
+		err:  errors.New("can not unify V1[int|bool] with V1[string|real]"),
 	}, {
 		name: "unifies restricted variables with primitives",
 		a:    MakePrimitive("bool"),
-		b:    MakeUnionVar("int", "bool"),
+		b:    MakeUnionVar(IntP, BoolP),
 		want: MakePrimitive("bool"),
 		err:  nil,
 	}, {
 		name: "fails to unify restricted variables with incompatible primitives",
 		a:    MakePrimitive("real"),
-		b:    MakeUnionVar("int", "bool"),
+		b:    MakeUnionVar(IntP, BoolP),
 		want: Type{},
 		err:  errors.New("can not unify real with V1[int|bool]"),
 	}, {
@@ -92,8 +92,8 @@ func TestType_Unify(t *testing.T) {
 	}, {
 		name: "unifies variables with restricted variables",
 		a:    MakeVariable(),
-		b:    MakeUnionVar("int", "real"),
-		want: MakeUnionVar("int", "real"),
+		b:    MakeUnionVar(IntP, RealP),
+		want: MakeUnionVar(IntP, RealP),
 		err:  nil,
 	}, {
 		name: "unifies functions with overlapping variables",
@@ -164,7 +164,7 @@ func TestType_Unify(t *testing.T) {
 	}, {
 		name: "fails to unify union var with a structural var",
 		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		b:    MakeUnionVar(Int, Real),
+		b:    MakeUnionVar(IntP, RealP),
 		want: Type{},
 		err:  errors.New("can not unify V1[int|real] with V1{x:int}"),
 	}, {
@@ -199,8 +199,8 @@ func TestType_Unify(t *testing.T) {
 		err:  errors.New("can not unify V1{y:V2} with a{x:int}"),
 	}, {
 		name: "unifies variables wthin structural variables",
-		a:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Bool)}),
-		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Real)}),
+		a:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(IntP, BoolP)}),
+		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(IntP, RealP)}),
 		want: MakeStructuralVar(map[string]Type{"x": IntP}),
 		err:  nil,
 	}}

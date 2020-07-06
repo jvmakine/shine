@@ -2,17 +2,16 @@ package types
 
 import "errors"
 
-type Union []Primitive
+type Union []Type
 
-func (r Union) Resolve(o Union) (Union, error) {
+func (r Union) Unify(o Union) (Union, error) {
 	res := Union{}
-	found := map[Primitive]bool{}
-	for _, p := range o {
-		found[p] = true
-	}
-	for _, p := range r {
-		if found[p] {
-			res = append(res, p)
+	for _, rp := range r {
+		for _, op := range o {
+			un, err := rp.Unify(op)
+			if err == nil {
+				res = append(res, un)
+			}
 		}
 	}
 	if len(res) == 0 {
@@ -23,7 +22,7 @@ func (r Union) Resolve(o Union) (Union, error) {
 
 func (r Union) Unifies(o Primitive) error {
 	for _, r := range r {
-		if r == o {
+		if r.IsPrimitive() && *r.Primitive == o {
 			return nil
 		}
 	}

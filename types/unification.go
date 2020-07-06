@@ -138,12 +138,11 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 	} else if o.IsUnionVar() && !t.IsUnionVar() {
 		return unifier(o, t, ctx)
 	} else if t.IsUnionVar() && o.IsUnionVar() {
-		resolv, err := t.Variable.Union.Resolve(o.Variable.Union)
+		resolv, err := t.Variable.Union.Unify(o.Variable.Union)
 		if len(resolv) == 1 {
-			prim := MakePrimitive(resolv[0])
 			subs := MakeSubstitutions()
-			subs.Update(t.Variable, prim)
-			subs.Update(o.Variable, prim)
+			subs.Update(t.Variable, resolv[0])
+			subs.Update(o.Variable, resolv[0])
 			return subs, err
 		}
 		rv := MakeUnionVar(resolv...)

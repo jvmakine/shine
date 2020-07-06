@@ -12,7 +12,7 @@ func fun(ts ...Type) Expression {
 	return &Op{OpType: function(ts...)}
 }
 
-func union(un ...Primitive) Type {
+func union(un ...Type) Type {
 	return Type{Variable: &TypeVar{Union: un}}
 }
 
@@ -25,19 +25,19 @@ func withVar(v Type, f func(t Type) Expression) Expression {
 }
 
 var global map[string]Expression = map[string]Expression{
-	"+":  withVar(union(Int, Real, String), func(t Type) Expression { return fun(t, t, t) }),
-	"-":  withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, t) }),
-	"*":  withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, t) }),
+	"+":  withVar(union(IntP, RealP, StringP), func(t Type) Expression { return fun(t, t, t) }),
+	"-":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
+	"*":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
 	"%":  fun(IntP, IntP, IntP),
-	"/":  withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, t) }),
-	"<":  withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, BoolP) }),
-	">":  withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, BoolP) }),
-	">=": withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"<=": withVar(union(Int, Real), func(t Type) Expression { return fun(t, t, BoolP) }),
+	"/":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
+	"<":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
+	">":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
+	">=": withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
+	"<=": withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
 	"||": fun(BoolP, BoolP, BoolP),
 	"&&": fun(BoolP, BoolP, BoolP),
-	"==": withVar(union(Int, Bool, String), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"!=": withVar(union(Int, Bool), func(t Type) Expression { return fun(t, t, BoolP) }),
+	"==": withVar(union(IntP, BoolP, StringP), func(t Type) Expression { return fun(t, t, BoolP) }),
+	"!=": withVar(union(IntP, BoolP), func(t Type) Expression { return fun(t, t, BoolP) }),
 	"if": withVar(MakeVariable(), func(t Type) Expression { return fun(BoolP, t, t, t) }),
 }
 

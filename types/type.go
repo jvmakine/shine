@@ -51,8 +51,8 @@ func MakeVariable() Type {
 	return Type{Variable: &TypeVar{}}
 }
 
-func MakeUnionVar(ps ...Primitive) Type {
-	return Type{Variable: &TypeVar{Union: ps}}
+func MakeUnionVar(ts ...Type) Type {
+	return Type{Variable: &TypeVar{Union: ts}}
 }
 
 func MakeStructuralVar(s map[string]Type) Type {

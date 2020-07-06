@@ -66,7 +66,7 @@ func sign(t Type, ctx *signctx, level int) string {
 				var sb strings.Builder
 				sb.WriteString("[")
 				for i, r := range t.Variable.Union {
-					sb.WriteString(r)
+					sb.WriteString(sign(r, ctx, level))
 					if i < len(t.Variable.Union)-1 {
 						sb.WriteString("|")
 					}
