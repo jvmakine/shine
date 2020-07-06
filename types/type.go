@@ -154,6 +154,10 @@ func (t Type) IsVariable() bool {
 	return t.Variable != nil
 }
 
+func (t Type) IsFreeVar() bool {
+	return t.Variable != nil && t.Variable.Structural == nil && t.Variable.Union == nil
+}
+
 func (t Type) IsNamed() bool {
 	return t.Named != nil
 }
@@ -179,6 +183,39 @@ func (t Type) AsPrimitive() Primitive {
 		panic("type not primitive: " + t.Signature())
 	}
 	return *t.Primitive
+}
+
+func (t Type) IsGeneralisationOf(o Type) bool {
+	if t.IsFreeVar() {
+		return true
+	}
+	if t.IsStructuralVar() && o.IsStructuralVar() {
+		for k, v := range t.Variable.Structural {
+			if ot := o.Variable.Structural[k]; ot.IsDefined() {
+				if !v.IsGeneralisationOf(ot) {
+					return false
+				}
+			} else {
+				return false
+			}
+		}
+		return true
+	}
+	if t.IsPrimitive() && o.IsPrimitive() && *t.Primitive == *o.Primitive {
+		return true
+	}
+	if t.IsFunction() && o.IsFunction() && t.UnifiesWith(o) {
+		for i := range *t.Function {
+			if !(*t.Function)[i].IsGeneralisationOf((*o.Function)[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	if t.IsStructure() && o.IsStructure() {
+		return t.UnifiesWith(o)
+	}
+	return false
 }
 
 func (t *Type) AssignFrom(o Type) {
