@@ -212,8 +212,13 @@ func Infer(exp Expression) error {
 	if err := rewriteNamed(exp); err != nil {
 		return err
 	}
+	visited := map[Ast]bool{}
 	unifier := MakeSubstitutions()
 	crawler := func(v Ast, ctx *VisitContext) error {
+		if visited[v] {
+			return nil
+		}
+		visited[v] = true
 		if c, ok := v.(*Const); ok {
 			typeConstant(c)
 		} else if b, ok := v.(*Block); ok {
@@ -290,8 +295,27 @@ func Infer(exp Expression) error {
 		}
 		return nil
 	}
+	// infer interfaces
+	err := VisitAfter(exp, func(v Ast, ctx *VisitContext) error {
+		if e, ok := v.(*Block); ok {
+			for _, ins := range e.Def.Interfaces {
+				for _, in := range ins {
+					err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithInterface(in))
+					if err != nil {
+						return err
+					}
+					in.InterfaceType = unifier.Apply(in.InterfaceType)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
 	// infer used code
-	visited, err := CrawlAfter(exp, crawler)
+	_, err = CrawlAfter(exp, crawler)
 	if err != nil {
 		return err
 	}

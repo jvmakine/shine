@@ -260,7 +260,15 @@ func TestInfer(tes *testing.T) {
 		name: "fail on invalid interface call",
 		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
 			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
-		err: errors.New("can not unify V1[int|real] with string"),
+		err: errors.New("can not unify V1[V2{add:V3}|V4[int|real]] with string"),
+	}, {
+		name: "infers aggregate type from all methods of an interface",
+		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("identity", NewConst("str"))))).
+			WithInterface(types.Type{}, NewDefinitions(0).
+				WithAssignment("sub", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x")).
+				WithAssignment("identity", NewFDef(NewId("$"))),
+			),
+		err: errors.New("can not unify V1[V2{identity:V3}|V4[int|real]] with string"),
 	},
 	}
 	for _, tt := range tests {
