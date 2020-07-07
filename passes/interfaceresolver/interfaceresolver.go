@@ -50,8 +50,14 @@ func Resolve(exp Ast) error {
 						methods[n] = []types.Type{}
 					}
 					for _, oit := range methods[n] {
+						as := typ.Signature()
+						bs := oit.Signature()
 						if oit.UnifiesWith(typ) {
-							return errors.New(n + " declared twice for unifiable types: " + typ.Signature() + ", " + oit.Signature())
+							if as < bs {
+								return errors.New(n + " declared twice for unifiable types: " + as + ", " + bs)
+							} else {
+								return errors.New(n + " declared twice for unifiable types: " + bs + ", " + as)
+							}
 						}
 					}
 					methods[n] = append(methods[n], typ)
@@ -59,8 +65,7 @@ func Resolve(exp Ast) error {
 
 				for name, method := range in.Definitions.Assignments {
 					newName := name + "%interface%" + strconv.Itoa(in.Definitions.ID) + "%" + typ.Signature()
-					newDef := NewFDef(method, "$")
-					newDef.Params[0].ParamType = typ
+					newDef := NewFDef(method, &FParam{Name: "$", ParamType: typ})
 					def.Assignments[newName] = newDef
 				}
 			}
@@ -73,16 +78,19 @@ func Resolve(exp Ast) error {
 
 	return exp.Visit(NullFun, NullFun, false, func(from Ast, ctx *VisitContext) Ast {
 		if fa, ok := from.(*FieldAccessor); ok {
-			res, _ := ctx.InterfaceWith(fa.Field)
-			if res != nil {
-				newName := fa.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
-				id := NewId(newName)
-				ts := append([]types.Type{fa.Exp.Type()}, fa.Type())
-				typ := types.MakeFunction(ts...)
-				id.IdType = typ
-				call := NewFCall(id, fa.Exp)
-				call.CallType = typ.FunctReturn()
-				return call
+			interfs := ctx.InterfacesWith(fa.Field)
+			for _, in := range interfs {
+				if in.Interf.InterfaceType.UnifiesWith(fa.Exp.Type()) {
+					res := in.Interf
+					newName := fa.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
+					id := NewId(newName)
+					ts := append([]types.Type{fa.Exp.Type()}, fa.Type())
+					typ := types.MakeFunction(ts...)
+					id.IdType = typ
+					call := NewFCall(id, fa.Exp)
+					call.CallType = typ.FunctReturn()
+					return call
+				}
 			}
 		}
 		return from

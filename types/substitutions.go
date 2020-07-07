@@ -51,6 +51,12 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 			target.Variable.Structural[k] = apply(s, v, ctx)
 		}
 	}
+	if target.IsUnionVar() {
+		for k, v := range target.Variable.Union {
+			target.Variable.Union[k] = apply(s, v, ctx)
+		}
+		target.Variable.Union = target.Variable.Union.deduplicate()
+	}
 	return target
 }
 
@@ -67,7 +73,10 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 			if err != nil {
 				return err
 			}
-			s.Combine(uni)
+			err = s.Combine(uni)
+			if err != nil {
+				return err
+			}
 			result = uni.Apply(result)
 		}
 	}

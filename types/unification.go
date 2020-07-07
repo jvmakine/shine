@@ -66,8 +66,14 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return unifier(o, t, ctx)
 	}
 	if t.IsVariable() && o.IsFunction() {
-		if t.IsUnionVar() || t.IsUnionVar() {
-			return Substitutions{}, UnificationError(o, t)
+		if t.IsUnionVar() {
+			un, err := t.Variable.Union.Unify(o)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			subs := MakeSubstitutions()
+			subs.Update(t.Variable, un)
+			return subs, nil
 		}
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, o)
@@ -75,7 +81,13 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if t.IsVariable() && o.IsStructure() {
 		if t.IsUnionVar() {
-			return Substitutions{}, UnificationError(o, t)
+			un, err := t.Variable.Union.Unify(o)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			subs := MakeSubstitutions()
+			subs.Update(t.Variable, un)
+			return subs, nil
 		} else if t.IsStructuralVar() {
 			return unifyStructureWithStructuralVar(t, o)
 		}
@@ -91,10 +103,13 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if o.IsPrimitive() {
 		if t.IsUnionVar() {
-			err := t.Variable.Union.Unifies(*o.Primitive)
+			un, err := t.Variable.Union.Unify(o)
+			if err != nil {
+				return Substitutions{}, err
+			}
 			subs := MakeSubstitutions()
-			subs.Update(t.Variable, o)
-			return subs, err
+			subs.Update(t.Variable, un)
+			return subs, nil
 		} else if t.IsVariable() {
 			subs := MakeSubstitutions()
 			subs.Update(t.Variable, o)
@@ -138,17 +153,10 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 	} else if o.IsUnionVar() && !t.IsUnionVar() {
 		return unifier(o, t, ctx)
 	} else if t.IsUnionVar() && o.IsUnionVar() {
-		resolv, err := t.Variable.Union.Unify(o.Variable.Union)
+		rv, err := t.Variable.Union.Unify(o)
 		if err != nil {
 			return Substitutions{}, err
 		}
-		if len(resolv) == 1 {
-			subs := MakeSubstitutions()
-			subs.Update(t.Variable, resolv[0])
-			subs.Update(o.Variable, resolv[0])
-			return subs, nil
-		}
-		rv := MakeUnionVar(resolv...)
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, rv)
 		subs.Update(o.Variable, rv)

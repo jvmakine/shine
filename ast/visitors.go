@@ -117,20 +117,27 @@ func (c *VisitContext) Resolve(id string) (Expression, *VisitContext) {
 	return nil, nil
 }
 
-func (c *VisitContext) InterfaceWith(id string) (*Interface, *VisitContext) {
+type IResult struct {
+	Interf *Interface
+	Ctx    *VisitContext
+}
+
+func (c *VisitContext) InterfacesWith(id string) []IResult {
+	res := []IResult{}
 	if c.defin != nil {
 		for _, is := range c.defin.Interfaces {
 			for _, i := range is {
 				if i.Definitions.Assignments[id] != nil {
-					return i, c.WithInterface(i)
+					res = append(res, IResult{i, c.WithInterface(i)})
 				}
 			}
 		}
 	}
 	if c.parent != nil {
-		return c.parent.InterfaceWith(id)
+		pres := c.parent.InterfacesWith(id)
+		res = append(res, pres...)
 	}
-	return nil, nil
+	return res
 }
 
 func NullFun(_ Ast, _ *VisitContext) error {

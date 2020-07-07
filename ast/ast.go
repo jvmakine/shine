@@ -247,10 +247,11 @@ func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, rew
 	e.Exp = rewrite(e.Exp, ctx).(Expression)
 	err = e.Exp.Visit(before, after, crawl, rewrite, ctx)
 	if crawl {
-		if interf, nc := ctx.InterfaceWith(e.Field); interf != nil {
-			assig := interf.Definitions.Assignments[e.Field]
+		interf := ctx.InterfacesWith(e.Field)
+		for _, in := range interf {
+			assig := in.Interf.Definitions.Assignments[e.Field]
 			if !ctx.global.visited[assig] {
-				if err := assig.Visit(before, after, crawl, rewrite, nc); err != nil {
+				if err := assig.Visit(before, after, crawl, rewrite, in.Ctx); err != nil {
 					return err
 				}
 			}

@@ -55,7 +55,7 @@ func typeConstant(constant *Const) {
 	}
 }
 
-func typeId(id *Id, ctx *VisitContext) error {
+func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	defin := ctx.DefinitionOf(id.Name)
 	if ctx.Path()[id.Name] {
 		id.IdType = MakeVariable()
@@ -224,13 +224,17 @@ func Infer(exp Expression) error {
 					ConvertTypes(a, unifier)
 				}
 			}
+			newinfers := map[Type][]*Interface{}
 			for _, is := range b.Def.Interfaces {
 				for _, i := range is {
 					ConvertTypes(i.Definitions, unifier)
+					i.InterfaceType = unifier.Apply(i.InterfaceType)
+					newinfers[i.InterfaceType] = append(newinfers[i.InterfaceType], i)
 				}
 			}
+			b.Def.Interfaces = newinfers
 		} else if i, ok := v.(*Id); ok {
-			if err := typeId(i, ctx); err != nil {
+			if err := typeId(i, ctx, unifier); err != nil {
 				return err
 			}
 		} else if o, ok := v.(*Op); ok {
@@ -248,24 +252,34 @@ func Infer(exp Expression) error {
 			if err != nil {
 				return err
 			}
-			unifier.Combine(uni)
-		} else if a, ok := v.(*FieldAccessor); ok {
-			vari := a.FAType
-			typ := MakeStructuralVar(map[string]Type{a.Field: vari})
-			uni, err := a.Exp.Type().Unifier(typ)
-			if err == nil {
-				err = unifier.Combine(uni)
-			}
+			err = unifier.Combine(uni)
 			if err != nil {
-				inter, _ := ctx.InterfaceWith(a.Field)
-				if inter != nil {
-					assig := inter.Definitions.Assignments[a.Field]
-					atyp := assig.Type().Copy(types.NewTypeCopyCtx())
-					uni, err = atyp.Unifier(vari)
-					if err != nil {
-						return err
-					}
+				return err
+			}
+		} else if a, ok := v.(*FieldAccessor); ok {
+			union := MakeStructuralVar(map[string]Type{a.Field: a.FAType})
+			faunion := Type{}
+			inters := ctx.InterfacesWith(a.Field)
+			for _, in := range inters {
+				union = union.AddToUnion(in.Interf.InterfaceType.Copy(types.NewTypeCopyCtx()))
+				fat := in.Interf.Definitions.Assignments[a.Field].Type().Copy(types.NewTypeCopyCtx())
+				if !faunion.IsDefined() {
+					faunion = fat
 				} else {
+					faunion = faunion.AddToUnion(fat)
+				}
+			}
+			uni, err := a.Exp.Type().Unifier(union)
+			if err != nil {
+				return err
+			}
+			err = unifier.Combine(uni)
+			if err != nil {
+				return err
+			}
+			if faunion.IsDefined() {
+				uni, err := a.FAType.Unifier(faunion)
+				if err != nil {
 					return err
 				}
 				err = unifier.Combine(uni)

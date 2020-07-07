@@ -49,7 +49,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail when adding booleans together",
 		exp:  NewFCall(NewOp("+"), NewConst(true), NewConst(false)),
 		typ:  "",
-		err:  errors.New("can not unify bool with V1[int|real|string]"),
+		err:  errors.New("can not unify V1[int|real|string] with bool"),
 	}, {
 		name: "infer recursive functions",
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(false))).WithAssignment(
@@ -195,7 +195,7 @@ func TestInfer(tes *testing.T) {
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.BoolP, NewFCall(NewOp("+"), NewId("x"), NewId("x"))), "x")),
 		typ: "",
-		err: errors.New("can not unify bool with V1[int|real|string]"),
+		err: errors.New("can not unify V1[int|real|string] with bool"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: NewBlock(NewFCall(NewOp("if"), NewConst(true), NewId("ai"), NewId("bi"))).
@@ -256,13 +256,11 @@ func TestInfer(tes *testing.T) {
 			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("isOdd", NewFDef(NewFCall(NewOp("=="), NewConst(0), NewFCall(NewOp("%"), NewId("$"), NewConst(2)))))).
 			WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.IntP})),
 		typ: "bool",
-		err: nil,
 	}, {
 		name: "fail on invalid interface call",
 		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
 			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
-		typ: "",
-		err: errors.New("can not unify string with V1[int|real]"),
+		err: errors.New("can not unify V1[int|real] with string"),
 	},
 	}
 	for _, tt := range tests {

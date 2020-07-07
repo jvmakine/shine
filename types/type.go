@@ -101,6 +101,13 @@ func (t Type) FreeVars() []*TypeVar {
 		}
 		return res
 	}
+	if t.IsUnionVar() {
+		res := []*TypeVar{}
+		for _, p := range t.Variable.Union {
+			res = append(res, p.FreeVars()...)
+		}
+		return res
+	}
 	return []*TypeVar{}
 }
 
@@ -155,7 +162,7 @@ func (t Type) IsVariable() bool {
 }
 
 func (t Type) IsFreeVar() bool {
-	return t.Variable != nil && t.Variable.Structural == nil && t.Variable.Union == nil
+	return t.Variable != nil && !t.IsStructuralVar() && !t.IsUnionVar()
 }
 
 func (t Type) IsNamed() bool {

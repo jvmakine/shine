@@ -8,7 +8,7 @@ b = {
         mod = (x) => a + x
         add = (x) => a + x
     }
-    (x:int) => {
+    (x) => {
         if ("a".mod("b") == "ab") {
             x.mod(7).add(3).sub(1)
         } else {

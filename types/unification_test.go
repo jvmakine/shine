@@ -51,7 +51,7 @@ func TestType_Unify(t *testing.T) {
 		name: "fails to unify restricted variables with incompatible primitives",
 		a:    MakePrimitive("real"),
 		b:    MakeUnionVar(IntP, BoolP),
-		err:  errors.New("can not unify real with V1[int|bool]"),
+		err:  errors.New("can not unify V1[int|bool] with real"),
 	}, {
 		name: "unifies identical functions",
 		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
@@ -205,6 +205,28 @@ func TestType_Unify(t *testing.T) {
 			MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
 		),
 		want: MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
+	}, {
+		name: "unifies functions with union variables",
+		a: MakeUnionVar(
+			IntP,
+			MakeFunction(IntP, IntP),
+			MakeFunction(IntP, RealP),
+		),
+		b: MakeFunction(IntP, MakeVariable()),
+		want: MakeUnionVar(
+			MakeFunction(IntP, IntP),
+			MakeFunction(IntP, RealP),
+		),
+	}, {
+		name: "unifies primitives with free variables in unions",
+		a: MakeUnionVar(
+			RealP,
+			MakeFunction(MakeVariable(), MakeVariable()),
+			MakeStructuralVar(map[string]Type{"x": MakeVariable()}),
+			MakeVariable(),
+		),
+		b:    IntP,
+		want: IntP,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -48,7 +48,7 @@ func TestResolve(t *testing.T) {
 				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
 			)),
 		after: nil,
-		err:   errors.New("a declared twice for unifiable types: V1, int"),
+		err:   errors.New("a declared twice for unifiable types: V1[int|real|string], int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
