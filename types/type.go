@@ -227,8 +227,12 @@ func (t Type) IsGeneralisationOf(o Type) bool {
 
 func (t Type) AddToUnion(o Type) Type {
 	var union Union
+	vars := Union{o}
+	if o.IsUnionVar() {
+		vars = o.Variable.Union
+	}
 	if t.IsUnionVar() {
-		union = append(t.Variable.Union, o).deduplicate()
+		union = append(t.Variable.Union, vars...).deduplicate()
 	} else {
 		union = Union{t, o}.deduplicate()
 	}
