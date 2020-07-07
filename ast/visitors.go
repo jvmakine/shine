@@ -126,10 +126,8 @@ func (c *VisitContext) InterfacesWith(id string) []IResult {
 	res := []IResult{}
 	if c.defin != nil {
 		for _, is := range c.defin.Interfaces {
-			for _, i := range is {
-				if i.Definitions.Assignments[id] != nil {
-					res = append(res, IResult{i, c.WithInterface(i)})
-				}
+			if is.Definitions.Assignments[id] != nil {
+				res = append(res, IResult{is, c.WithInterface(is)})
 			}
 		}
 	}

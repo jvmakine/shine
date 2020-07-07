@@ -68,22 +68,17 @@ type Block struct {
 }
 
 type Definition struct {
+	Name       *TypedName  `@@`
 	Assignment *Assignment `@@`
-	Binding    *Binding    `| @@`
 }
 
 type Definitions struct {
 	Defs []*Definition `(Newline* @@)*`
 }
 
-type Binding struct {
-	Name      *TypedName   `@@`
-	Interface *Definitions `"~>" "{" Newline* @@ Newline* "}" Newline*`
-}
-
 type Assignment struct {
-	Name  *TypedName  `@@`
-	Value *Expression `"=" @@ Newline*`
+	Value     *Expression  `("=" @@ Newline*)`
+	Interface *Definitions `| ("~>" "{" Newline* @@ Newline* "}" Newline*)`
 }
 
 type CallParams struct {

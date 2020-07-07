@@ -8,9 +8,9 @@ import (
 	"github.com/jvmakine/shine/types"
 )
 
-func mergeInterfaces(ins []*Interface, typ types.Type) (*Interface, error) {
+/*func mergeInterfaces(ins []*Interface, typ types.Type) ([]*Interface, error) {
 	methods := map[string]Expression{}
-	subins := map[types.Type][]*Interface{}
+	subins := []*Interface{}
 	for _, in := range ins {
 		for n, m := range in.Definitions.Assignments {
 			if methods[n] != nil {
@@ -19,7 +19,7 @@ func mergeInterfaces(ins []*Interface, typ types.Type) (*Interface, error) {
 			methods[n] = m
 		}
 		for t, i := range in.Definitions.Interfaces {
-			subins[t] = i
+			subins = append(subins, i)
 		}
 	}
 	return &Interface{
@@ -29,22 +29,22 @@ func mergeInterfaces(ins []*Interface, typ types.Type) (*Interface, error) {
 			ID:          ins[0].Definitions.ID,
 		},
 	}, nil
-}
+}*/
 
 func Resolve(exp Ast) error {
 	err := VisitBefore(exp, func(a Ast, ctx *VisitContext) error {
 		if def, ok := a.(*Definitions); ok {
 			methods := map[string][]types.Type{}
-			for typ, ins := range def.Interfaces {
-				in, err := mergeInterfaces(ins, typ)
-				if err != nil {
-					return err
-				}
-				delete(def.Interfaces, typ)
+			ins := def.Interfaces
+			/*in, err := mergeInterfaces(ins, typ)
+			if err != nil {
+				return err
+			}
 
-				def.Interfaces[typ] = []*Interface{in}
-				in.InterfaceType = typ
-
+			def.Interfaces = []*Interface{in}
+			in.InterfaceType = typ*/
+			for _, in := range ins {
+				typ := in.InterfaceType
 				for n := range in.Definitions.Assignments {
 					if methods[n] == nil {
 						methods[n] = []types.Type{}

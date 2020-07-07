@@ -84,18 +84,17 @@ func convDefinitions(from *Definitions, ctx *ConvCtx) *ast.Definitions {
 			a := d.Assignment
 			raw := convAst(a.Value, ctx)
 			if e, ok := raw.(ast.Expression); ok {
-				res.Assignments[*a.Name.Name] = e
+				res.Assignments[*d.Name.Name] = e
 			} else {
 				panic("invalid assignment")
 			}
-			if a.Name.Type != nil {
-				t := convTypeDef(a.Name.Type)
-				res.Assignments[*a.Name.Name] = &ast.TypeDecl{Exp: res.Assignments[*a.Name.Name], DeclType: t}
+			if d.Name.Type != nil {
+				t := convTypeDef(d.Name.Type)
+				res.Assignments[*d.Name.Name] = &ast.TypeDecl{Exp: res.Assignments[*d.Name.Name], DeclType: t}
 			}
-		} else if d.Binding != nil {
-			oldI := res.Interfaces[convTypeDef(d.Binding.Name.Type)]
-			newI := convInterface(d.Binding.Name, d.Binding.Interface, ctx)
-			res.Interfaces[convTypeDef(d.Binding.Name.Type)] = append(oldI, newI)
+		} else if d.Assignment.Interface != nil {
+			newI := convInterface(d.Name, d.Assignment.Interface, ctx)
+			res.Interfaces = append(res.Interfaces, newI)
 		}
 	}
 	return res
@@ -103,25 +102,24 @@ func convDefinitions(from *Definitions, ctx *ConvCtx) *ast.Definitions {
 
 func convBlock(from *Block, ctx *ConvCtx) *ast.Block {
 	assigns := map[string]ast.Expression{}
-	interfs := map[types.Type][]*ast.Interface{}
+	interfs := []*ast.Interface{}
 	for _, d := range from.Def.Defs {
-		if d.Assignment != nil {
+		if d.Assignment.Value != nil {
 			a := d.Assignment
 			raw := convAst(a.Value, ctx)
 			if e, ok := raw.(ast.Expression); ok {
-				assigns[*a.Name.Name] = e
+				assigns[*d.Name.Name] = e
 			} else {
 				panic("invalid assignment")
 			}
-			if a.Name.Type != nil {
-				t := convTypeDef(a.Name.Type)
-				assigns[*a.Name.Name] = &ast.TypeDecl{Exp: assigns[*a.Name.Name], DeclType: t}
+			if d.Name.Type != nil {
+				t := convTypeDef(d.Name.Type)
+				assigns[*d.Name.Name] = &ast.TypeDecl{Exp: assigns[*d.Name.Name], DeclType: t}
 			}
-		} else if d.Binding != nil {
-			b := d.Binding
-			oldI := interfs[convTypeDef(b.Name.Type)]
-			newI := convInterface(b.Name, b.Interface, ctx)
-			interfs[convTypeDef(b.Name.Type)] = append(oldI, newI)
+		} else if d.Assignment.Interface != nil {
+			b := d.Assignment
+			newI := convInterface(d.Name, b.Interface, ctx)
+			interfs = append(interfs, newI)
 		} else {
 			panic("invalid definition")
 		}

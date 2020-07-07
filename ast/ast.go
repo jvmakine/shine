@@ -570,7 +570,7 @@ func (b *Block) CheckValueCycles() error {
 func NewDefinitions(id int) *Definitions {
 	return &Definitions{
 		Assignments: map[string]Expression{},
-		Interfaces:  map[types.Type][]*Interface{},
+		Interfaces:  []*Interface{},
 		ID:          id,
 	}
 }
@@ -581,12 +581,10 @@ func (e *Definitions) Visit(before VisitFunc, after VisitFunc, crawl bool, rewri
 		return err
 	}
 	sub := ctx.WithDefinitions(e)
-	for _, i := range e.Interfaces {
-		for _, in := range i {
-			err := in.Definitions.Visit(before, after, crawl, rewrite, sub.WithInterface(in))
-			if err != nil {
-				return err
-			}
+	for _, in := range e.Interfaces {
+		err := in.Definitions.Visit(before, after, crawl, rewrite, sub.WithInterface(in))
+		if err != nil {
+			return err
 		}
 	}
 	for n, a := range e.Assignments {
@@ -643,7 +641,7 @@ func (d *Definitions) WithAssignment(name string, value interface{}) *Definition
 
 func (d *Definitions) WithInterface(typ types.Type, defs *Definitions) *Definitions {
 	dc := d.shallowCopy()
-	dc.Interfaces[typ] = append(dc.Interfaces[typ], &Interface{
+	dc.Interfaces = append(dc.Interfaces, &Interface{
 		Definitions:   defs,
 		InterfaceType: typ,
 	})
@@ -652,7 +650,7 @@ func (d *Definitions) WithInterface(typ types.Type, defs *Definitions) *Definiti
 
 type Definitions struct {
 	Assignments map[string]Expression
-	Interfaces  map[types.Type][]*Interface
+	Interfaces  []*Interface
 
 	ID int
 }
@@ -662,13 +660,9 @@ func (a *Definitions) shallowCopy() *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v
 	}
-	ic := map[types.Type][]*Interface{}
-	for k, v := range a.Interfaces {
-		ic[k] = v
-	}
 	return &Definitions{
 		Assignments: ac,
-		Interfaces:  ic,
+		Interfaces:  a.Interfaces,
 		ID:          a.ID,
 	}
 }
@@ -678,13 +672,9 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 	for k, v := range a.Assignments {
 		ac[k] = v.CopyWithCtx(ctx)
 	}
-	ic := map[types.Type][]*Interface{}
-	for k, lst := range a.Interfaces {
-		is := make([]*Interface, len(lst))
-		for i, in := range lst {
-			is[i] = in.CopyWithCtx(ctx)
-		}
-		ic[k] = is
+	ic := make([]*Interface, len(a.Interfaces))
+	for i, in := range a.Interfaces {
+		ic[i] = in.CopyWithCtx(ctx)
 	}
 	return &Definitions{
 		Assignments: ac,

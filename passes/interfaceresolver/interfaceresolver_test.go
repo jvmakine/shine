@@ -37,7 +37,7 @@ func TestResolve(t *testing.T) {
 				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
 			)),
 		after: nil,
-		err:   errors.New("a declared twice for the same type: int"),
+		err:   errors.New("a declared twice for unifiable types: int, int"),
 	}, {
 		name: "returns an error if a method could unify to two different implementations",
 		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).

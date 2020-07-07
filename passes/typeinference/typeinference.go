@@ -143,18 +143,14 @@ func initialiseVariables(exp Expression) error {
 					s.StructType = stru
 				}
 			}
-			for k, free := range d.Interfaces {
-				if !k.IsDefined() {
-					delete(d.Interfaces, k)
+			for _, in := range d.Interfaces {
+				if !in.InterfaceType.IsDefined() {
 					varit := MakeVariable()
-					d.Interfaces[varit] = free
-					for _, in := range free {
-						in.InterfaceType = varit
-						for _, d := range in.Definitions.Assignments {
-							_, isDef := d.(*FDef)
-							if !isDef {
-								return errors.New("only methods are supported in interfaces")
-							}
+					in.InterfaceType = varit
+					for _, d := range in.Definitions.Assignments {
+						_, isDef := d.(*FDef)
+						if !isDef {
+							return errors.New("only methods are supported in interfaces")
 						}
 					}
 				}
@@ -229,13 +225,11 @@ func Infer(exp Expression) error {
 					ConvertTypes(a, unifier)
 				}
 			}
-			newinfers := map[Type][]*Interface{}
-			for _, is := range b.Def.Interfaces {
-				for _, i := range is {
-					ConvertTypes(i.Definitions, unifier)
-					i.InterfaceType = unifier.Apply(i.InterfaceType)
-					newinfers[i.InterfaceType] = append(newinfers[i.InterfaceType], i)
-				}
+			newinfers := []*Interface{}
+			for _, i := range b.Def.Interfaces {
+				ConvertTypes(i.Definitions, unifier)
+				i.InterfaceType = unifier.Apply(i.InterfaceType)
+				newinfers = append(newinfers, i)
 			}
 			b.Def.Interfaces = newinfers
 		} else if i, ok := v.(*Id); ok {
@@ -298,14 +292,12 @@ func Infer(exp Expression) error {
 	// infer interfaces
 	err := VisitAfter(exp, func(v Ast, ctx *VisitContext) error {
 		if e, ok := v.(*Block); ok {
-			for _, ins := range e.Def.Interfaces {
-				for _, in := range ins {
-					err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithBlock(e).WithInterface(in))
-					if err != nil {
-						return err
-					}
-					in.InterfaceType = unifier.Apply(in.InterfaceType)
+			for _, in := range e.Def.Interfaces {
+				err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithBlock(e).WithInterface(in))
+				if err != nil {
+					return err
 				}
+				in.InterfaceType = unifier.Apply(in.InterfaceType)
 			}
 		}
 		return nil

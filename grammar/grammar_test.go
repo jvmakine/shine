@@ -296,6 +296,16 @@ func TestExpressionParsing(tes *testing.T) {
 			WithInterface(types.Type{}, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)),
+	}, {
+		name: "parse interfaces for functions",
+		input: `f:(int,int)=>int ~> { call = (a, b) => f(a, b) }
+				1
+		`,
+		want: a.NewBlock(a.NewConst(1)).
+			WithID(1).
+			WithInterface(types.MakeFunction(types.IntP, types.IntP, types.IntP), a.NewDefinitions(0).WithAssignment(
+				"call", a.NewFDef(a.NewFCall(a.NewId("$"), a.NewId("a"), a.NewId("b")), "a", "b"),
+			)),
 	}}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
