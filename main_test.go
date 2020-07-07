@@ -109,8 +109,10 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile interfaces",
 		program: `
+			substract = (x, y) => x - y
+
 			a ~> {
-				mod = (x) => a - x
+				mod = (x) => substract(a, x)
 				sub = (x) => a - x
 			}
 			
@@ -128,7 +130,7 @@ func TestCompile(t *testing.T) {
 				}
 			}
 			
-			b(4).mod(1)		
+			b(4).mod(1)
 			`,
 		err: nil,
 	}, {

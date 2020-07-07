@@ -300,7 +300,7 @@ func Infer(exp Expression) error {
 		if e, ok := v.(*Block); ok {
 			for _, ins := range e.Def.Interfaces {
 				for _, in := range ins {
-					err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithInterface(in))
+					err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithBlock(e).WithInterface(in))
 					if err != nil {
 						return err
 					}

@@ -1,5 +1,7 @@
+substract = (x, y) => x - y
+
 a ~> {
-    mod = (x) => a - x
+    mod = (x) => substract(a, x)
     sub = (x) => a - x
 }
 
