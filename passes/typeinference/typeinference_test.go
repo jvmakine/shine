@@ -271,9 +271,9 @@ func TestInfer(tes *testing.T) {
 		err: errors.New("can not unify V1[V2{identity:V3}|V4[int|real]] with string"),
 	}, {
 		name: "infers the interface method return type from the interface type",
-		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)))).
+		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
 			WithInterface(types.Type{}, NewDefinitions(0).
-				WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("$")))),
+				WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("$")), "x")),
 			),
 		typ: "int",
 	},

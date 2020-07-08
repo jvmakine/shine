@@ -106,13 +106,11 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 		}
 	}
 
-	if len(from.Union) > 0 {
-		for _, u := range from.Union {
-			if u.UnifiesWith(to) && u.IsVariable() {
-				err := s.Update(u.Variable, to)
-				if err != nil {
-					return err
-				}
+	for _, u := range from.Union {
+		if u.IsVariable() && u.UnifiesWith(to) {
+			err := s.Update(u.Variable, to)
+			if err != nil {
+				return err
 			}
 		}
 	}
