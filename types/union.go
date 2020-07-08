@@ -10,7 +10,7 @@ func (u Union) deduplicate() Union {
 		} else {
 			shouldAppend := false
 			for i, rt := range res {
-				if tt.IsGeneralisationOf(rt) && !rt.HasFreeVars() {
+				if tt.IsGeneralisationOf(rt) && !rt.HasFreeVars() || (rt.IsVariable() && tt.Variable == rt.Variable) {
 					if len(res) > 1 {
 						res = append(res[:i], res[i+1:]...)
 					} else {
