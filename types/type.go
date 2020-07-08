@@ -234,7 +234,9 @@ func (t Type) AddToUnion(o Type) Type {
 	if t.IsUnionVar() {
 		union = append(t.Variable.Union, vars...).deduplicate()
 	} else {
-		union = Union{t, o}.deduplicate()
+		ts := Union{t}
+		ts = append(ts, vars...)
+		union = ts.deduplicate()
 	}
 	if len(union) == 1 {
 		return union[0]
