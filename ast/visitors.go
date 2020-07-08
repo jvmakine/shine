@@ -123,9 +123,11 @@ type IResult struct {
 }
 
 func (c *VisitContext) InterfacesWith(id string) []IResult {
+	seen := map[*Interface]bool{}
 	res := []IResult{}
 	if c.defin != nil {
 		for _, is := range c.defin.Interfaces {
+			seen[is] = true
 			if is.Definitions.Assignments[id] != nil {
 				res = append(res, IResult{is, c.WithInterface(is)})
 			}
@@ -133,7 +135,11 @@ func (c *VisitContext) InterfacesWith(id string) []IResult {
 	}
 	if c.parent != nil {
 		pres := c.parent.InterfacesWith(id)
-		res = append(res, pres...)
+		for _, r := range pres {
+			if !seen[r.Interf] {
+				res = append(res, r)
+			}
+		}
 	}
 	return res
 }

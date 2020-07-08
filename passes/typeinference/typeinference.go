@@ -256,20 +256,22 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
-			union := MakeStructuralVar(map[string]Type{a.Field: a.FAType})
-			faunion := Type{}
+			expType := MakeStructuralVar(map[string]Type{a.Field: a.FAType})
+			fieldType := Type{}
 			inters := ctx.InterfacesWith(a.Field)
 			tctx := types.NewTypeCopyCtx()
 			for _, in := range inters {
-				union = union.AddToUnion(in.Interf.InterfaceType.Copy(tctx))
-				fat := in.Interf.Definitions.Assignments[a.Field].Type().Copy(tctx)
-				if !faunion.IsDefined() {
-					faunion = fat
+				ift := in.Interf.InterfaceType
+				funt := in.Interf.Definitions.Assignments[a.Field].Type()
+				expType = expType.AddToUnion(ift.Copy(tctx))
+				fat := funt.Copy(tctx)
+				if !fieldType.IsDefined() {
+					fieldType = fat
 				} else {
-					faunion = faunion.AddToUnion(fat)
+					fieldType = fieldType.AddToUnion(fat)
 				}
 			}
-			uni, err := a.Exp.Type().Unifier(union)
+			uni, err := a.Exp.Type().Unifier(expType)
 			if err != nil {
 				return err
 			}
@@ -277,8 +279,8 @@ func Infer(exp Expression) error {
 			if err != nil {
 				return err
 			}
-			if faunion.IsDefined() {
-				uni, err := a.FAType.Unifier(faunion)
+			if fieldType.IsDefined() {
+				uni, err := a.FAType.Unifier(fieldType)
 				if err != nil {
 					return err
 				}

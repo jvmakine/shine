@@ -54,6 +54,9 @@ func (r Union) Unify(o Type) (Type, error) {
 }
 
 func (t Type) AddToUnion(o Type) Type {
+	if !t.IsDefined() {
+		return o
+	}
 	var union Union
 	if t.IsUnionVar() {
 		union = append(t.Variable.Union, o).deduplicate()
