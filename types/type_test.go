@@ -34,16 +34,6 @@ func TestType_AddToUnion(t *testing.T) {
 		typ:  RealP,
 		arg:  IntP,
 		want: MakeUnionVar(RealP, IntP),
-	}, {
-		name: "adding a union variable to a union variable concatenates them",
-		typ:  MakeUnionVar(RealP, IntP),
-		arg:  MakeUnionVar(BoolP, StringP),
-		want: MakeUnionVar(RealP, IntP, BoolP, StringP),
-	}, {
-		name: "adding a union variable to a primitive concatenates them",
-		typ:  RealP,
-		arg:  MakeUnionVar(BoolP, StringP),
-		want: MakeUnionVar(RealP, BoolP, StringP),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

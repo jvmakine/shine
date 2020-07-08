@@ -225,25 +225,6 @@ func (t Type) IsGeneralisationOf(o Type) bool {
 	return false
 }
 
-func (t Type) AddToUnion(o Type) Type {
-	var union Union
-	vars := Union{o}
-	if o.IsUnionVar() {
-		vars = o.Variable.Union
-	}
-	if t.IsUnionVar() {
-		union = append(t.Variable.Union, vars...).deduplicate()
-	} else {
-		ts := Union{t}
-		ts = append(ts, vars...)
-		union = ts.deduplicate()
-	}
-	if len(union) == 1 {
-		return union[0]
-	}
-	return MakeUnionVar(union...)
-}
-
 func (t *Type) AssignFrom(o Type) {
 	t.Variable = o.Variable
 	t.Function = o.Function

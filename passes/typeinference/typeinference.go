@@ -259,9 +259,10 @@ func Infer(exp Expression) error {
 			union := MakeStructuralVar(map[string]Type{a.Field: a.FAType})
 			faunion := Type{}
 			inters := ctx.InterfacesWith(a.Field)
+			tctx := types.NewTypeCopyCtx()
 			for _, in := range inters {
-				union = union.AddToUnion(in.Interf.InterfaceType)
-				fat := in.Interf.Definitions.Assignments[a.Field].Type()
+				union = union.AddToUnion(in.Interf.InterfaceType.Copy(tctx))
+				fat := in.Interf.Definitions.Assignments[a.Field].Type().Copy(tctx)
 				if !faunion.IsDefined() {
 					faunion = fat
 				} else {

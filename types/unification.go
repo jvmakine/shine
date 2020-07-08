@@ -67,11 +67,18 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if t.IsVariable() && o.IsFunction() {
 		if t.IsUnionVar() {
+			// TODO: refactor
 			un, err := t.Variable.Union.Unify(o)
 			if err != nil {
 				return Substitutions{}, err
 			}
 			subs := MakeSubstitutions()
+			for _, u := range t.Variable.Union {
+				if u.IsVariable() && o.UnifiesWith(u) {
+					subs.Update(u.Variable, un)
+				}
+
+			}
 			subs.Update(t.Variable, un)
 			return subs, nil
 		}
@@ -81,11 +88,18 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if t.IsVariable() && o.IsStructure() {
 		if t.IsUnionVar() {
+			// TODO: refactor
 			un, err := t.Variable.Union.Unify(o)
 			if err != nil {
 				return Substitutions{}, err
 			}
 			subs := MakeSubstitutions()
+			for _, u := range t.Variable.Union {
+				if u.IsVariable() && o.UnifiesWith(u) {
+					subs.Update(u.Variable, un)
+				}
+
+			}
 			subs.Update(t.Variable, un)
 			return subs, nil
 		} else if t.IsStructuralVar() {
@@ -103,11 +117,18 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if o.IsPrimitive() {
 		if t.IsUnionVar() {
+			// TODO: refactor
 			un, err := t.Variable.Union.Unify(o)
 			if err != nil {
 				return Substitutions{}, err
 			}
 			subs := MakeSubstitutions()
+			for _, u := range t.Variable.Union {
+				if u.IsVariable() && o.UnifiesWith(u) {
+					subs.Update(u.Variable, un)
+				}
+
+			}
 			subs.Update(t.Variable, un)
 			return subs, nil
 		} else if t.IsVariable() {
