@@ -269,6 +269,13 @@ func TestInfer(tes *testing.T) {
 				WithAssignment("identity", NewFDef(NewId("$"))),
 			),
 		err: errors.New("can not unify V1[V2{identity:V3}|int|real] with string"),
+	}, {
+		name: "infers the interface return type from the interface type",
+		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)))).
+			WithInterface(types.Type{}, NewDefinitions(0).
+				WithAssignment("a", NewFDef(NewId("$"))),
+			),
+		typ: "int",
 	},
 	}
 	for _, tt := range tests {

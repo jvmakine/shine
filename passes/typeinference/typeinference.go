@@ -260,8 +260,8 @@ func Infer(exp Expression) error {
 			faunion := Type{}
 			inters := ctx.InterfacesWith(a.Field)
 			for _, in := range inters {
-				union = union.AddToUnion(in.Interf.InterfaceType.Copy(types.NewTypeCopyCtx()))
-				fat := in.Interf.Definitions.Assignments[a.Field].Type().Copy(types.NewTypeCopyCtx())
+				union = union.AddToUnion(in.Interf.InterfaceType)
+				fat := in.Interf.Definitions.Assignments[a.Field].Type()
 				if !faunion.IsDefined() {
 					faunion = fat
 				} else {
