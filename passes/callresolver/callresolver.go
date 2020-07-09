@@ -59,6 +59,35 @@ func ResolveFunctions(exp Expression) {
 				ctx.Definitions().Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
 				return &Id{Name: fsig, IdType: typ}
 			}
+		case *FieldAccessor:
+			interfs := ctx.InterfacesWith(e.Field)
+			for _, in := range interfs {
+				if in.Interf.InterfaceType.UnifiesWith(e.Exp.Type()) {
+					res := in.Interf
+					newName := e.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
+					id := NewId(newName)
+					if !res.InterfaceType.IsDefined() {
+						panic("untyped interface at resolution for " + e.Field)
+					}
+					uni, err := res.InterfaceType.Unifier(e.Exp.Type())
+					if err != nil {
+						panic(err)
+					}
+					ConvertTypes(e, uni)
+					ts := append([]types.Type{e.Exp.Type()}, e.Type())
+					typ := types.MakeFunction(ts...)
+					id.IdType = typ
+					if id.IdType.IsFunction() {
+						resolveIdFunct(id, ctx)
+					}
+					call := NewFCall(id, e.Exp)
+					call.CallType = id.IdType.FunctReturn()
+					if id.IdType.HasFreeVars() {
+						panic("free result type vars at resolver for " + e.Field)
+					}
+					return call
+				}
+			}
 		}
 		return v
 	}, NewVisitCtx())

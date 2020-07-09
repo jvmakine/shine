@@ -227,6 +227,21 @@ func TestType_Unify(t *testing.T) {
 		),
 		b:    IntP,
 		want: IntP,
+	}, {
+		name: "unifies functions with free variables with functions with union variables",
+		a:    MakeFunction(MakeVariable(), MakeUnionVar(IntP, RealP)),
+		b:    MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(BoolP, RealP)),
+		want: MakeFunction(MakeUnionVar(IntP, RealP), RealP),
+	}, {
+		name: "unifies dependent variables in unions",
+		a:    MakeFunction(var1, var1),
+		b:    MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(BoolP, RealP)),
+		want: MakeFunction(RealP, RealP),
+	}, {
+		name: "unifies functions based on a union variable",
+		a:    MakeFunction(IntP, MakeVariable()),
+		b:    MakeUnionVar(MakeFunction(IntP, IntP), MakeFunction(RealP, RealP)),
+		want: MakeFunction(IntP, IntP),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -241,9 +256,11 @@ func TestType_Unify(t *testing.T) {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				ok, err := deepdiff.DeepDiff(got, tt.want)
+				ok, _ := deepdiff.DeepDiff(got, tt.want)
+				gotsign := got.Signature()
+				wantsign := tt.want.Signature()
 				if !ok {
-					t.Error(err)
+					t.Error(gotsign + " did not equal " + wantsign)
 				}
 			}
 		})

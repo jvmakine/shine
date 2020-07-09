@@ -256,38 +256,25 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
-			expType := MakeStructuralVar(map[string]Type{a.Field: a.FAType})
-			fieldType := Type{}
 			inters := ctx.InterfacesWith(a.Field)
+			if len(inters) == 0 {
+				return errors.New("no interface with field \"" + a.Field + "\" found")
+			}
 			tctx := types.NewTypeCopyCtx()
+			bindFuns := Type{}
 			for _, in := range inters {
 				ift := in.Interf.InterfaceType
 				funt := in.Interf.Definitions.Assignments[a.Field].Type()
-				expType = expType.AddToUnion(ift.Copy(tctx))
-				fat := funt.Copy(tctx)
-				if !fieldType.IsDefined() {
-					fieldType = fat
-				} else {
-					fieldType = fieldType.AddToUnion(fat)
-				}
+				bindFuns = bindFuns.AddToUnion(MakeFunction(ift.Copy(tctx), funt.Copy(tctx)))
 			}
-			uni, err := a.Exp.Type().Unifier(expType)
+			bindFunAct := MakeFunction(a.Exp.Type(), a.FAType)
+			uni, err := bindFuns.Unifier(bindFunAct)
 			if err != nil {
 				return err
 			}
 			err = unifier.Combine(uni)
 			if err != nil {
 				return err
-			}
-			if fieldType.IsDefined() {
-				uni, err := a.FAType.Unifier(fieldType)
-				if err != nil {
-					return err
-				}
-				err = unifier.Combine(uni)
-				if err != nil {
-					return err
-				}
 			}
 		}
 		return nil

@@ -246,6 +246,9 @@ func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, rew
 	}
 	e.Exp = rewrite(e.Exp, ctx).(Expression)
 	err = e.Exp.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
 	if crawl {
 		interf := ctx.InterfacesWith(e.Field)
 		for _, in := range interf {
@@ -256,9 +259,6 @@ func (e *FieldAccessor) Visit(before VisitFunc, after VisitFunc, crawl bool, rew
 				}
 			}
 		}
-	}
-	if err != nil {
-		return err
 	}
 	return after(e, ctx)
 }
@@ -690,7 +690,8 @@ type Interface struct {
 
 func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {
 	return &Interface{
-		Definitions: i.Definitions.copy(ctx),
+		Definitions:   i.Definitions.copy(ctx),
+		InterfaceType: i.InterfaceType.Copy(ctx),
 	}
 }
 

@@ -105,15 +105,6 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 			}
 		}
 	}
-
-	for _, u := range from.Union {
-		if u.IsVariable() && u.UnifiesWith(to) {
-			err := s.Update(u.Variable, to)
-			if err != nil {
-				return err
-			}
-		}
-	}
 	return nil
 }
 
@@ -125,4 +116,24 @@ func (s Substitutions) Combine(o Substitutions) error {
 		}
 	}
 	return nil
+}
+
+func (s Substitutions) Copy() Substitutions {
+	newRef := map[*TypeVar]map[*TypeVar]bool{}
+	newSub := map[*TypeVar]Type{}
+	for k := range s.references {
+		newRef[k] = map[*TypeVar]bool{}
+		for k2, v2 := range newRef[k] {
+			newRef[k][k2] = v2
+		}
+	}
+
+	for k, v := range s.substitutions {
+		newSub[k] = v
+	}
+
+	return Substitutions{
+		references:    newRef,
+		substitutions: newSub,
+	}
 }

@@ -209,7 +209,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail on invalid field access",
 		exp:  NewBlock(NewFieldAccessor("xx", NewConst(1))),
 		typ:  "",
-		err:  errors.New("can not unify V1{xx:V2} with int"),
+		err:  errors.New("no interface with field \"xx\" found"),
 	}, {
 		name: "fail on unknown named type",
 		exp:  NewBlock(NewTypeDecl(types.MakeNamed("t"), NewId("a"))),
@@ -260,7 +260,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail on invalid interface call",
 		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
 			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment("add", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x"))),
-		err: errors.New("can not unify V1[V2{add:V3}|V4[int|real]] with string"),
+		err: errors.New("can not unify V1[int|real] with string"),
 	}, {
 		name: "infers aggregate type from all methods of an interface",
 		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("identity", NewConst("str"))))).
@@ -268,12 +268,22 @@ func TestInfer(tes *testing.T) {
 				WithAssignment("sub", NewFDef(NewFCall(NewOp("-"), NewId("$"), NewId("x")), "x")).
 				WithAssignment("identity", NewFDef(NewId("$"))),
 			),
-		err: errors.New("can not unify V1[V2{identity:V3}|V4[int|real]] with string"),
+		err: errors.New("can not unify V1[int|real] with string"),
 	}, {
 		name: "infers the interface method return type from the interface type",
 		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
 			WithInterface(types.Type{}, NewDefinitions(0).
 				WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("$")), "x")),
+			),
+		typ: "int",
+	}, {
+		name: "infers the interface method return type from multiple interfaces with different types",
+		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
+			WithInterface(types.IntP, NewDefinitions(0).
+				WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x")),
+			).
+			WithInterface(types.RealP, NewDefinitions(0).
+				WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x")),
 			),
 		typ: "int",
 	},

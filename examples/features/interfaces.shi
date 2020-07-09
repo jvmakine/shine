@@ -1,6 +1,6 @@
 substract = (x, y) => x - y
 
-a:real ~> { sub = (x) => a - x }
+a:real ~> { mod = (x) => a * x }
 a:int ~> {
     mod = (x) => substract(a, x)
     sub = (x) => a - x

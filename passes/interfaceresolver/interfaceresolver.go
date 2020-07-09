@@ -9,7 +9,7 @@ import (
 )
 
 func Resolve(exp Ast) error {
-	err := VisitBefore(exp, func(a Ast, ctx *VisitContext) error {
+	return VisitBefore(exp, func(a Ast, ctx *VisitContext) error {
 		if def, ok := a.(*Definitions); ok {
 			methods := map[string][]types.Type{}
 			ins := def.Interfaces
@@ -42,27 +42,4 @@ func Resolve(exp Ast) error {
 		}
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-
-	return exp.Visit(NullFun, NullFun, false, func(from Ast, ctx *VisitContext) Ast {
-		if fa, ok := from.(*FieldAccessor); ok {
-			interfs := ctx.InterfacesWith(fa.Field)
-			for _, in := range interfs {
-				if in.Interf.InterfaceType.UnifiesWith(fa.Exp.Type()) {
-					res := in.Interf
-					newName := fa.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
-					id := NewId(newName)
-					ts := append([]types.Type{fa.Exp.Type()}, fa.Type())
-					typ := types.MakeFunction(ts...)
-					id.IdType = typ
-					call := NewFCall(id, fa.Exp)
-					call.CallType = typ.FunctReturn()
-					return call
-				}
-			}
-		}
-		return from
-	}, NewVisitCtx())
 }

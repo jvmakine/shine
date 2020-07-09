@@ -29,6 +29,10 @@ func TestType_Signature(t *testing.T) {
 		name: "support structural variables",
 		typ:  MakeStructuralVar(map[string]Type{"x": IntP}),
 		want: "V1{x:int}",
+	}, {
+		name: "supports union variables in functions",
+		typ:  MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(IntP, BoolP)),
+		want: "(V1[int|real])=>V2[int|bool]",
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
