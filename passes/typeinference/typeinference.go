@@ -260,12 +260,13 @@ func Infer(exp Expression) error {
 			if len(inters) == 0 {
 				return errors.New("no interface with field \"" + a.Field + "\" found")
 			}
-			tctx := types.NewTypeCopyCtx()
 			bindFuns := Type{}
 			for _, in := range inters {
+				tctx := types.NewTypeCopyCtx()
 				ift := in.Interf.InterfaceType
 				funt := in.Interf.Definitions.Assignments[a.Field].Type()
-				bindFuns = bindFuns.AddToUnion(MakeFunction(ift.Copy(tctx), funt.Copy(tctx)))
+				newFun := MakeFunction(ift.Copy(tctx), funt.Copy(tctx))
+				bindFuns = bindFuns.AddToUnion(newFun)
 			}
 			bindFunAct := MakeFunction(a.Exp.Type(), a.FAType)
 			uni, err := bindFuns.Unifier(bindFunAct)
@@ -288,6 +289,7 @@ func Infer(exp Expression) error {
 					return err
 				}
 				in.InterfaceType = unifier.Apply(in.InterfaceType)
+				ConvertTypes(in.Definitions, unifier)
 			}
 		}
 		return nil
