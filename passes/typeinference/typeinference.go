@@ -246,6 +246,7 @@ func Infer(exp Expression) error {
 			}
 		} else if d, ok := v.(*FDef); ok {
 			ConvertTypes(d, unifier)
+			println("a")
 		} else if t, ok := v.(*TypeDecl); ok {
 			uni, err := t.DeclType.Unifier(t.Exp.Type())
 			if err != nil {

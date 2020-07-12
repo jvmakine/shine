@@ -9,35 +9,35 @@ func TestType_Signature(t *testing.T) {
 		want string
 	}{{
 		name: "support structures without variables",
-		typ:  MakeStructure("", SField{"a", IntP}, SField{"b", MakeFunction(RealP, RealP)}, SField{"c", BoolP}),
+		typ:  NewStructure(Named{"a", Int}, Named{"b", NewFunction(Real, Real)}, Named{"c", Bool}),
 		want: "{a:int,b:(real)=>real,c:bool}",
 	}, {
-		name: "support structures with variables",
-		typ: WithType(MakeVariable(), func(t Type) Type {
-			return MakeStructure("", SField{"a", t}, SField{"b", MakeFunction(t, IntP)}, SField{"c", BoolP})
+		name: "support structural variables with variables",
+		typ: WithType(NewVariable(), func(t Type) Type {
+			return NewStructuralVar(Named{"a", t}, Named{"b", NewFunction(t, Int)}, Named{"c", Bool})
 		}),
-		want: "{a:V1,b:(V1)=>int,c:bool}",
+		want: "V1{a:V2,b:(V2)=>int,c:bool}",
 	}, {
 		name: "support named structures",
-		typ:  MakeStructure("data", SField{"a", IntP}, SField{"b", BoolP}),
-		want: "data{a:int,b:bool}",
+		typ:  NewNamed("data", NewStructure(Named{"a", Int}, Named{"b", Bool})),
+		want: "data[{a:int,b:bool}]",
 	}, {
 		name: "support recursive structures",
-		typ:  recursiveStruct("data", "b", SField{"a", IntP}),
-		want: "data{a:int,b:data}",
+		typ:  recursiveStruct("data", "b", Named{"a", Int}),
+		want: "data[{a:int,b:data}]",
 	}, {
 		name: "support structural variables",
-		typ:  MakeStructuralVar(map[string]Type{"x": IntP}),
+		typ:  NewStructuralVar(NewNamed("x", Int)),
 		want: "V1{x:int}",
 	}, {
 		name: "supports union variables in functions",
-		typ:  MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(IntP, BoolP)),
+		typ:  NewFunction(NewUnionVariable(Int, Real), NewUnionVariable(Int, Bool)),
 		want: "(V1[int|real])=>V2[int|bool]",
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tr := tt.typ
-			if got := tr.Signature(); got != tt.want {
+			if got := Signature(tr); got != tt.want {
 				t.Errorf("Type.Signature() = %v, want %v", got, tt.want)
 			}
 		})

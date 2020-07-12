@@ -5,12 +5,16 @@ import (
 )
 
 type unificationCtx struct {
-	seenStructures map[*Structure]map[*Structure]bool
+	seenIDs map[VariableID]bool
+}
+
+func NewUnificationCtx() *unificationCtx {
+	return &unificationCtx{map[VariableID]bool{}}
 }
 
 func UnificationError(a Type, b Type) error {
-	sa := a.Signature()
-	sb := b.Signature()
+	sa := Signature(a)
+	sb := Signature(b)
 	if sa < sb {
 		return errors.New("can not unify " + sa + " with " + sb)
 	} else {
@@ -18,264 +22,38 @@ func UnificationError(a Type, b Type) error {
 	}
 }
 
-func (t Type) Unify(o Type) (Type, error) {
-	sub, err := t.Unifier(o)
+func Unifier(t Type, o Type) (Substitutions, error) {
+	sub, err := unifier(t, o, &unificationCtx{seenIDs: map[VariableID]bool{}})
 	if err != nil {
-		return t, err
+		return MakeSubstitutions(), err
 	}
-	res := sub.Apply(t)
-	if res.IsStructure() && t.IsStructure() && o.IsStructure() {
-		if t.Structure.Name != o.Structure.Name {
-			res.Structure.Name = ""
-		}
-	}
-	return res, nil
+	return sub, nil
 }
 
-func (t Type) Unifier(o Type) (Substitutions, error) {
-	ctx := &unificationCtx{seenStructures: map[*Structure]map[*Structure]bool{}}
-	return unifier(t, o, ctx)
+func Unify(t Type, o Type) (Type, error) {
+	sub, err := Unifier(t, o)
+	if err != nil {
+		return nil, err
+	}
+	return Convert(t, sub), nil
 }
 
-func (t Type) UnifiesWith(o Type) bool {
-	_, e := t.Unifier(o)
-	return e == nil
-}
-
-func unionUnifier(v Type, o Type) (Substitutions, error) {
-	fitting := []Type{}
-	for _, uv := range v.Variable.Union {
-		if uv.UnifiesWith(o) {
-			fitting = append(fitting, uv)
-		}
-	}
-	if len(fitting) == 0 {
-		return Substitutions{}, UnificationError(o, v)
-	}
-	if len(fitting) == 1 {
-		subs := MakeSubstitutions()
-		var r Type
-		if fitting[0].IsVariable() {
-			rr, err := fitting[0].Unify(o)
-			if err != nil {
-				return MakeSubstitutions(), err
-			}
-			r = rr
-			err = subs.Update(fitting[0].Variable, r)
-			if err != nil {
-				return MakeSubstitutions(), err
-			}
-		} else {
-			r = fitting[0]
-		}
-		err := subs.Update(v.Variable, r)
-		if err != nil {
-			return MakeSubstitutions(), err
-		}
-		err = subs.Update(v.Variable, o)
-		return subs, err
-	}
-	if len(fitting) == len(v.Variable.Union) {
-		return MakeSubstitutions(), nil
-	}
-	subs := MakeSubstitutions()
-	err := subs.Update(v.Variable, MakeUnionVar(fitting...))
-	return subs, err
+func Convert(t Type, s Substitutions) Type {
+	return t.convert(s, &unificationCtx{seenIDs: map[VariableID]bool{}})
 }
 
 func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsPrimitive() && t.IsFunction()) || (o.IsFunction() && t.IsPrimitive()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsPrimitive() && t.IsStructure()) || (o.IsStructure() && t.IsPrimitive()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsFunction() && t.IsStructure()) || (o.IsStructure() && t.IsFunction()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsPrimitive() && t.IsStructuralVar()) || (o.IsStructuralVar() && t.IsPrimitive()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsFunction() && t.IsStructuralVar()) || (o.IsStructuralVar() && t.IsFunction()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if t.IsVariable() && o.IsVariable() {
-		return unifyVariables(t, o, ctx)
-	}
-	if o.IsVariable() && !t.IsVariable() {
-		return unifier(o, t, ctx)
-	}
-	if t.IsVariable() && o.IsFunction() {
-		if t.IsUnionVar() {
-			return unionUnifier(t, o)
-		}
-		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
-		return subs, nil
-	}
-	if t.IsVariable() && o.IsStructure() {
-		if t.IsUnionVar() {
-			return unionUnifier(t, o)
-		} else if t.IsStructuralVar() {
-			return unifyStructureWithStructuralVar(t, o)
-		}
-		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
-		return subs, nil
-	}
-	if o.IsFunction() && t.IsFunction() {
-		return unifyFunctions(t, o, ctx)
-	}
-	if o.IsStructure() && t.IsStructure() {
-		return unifyStructures(t, o, ctx)
-	}
-	if o.IsPrimitive() {
-		if t.IsUnionVar() {
-			return unionUnifier(t, o)
-		} else if t.IsVariable() {
-			subs := MakeSubstitutions()
-			subs.Update(t.Variable, o)
-			return subs, nil
-		}
-		return Substitutions{}, nil
-	}
-	return Substitutions{}, nil
-}
-
-func unifyStructureWithStructuralVar(v Type, s Type) (Substitutions, error) {
-	tres := MakeSubstitutions()
-	smap := map[string]Type{}
-	for _, f := range s.Structure.Fields {
-		smap[f.Name] = f.Type
-	}
-
-	for n, t := range v.Variable.Structural {
-		sv := smap[n]
-		if !sv.IsDefined() {
-			return Substitutions{}, UnificationError(v, s)
-		}
-		sub, err := t.Unifier(sv)
-		if err != nil {
-			return Substitutions{}, err
-		}
-		err = tres.Combine(sub)
-		if err != nil {
-			return Substitutions{}, err
-		}
-	}
-	tres.Update(v.Variable, s)
-	return tres, nil
-}
-
-func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if o.IsStructuralVar() && !t.IsStructuralVar() {
-		return unifier(o, t, ctx)
-	} else if o.IsUnionVar() && t.IsStructuralVar() {
-		return Substitutions{}, UnificationError(o, t)
-	} else if o.IsUnionVar() && !t.IsUnionVar() {
-		return unifier(o, t, ctx)
-	} else if t.IsUnionVar() && o.IsFreeVar() {
-		subs := MakeSubstitutions()
-		subs.Update(o.Variable, t)
-		return subs, nil
-	} else if t.IsUnionVar() && o.IsUnionVar() {
-		rv, err := t.Variable.Union.Unify(o)
-		if err != nil {
-			return Substitutions{}, err
-		}
-		subs := MakeSubstitutions()
-		subs.Update(t.Variable, rv)
-		subs.Update(o.Variable, rv)
-		return subs, nil
-	} else if t.IsStructuralVar() && o.IsStructuralVar() {
-		ts := t.Variable.Structural
-		os := o.Variable.Structural
-		res := map[string]Type{}
-
-		for k, v := range ts {
-			res[k] = v
-		}
-		subs := MakeSubstitutions()
-		for k, v := range os {
-			if res[k].IsDefined() {
-				s, err := res[k].Unifier(v)
-				if err != nil {
-					return Substitutions{}, err
-				}
-				err = subs.Combine(s)
-				if err != nil {
-					return Substitutions{}, err
-				}
-			}
-			res[k] = v
-		}
-		rv := MakeStructuralVar(res)
-		subs.Update(t.Variable, rv)
-		subs.Update(o.Variable, rv)
-		return subs, nil
-	}
-	subs := MakeSubstitutions()
-	subs.Update(o.Variable, t)
-	return subs, nil
-}
-
-func unifyFunctions(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	op := o.FunctTypes()
-	tp := t.FunctTypes()
-	if len(op) != len(tp) {
-		return MakeSubstitutions(), UnificationError(o, t)
-	}
-	result := MakeSubstitutions()
-	for i, p := range op {
-		s, err := unifier(p, tp[i], ctx)
+	sub, err := t.unifier(o, ctx)
+	if err != nil {
+		sub, err = o.unifier(t, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
-		err = result.Combine(s)
-		if err != nil {
-			return Substitutions{}, err
-		}
 	}
-	return result, nil
+	return sub, nil
 }
 
-func unifyStructures(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if t.Structure.Name != o.Structure.Name {
-		return MakeSubstitutions(), UnificationError(o, t)
-	}
-	// handle recursice structures
-	if ctx.seenStructures[t.Structure] != nil {
-		if ctx.seenStructures[t.Structure][o.Structure] {
-			return MakeSubstitutions(), nil
-		}
-	} else {
-		ctx.seenStructures[t.Structure] = map[*Structure]bool{}
-	}
-	ctx.seenStructures[t.Structure][o.Structure] = true
-	ofs := map[string]Type{}
-	for _, f := range o.Structure.Fields {
-		ofs[f.Name] = f.Type
-	}
-
-	tfs := map[string]Type{}
-	result := MakeSubstitutions()
-	for _, f := range t.Structure.Fields {
-		tfs[f.Name] = f.Type
-		ot := ofs[f.Name]
-		if !ot.IsDefined() {
-			return MakeSubstitutions(), UnificationError(o, t)
-		}
-		s, err := unifier(f.Type, ot, ctx)
-		if err != nil {
-			return MakeSubstitutions(), err
-		}
-		err = result.Combine(s)
-		if err != nil {
-			return Substitutions{}, err
-		}
-	}
-	return result, nil
+func UnifiesWith(t Type, o Type) bool {
+	_, e := Unifier(t, o)
+	return e == nil
 }

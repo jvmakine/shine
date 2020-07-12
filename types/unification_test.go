@@ -4,13 +4,11 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
-	"github.com/roamz/deepdiff"
 )
 
 func TestType_Unify(t *testing.T) {
-	var1 := MakeVariable()
-	var2 := MakeVariable()
+	var1 := NewVariable()
+	var2 := NewVariable()
 	tests := []struct {
 		name string
 		a    Type
@@ -19,233 +17,220 @@ func TestType_Unify(t *testing.T) {
 		err  error
 	}{{
 		name: "unifies same primitives",
-		a:    MakePrimitive("int"),
-		b:    MakePrimitive("int"),
-		want: MakePrimitive("int"),
+		a:    Int,
+		b:    Int,
+		want: Int,
 	}, {
 		name: "fails to unify different primitives",
-		a:    MakePrimitive("int"),
-		b:    MakePrimitive("bool"),
+		a:    Int,
+		b:    Bool,
 		err:  errors.New("can not unify bool with int"),
 	}, {
 		name: "unifies union variables to subsets",
-		a:    MakeUnionVar(IntP, BoolP, RealP),
-		b:    MakeUnionVar(BoolP, RealP, StringP),
-		want: MakeUnionVar(BoolP, RealP),
+		a:    NewUnionVariable(Int, Bool, Real),
+		b:    NewUnionVariable(Bool, Real, String),
+		want: NewUnionVariable(Bool, Real),
 	}, {
 		name: "unifies union variables to primitives",
-		a:    MakeUnionVar(IntP, BoolP),
-		b:    MakeUnionVar(BoolP, RealP),
-		want: MakePrimitive("bool"),
+		a:    NewUnionVariable(Int, Bool),
+		b:    NewUnionVariable(Bool, Real),
+		want: Bool,
 	}, {
 		name: "fails to unify disjoint restricted primitives",
-		a:    MakeUnionVar(IntP, BoolP),
-		b:    MakeUnionVar(StringP, RealP),
+		a:    NewUnionVariable(Int, Bool),
+		b:    NewUnionVariable(String, Real),
 		err:  errors.New("can not unify V1[int|bool] with V1[string|real]"),
 	}, {
 		name: "unifies restricted variables with primitives",
-		a:    MakePrimitive("bool"),
-		b:    MakeUnionVar(IntP, BoolP),
-		want: MakePrimitive("bool"),
+		a:    Bool,
+		b:    NewUnionVariable(Int, Bool),
+		want: Bool,
 	}, {
 		name: "fails to unify restricted variables with incompatible primitives",
-		a:    MakePrimitive("real"),
-		b:    MakeUnionVar(IntP, BoolP),
+		a:    Real,
+		b:    NewUnionVariable(Int, Bool),
 		err:  errors.New("can not unify V1[int|bool] with real"),
 	}, {
 		name: "unifies identical functions",
-		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
-		b:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
-		want: MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
+		a:    NewFunction(Real, Real),
+		b:    NewFunction(Real, Real),
+		want: NewFunction(Real, Real),
 	}, {
 		name: "fails to unify mismatching functions",
-		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
-		b:    MakeFunction(MakePrimitive("real"), MakePrimitive("int")),
+		a:    NewFunction(Real, Real),
+		b:    NewFunction(Real, Int),
 		err:  errors.New("can not unify int with real"),
 	}, {
 		name: "fails to unify a function with a primitive",
-		a:    MakeFunction(MakePrimitive("real"), MakePrimitive("real")),
-		b:    MakePrimitive("int"),
+		a:    NewFunction(Real, Real),
+		b:    Int,
 		err:  errors.New("can not unify (real)=>real with int"),
 	}, {
 		name: "unifies variable functions with variables",
-		a:    MakeVariable(),
-		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),
-		want: MakeFunction(MakeVariable(), MakePrimitive("real")),
+		a:    NewVariable(),
+		b:    NewFunction(NewVariable(), Real),
+		want: NewFunction(NewVariable(), Real),
 	}, {
 		name: "unifies variables within functions",
-		a:    MakeFunction(MakePrimitive("int"), MakeVariable()),
-		b:    MakeFunction(MakeVariable(), MakePrimitive("real")),
-		want: MakeFunction(MakePrimitive("int"), MakePrimitive("real")),
+		a:    NewFunction(Int, NewVariable()),
+		b:    NewFunction(NewVariable(), Real),
+		want: NewFunction(Int, Real),
 	}, {
 		name: "unifies variables with restricted variables",
-		a:    MakeVariable(),
-		b:    MakeUnionVar(IntP, RealP),
-		want: MakeUnionVar(IntP, RealP),
+		a:    NewVariable(),
+		b:    NewUnionVariable(Int, Real),
+		want: NewUnionVariable(Int, Real),
 	}, {
 		name: "unifies functions with overlapping variables",
-		a:    MakeFunction(var1, IntP, var1),
-		b:    MakeFunction(var2, var2, var2),
-		want: MakeFunction(IntP, IntP, IntP),
+		a:    NewFunction(var1, Int, var1),
+		b:    NewFunction(var2, var2, var2),
+		want: NewFunction(Int, Int, Int),
 	}, {
 		name: "fails to unify mismatching functions",
-		a:    MakeFunction(var1, IntP, var1),
-		b:    MakeFunction(var2, var2, RealP),
-		want: Type{},
+		a:    NewFunction(var1, Int, var1),
+		b:    NewFunction(var2, var2, Real),
 		err:  errors.New("can not unify int with real"),
 	}, {
 		name: "unifies matching structures",
-		a:    MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
-		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
-		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
-	}, {
-		name: "unifies matching structures with variables",
-		a:    MakeStructure("s1", SField{"a", MakeVariable()}, SField{"b", BoolP}),
-		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", MakeVariable()}),
-		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
-	}, {
-		name: "unifies matching structures with variables",
-		a:    MakeStructure("s1", SField{"a", MakeVariable()}, SField{"b", BoolP}),
-		b:    MakeStructure("s1", SField{"a", IntP}, SField{"b", MakeVariable()}),
-		want: MakeStructure("s1", SField{"a", IntP}, SField{"b", BoolP}),
+		a:    NewStructure(Named{"a", Int}, Named{"b", Bool}),
+		b:    NewStructure(Named{"a", Int}, Named{"b", Bool}),
+		want: NewStructure(Named{"a", Int}, Named{"b", Bool}),
 	}, {
 		name: "fails to unify structure with a function",
-		a:    MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
-		b:    MakeFunction(IntP, BoolP),
-		want: Type{},
+		a:    NewStructure(Named{"a", Int}, Named{"b", Bool}),
+		b:    NewFunction(Int, Bool),
 		err:  errors.New("can not unify (int)=>bool with {a:int,b:bool}"),
 	}, {
 		name: "fails to unify structure with a primitive",
-		a:    MakeStructure("", SField{"a", IntP}),
-		b:    IntP,
-		want: Type{},
+		a:    NewStructure(Named{"a", Int}),
+		b:    Int,
 		err:  errors.New("can not unify int with {a:int}"),
 	}, {
 		name: "unifies a structure with a variable",
-		a:    MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
-		b:    MakeVariable(),
-		want: MakeStructure("", SField{"a", IntP}, SField{"b", BoolP}),
+		a:    NewStructure(Named{"a", Int}, Named{"b", Bool}),
+		b:    NewVariable(),
+		want: NewStructure(Named{"a", Int}, Named{"b", Bool}),
 	}, {
 		name: "fails to unify on name mismatch",
-		a:    MakeStructure("s1", SField{"a", IntP}),
-		b:    MakeStructure("s2", SField{"a", IntP}),
-		want: Type{},
-		err:  errors.New("can not unify s1{a:int} with s2{a:int}"),
+		a:    NewNamed("s1", NewStructure(Named{"a", Int})),
+		b:    NewNamed("s2", NewStructure(Named{"a", Int})),
+		err:  errors.New("can not unify s1[{a:int}] with s2[{a:int}]"),
 	}, {
 		name: "unifies identical recursive structures",
-		a:    recursiveStruct("data", "r", SField{"a", IntP}),
-		b:    recursiveStruct("data", "r", SField{"a", IntP}),
-		want: recursiveStruct("data", "r", SField{"a", IntP}),
+		a:    recursiveStruct("data", "r", Named{"a", Int}),
+		b:    recursiveStruct("data", "r", Named{"a", Int}),
+		want: recursiveStruct("data", "r", Named{"a", Int}),
 	}, {
-		name: "unifies structural variables with generic variables",
-		a:    MakeVariable(),
-		b:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		want: MakeStructuralVar(map[string]Type{"x": IntP}),
+		name: "unifies structures with generic variables",
+		a:    NewVariable(),
+		b:    NewStructure(NewNamed("x", Int)),
+		want: NewStructure(NewNamed("x", Int)),
 	}, {
 		name: "fails to unify union var with a structural var",
-		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		b:    MakeUnionVar(IntP, RealP),
-		want: Type{},
-		err:  errors.New("can not unify V1[int|real] with V1{x:int}"),
+		a:    NewStructure(NewNamed("x", Int)),
+		b:    NewUnionVariable(Int, Real),
+		err:  errors.New("can not unify V1[int|real] with {x:int}"),
 	}, {
 		name: "combines non conflicting structural variables",
-		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		b:    MakeStructuralVar(map[string]Type{"y": RealP}),
-		want: MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
+		a:    NewStructuralVar(NewNamed("x", Int)),
+		b:    NewStructuralVar(NewNamed("y", Real)),
+		want: NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
 	}, {
 		name: "fails on conflicting structural variables",
-		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		b:    MakeStructuralVar(map[string]Type{"x": RealP}),
-		want: Type{},
+		a:    NewStructuralVar(NewNamed("x", Int)),
+		b:    NewStructuralVar(NewNamed("x", Real)),
 		err:  errors.New("can not unify int with real"),
 	}, {
 		name: "fails on structural variables with primitives",
-		a:    MakeStructuralVar(map[string]Type{"x": IntP}),
-		b:    IntP,
-		want: Type{},
+		a:    NewStructuralVar(NewNamed("x", Int)),
+		b:    Int,
 		err:  errors.New("can not unify V1{x:int} with int"),
 	}, {
 		name: "unifies structural variables with structures",
-		a:    MakeStructure("a", SField{"x", IntP}),
-		b:    MakeStructuralVar(map[string]Type{"x": MakeVariable()}),
-		want: MakeStructure("a", SField{"x", IntP}),
+		a:    NewNamed("a", NewStructure(NewNamed("x", Int))),
+		b:    NewStructuralVar(NewNamed("x", NewVariable())),
+		want: NewNamed("a", NewStructure(NewNamed("x", Int))),
 	}, {
 		name: "fails to unify conflicting structural variables with structures",
-		a:    MakeStructure("a", SField{"x", IntP}),
-		b:    MakeStructuralVar(map[string]Type{"y": MakeVariable()}),
-		want: Type{},
-		err:  errors.New("can not unify V1{y:V2} with a{x:int}"),
+		a:    NewNamed("a", NewStructure(NewNamed("x", Int))),
+		b:    NewStructuralVar(NewNamed("y", NewVariable())),
+		err:  errors.New("can not unify V1{y:V2} with a[{x:int}]"),
 	}, {
 		name: "unifies variables wthin structural variables",
-		a:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(IntP, BoolP)}),
-		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(IntP, RealP)}),
-		want: MakeStructuralVar(map[string]Type{"x": IntP}),
+		a:    NewStructuralVar(NewNamed("x", NewUnionVariable(Int, Bool))),
+		b:    NewStructuralVar(NewNamed("x", NewUnionVariable(Int, Real))),
+		want: NewStructuralVar(NewNamed("x", Int)),
 	}, {
 		name: "unifies union variables with structural variables",
-		a: MakeUnionVar(
-			MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
-			MakeStructuralVar(map[string]Type{"x": RealP, "y": RealP}),
+		a: NewUnionVariable(
+			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
+			NewStructuralVar(NewNamed("x", Real), NewNamed("y", Real)),
 		),
-		b: MakeUnionVar(
-			MakeStructuralVar(map[string]Type{"x": IntP, "a": BoolP}),
-			MakeStructuralVar(map[string]Type{"b": BoolP}),
+		b: NewUnionVariable(
+			NewStructuralVar(NewNamed("x", Int), NewNamed("a", Bool)),
+			NewStructuralVar(NewNamed("b", Bool)),
 		),
-		want: MakeUnionVar(
-			MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP, "a": BoolP}),
-			MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP, "b": BoolP}),
-			MakeStructuralVar(map[string]Type{"x": RealP, "y": RealP, "b": BoolP}),
+		want: NewUnionVariable(
+			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real), NewNamed("a", Bool)),
+			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real), NewNamed("b", Bool)),
+			NewStructuralVar(NewNamed("x", Real), NewNamed("y", Real), NewNamed("b", Bool)),
 		),
 	}, {
 		name: "removes duplicates in union variables",
-		a: MakeUnionVar(
-			MakeStructuralVar(map[string]Type{"x": IntP}),
-			MakeStructuralVar(map[string]Type{"y": RealP}),
+		a: NewUnionVariable(
+			NewStructuralVar(NewNamed("x", Int)),
+			NewStructuralVar(NewNamed("y", Real)),
 		),
-		b: MakeUnionVar(
-			MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
+		b: NewUnionVariable(
+			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
 		),
-		want: MakeStructuralVar(map[string]Type{"x": IntP, "y": RealP}),
+		want: NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
 	}, {
 		name: "unifies functions with union variables",
-		a: MakeUnionVar(
-			IntP,
-			MakeFunction(IntP, IntP),
-			MakeFunction(IntP, RealP),
+		a: NewUnionVariable(
+			Int,
+			NewFunction(Int, Int),
+			NewFunction(Int, Real),
 		),
-		b: MakeFunction(IntP, MakeVariable()),
-		want: MakeUnionVar(
-			MakeFunction(IntP, IntP),
-			MakeFunction(IntP, RealP),
+		b: NewFunction(Int, NewVariable()),
+		want: NewUnionVariable(
+			NewFunction(Int, Int),
+			NewFunction(Int, Real),
 		),
 	}, {
 		name: "unifies primitives with free variables in unions",
-		a: MakeUnionVar(
-			RealP,
-			MakeFunction(MakeVariable(), MakeVariable()),
-			MakeStructuralVar(map[string]Type{"x": MakeVariable()}),
-			MakeVariable(),
+		a: NewUnionVariable(
+			Real,
+			NewFunction(NewVariable(), NewVariable()),
+			NewStructuralVar(NewNamed("x", NewVariable())),
+			NewVariable(),
 		),
-		b:    IntP,
-		want: IntP,
+		b:    Int,
+		want: Int,
 	}, {
 		name: "unifies functions with free variables with functions with union variables",
-		a:    MakeFunction(MakeVariable(), MakeUnionVar(IntP, RealP)),
-		b:    MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(BoolP, RealP)),
-		want: MakeFunction(MakeUnionVar(IntP, RealP), RealP),
+		a:    NewFunction(NewVariable(), NewUnionVariable(Int, Real)),
+		b:    NewFunction(NewUnionVariable(Int, Real), NewUnionVariable(Bool, Real)),
+		want: NewFunction(NewUnionVariable(Int, Real), Real),
 	}, {
 		name: "unifies dependent variables in unions",
-		a:    MakeFunction(var1, var1),
-		b:    MakeFunction(MakeUnionVar(IntP, RealP), MakeUnionVar(BoolP, RealP)),
-		want: MakeFunction(RealP, RealP),
+		a:    NewFunction(var1, var1),
+		b:    NewFunction(NewUnionVariable(Int, Real), NewUnionVariable(Bool, Real)),
+		want: NewFunction(Real, Real),
 	}, {
 		name: "unifies functions based on a union variable",
-		a:    MakeFunction(IntP, MakeVariable()),
-		b:    MakeUnionVar(MakeFunction(IntP, IntP), MakeFunction(RealP, RealP)),
-		want: MakeFunction(IntP, IntP),
+		a:    NewFunction(Int, NewVariable()),
+		b:    NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
+		want: NewFunction(Int, Int),
+	}, {
+		name: "unifies variable functions with union variables",
+		a:    NewFunction(NewVariable(), NewVariable()),
+		b:    NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
+		want: NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.a.Unify(tt.b)
+			got, err := Unify(tt.a, tt.b)
 			if tt.err != nil {
 				if !reflect.DeepEqual(err, tt.err) {
 					t.Errorf("Type.Unify() error = %v, wantErr %v", err, tt.err)
@@ -256,10 +241,9 @@ func TestType_Unify(t *testing.T) {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				ok, _ := deepdiff.DeepDiff(got, tt.want)
-				gotsign := got.Signature()
-				wantsign := tt.want.Signature()
-				if !ok {
+				gotsign := Signature(got)
+				wantsign := Signature(tt.want)
+				if gotsign != wantsign {
 					t.Error(gotsign + " did not equal " + wantsign)
 				}
 			}

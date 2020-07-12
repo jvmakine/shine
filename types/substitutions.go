@@ -1,93 +1,51 @@
 package types
 
 type Substitutions struct {
-	substitutions map[*TypeVar]Type
-	references    map[*TypeVar]map[*TypeVar]bool
+	substitutions map[VariableID]Type
+	references    map[VariableID]map[VariableID]bool
 }
 
 func MakeSubstitutions() Substitutions {
 	return Substitutions{
-		substitutions: map[*TypeVar]Type{},
-		references:    map[*TypeVar]map[*TypeVar]bool{},
+		substitutions: map[VariableID]Type{},
+		references:    map[VariableID]map[VariableID]bool{},
 	}
 }
 
 type substCtx struct {
-	visited map[*Structure]bool
+	visited map[Named]bool
 }
 
 func (s Substitutions) Apply(t Type) Type {
-	return apply(s, t, &substCtx{visited: map[*Structure]bool{}})
+	return Convert(t, s)
 }
 
-func apply(s Substitutions, t Type, ctx *substCtx) Type {
-	target := s.substitutions[t.Variable]
-	if !target.IsDefined() {
-		target = t
-	}
-	if target.IsFunction() {
-		ntyps := make([]Type, len(target.FunctTypes()))
-		for i, v := range target.FunctTypes() {
-			ntyps[i] = apply(s, v, ctx)
-		}
-		return MakeFunction(ntyps...)
-	}
-	if target.IsStructure() {
-		if ctx.visited[target.Structure] {
-			return target
-		}
-		ctx.visited[target.Structure] = true
-		ntyps := make([]SField, len(target.Structure.Fields))
-		for i, v := range target.Structure.Fields {
-			ntyps[i] = SField{
-				Name: v.Name,
-				Type: apply(s, v.Type, ctx),
-			}
-		}
-		return MakeStructure(target.Structure.Name, ntyps...)
-	}
-	if target.IsStructuralVar() {
-		for k, v := range target.Variable.Structural {
-			target.Variable.Structural[k] = apply(s, v, ctx)
-		}
-	}
-	if target.IsUnionVar() {
-		for k, v := range target.Variable.Union {
-			target.Variable.Union[k] = apply(s, v, ctx)
-		}
-		target.Variable.Union = target.Variable.Union.deduplicate()
-	}
-	return target
-}
-
-func (s Substitutions) Update(from *TypeVar, to Type) error {
-	if from == to.Variable {
+func (s Substitutions) Update(from VariableID, to Type) error {
+	if v, ok := to.(Variable); ok && v.ID == from {
 		return nil
 	}
 
 	result := s.Apply(to)
 
-	if p := s.substitutions[from]; p.IsDefined() {
-		if result != p {
-			uni, err := result.Unifier(p)
-			if err != nil {
-				return err
-			}
-			err = s.Combine(uni)
-			if err != nil {
-				return err
-			}
-			result = uni.Apply(result)
+	if p := s.substitutions[from]; p != nil {
+		uni, err := Unifier(result, p)
+		if err != nil {
+			return err
 		}
+		err = s.Combine(uni)
+		if err != nil {
+			return err
+		}
+		result = uni.Apply(result)
 	}
 
 	s.substitutions[from] = result
 
-	for _, fv := range result.FreeVars() {
-		if s.references[fv] == nil {
-			s.references[fv] = map[*TypeVar]bool{}
+	for _, fv := range result.freeVars(&unificationCtx{seenIDs: map[VariableID]bool{}}) {
+		if s.references[fv.ID] == nil {
+			s.references[fv.ID] = map[VariableID]bool{}
 		}
-		s.references[fv][from] = true
+		s.references[fv.ID][from] = true
 	}
 
 	if rs := s.references[from]; rs != nil {
@@ -97,11 +55,11 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 		for k := range rs {
 			substit := s.substitutions[k]
 			s.substitutions[k] = subs.Apply(substit)
-			for _, fv := range s.substitutions[k].FreeVars() {
-				if s.references[fv] == nil {
-					s.references[fv] = map[*TypeVar]bool{}
+			for _, fv := range s.substitutions[k].freeVars(&unificationCtx{seenIDs: map[VariableID]bool{}}) {
+				if s.references[fv.ID] == nil {
+					s.references[fv.ID] = map[VariableID]bool{}
 				}
-				s.references[fv][from] = true
+				s.references[fv.ID][from] = true
 			}
 		}
 	}
@@ -119,10 +77,10 @@ func (s Substitutions) Combine(o Substitutions) error {
 }
 
 func (s Substitutions) Copy() Substitutions {
-	newRef := map[*TypeVar]map[*TypeVar]bool{}
-	newSub := map[*TypeVar]Type{}
+	newRef := map[VariableID]map[VariableID]bool{}
+	newSub := map[VariableID]Type{}
 	for k := range s.references {
-		newRef[k] = map[*TypeVar]bool{}
+		newRef[k] = map[VariableID]bool{}
 		for k2, v2 := range newRef[k] {
 			newRef[k][k2] = v2
 		}

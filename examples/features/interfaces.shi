@@ -1,5 +1,6 @@
 substract = (x, y) => x - y
 
+a:string ~> { sub = (x) => a + x }
 a:real ~> { mod = (x) => a * x }
 a:int ~> {
     mod = (x) => substract(a, x)
