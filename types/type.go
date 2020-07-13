@@ -319,8 +319,10 @@ func (t Variable) Copy(ctx *TypeCopyCtx) Type {
 func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if len(t.Fields) == 0 {
 		result := MakeSubstitutions()
-		err := result.Update(t.ID, o, ctx)
-		return result, err
+		if err := result.Update(t.ID, o, ctx); err != nil {
+			return MakeSubstitutions(), err
+		}
+		return result, nil
 	}
 	if v, ok := o.(Variable); ok {
 		result := MakeSubstitutions()
@@ -372,7 +374,19 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		result.Update(t.ID, v, ctx)
 		return result, nil
 	}
-	return MakeSubstitutions(), UnificationError(t, o)
+	for name, typ := range t.Fields {
+		in := ctx.StructuralTypeFor(name, o)
+		if in == nil {
+			return MakeSubstitutions(), UnificationError(t, o)
+		}
+		_, err := unifier(in, typ, ctx)
+		if err != nil {
+			return MakeSubstitutions(), err
+		}
+	}
+	result := MakeSubstitutions()
+	result.Update(t.ID, o, ctx)
+	return result, nil
 }
 
 func (t Variable) Convert(s Substitutions) Type {
