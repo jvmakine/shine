@@ -26,31 +26,6 @@ func TestType_Unify(t *testing.T) {
 		b:    Bool,
 		err:  errors.New("can not unify bool with int"),
 	}, {
-		name: "unifies union variables to subsets",
-		a:    NewUnionVariable(Int, Bool, Real),
-		b:    NewUnionVariable(Bool, Real, String),
-		want: NewUnionVariable(Bool, Real),
-	}, {
-		name: "unifies union variables to primitives",
-		a:    NewUnionVariable(Int, Bool),
-		b:    NewUnionVariable(Bool, Real),
-		want: Bool,
-	}, {
-		name: "fails to unify disjoint restricted primitives",
-		a:    NewUnionVariable(Int, Bool),
-		b:    NewUnionVariable(String, Real),
-		err:  errors.New("can not unify V1[int|bool] with V1[string|real]"),
-	}, {
-		name: "unifies restricted variables with primitives",
-		a:    Bool,
-		b:    NewUnionVariable(Int, Bool),
-		want: Bool,
-	}, {
-		name: "fails to unify restricted variables with incompatible primitives",
-		a:    Real,
-		b:    NewUnionVariable(Int, Bool),
-		err:  errors.New("can not unify V1[int|bool] with real"),
-	}, {
 		name: "unifies identical functions",
 		a:    NewFunction(Real, Real),
 		b:    NewFunction(Real, Real),
@@ -75,11 +50,6 @@ func TestType_Unify(t *testing.T) {
 		a:    NewFunction(Int, NewVariable()),
 		b:    NewFunction(NewVariable(), Real),
 		want: NewFunction(Int, Real),
-	}, {
-		name: "unifies variables with restricted variables",
-		a:    NewVariable(),
-		b:    NewUnionVariable(Int, Real),
-		want: NewUnionVariable(Int, Real),
 	}, {
 		name: "unifies functions with overlapping variables",
 		a:    NewFunction(var1, Int, var1),
@@ -126,11 +96,6 @@ func TestType_Unify(t *testing.T) {
 		b:    NewStructure(NewNamed("x", Int)),
 		want: NewStructure(NewNamed("x", Int)),
 	}, {
-		name: "fails to unify union var with a structural var",
-		a:    NewStructure(NewNamed("x", Int)),
-		b:    NewUnionVariable(Int, Real),
-		err:  errors.New("can not unify V1[int|real] with {x:int}"),
-	}, {
 		name: "combines non conflicting structural variables",
 		a:    NewStructuralVar(NewNamed("x", Int)),
 		b:    NewStructuralVar(NewNamed("y", Real)),
@@ -155,78 +120,6 @@ func TestType_Unify(t *testing.T) {
 		a:    NewNamed("a", NewStructure(NewNamed("x", Int))),
 		b:    NewStructuralVar(NewNamed("y", NewVariable())),
 		err:  errors.New("can not unify V1{y:V2} with a[{x:int}]"),
-	}, {
-		name: "unifies variables wthin structural variables",
-		a:    NewStructuralVar(NewNamed("x", NewUnionVariable(Int, Bool))),
-		b:    NewStructuralVar(NewNamed("x", NewUnionVariable(Int, Real))),
-		want: NewStructuralVar(NewNamed("x", Int)),
-	}, {
-		name: "unifies union variables with structural variables",
-		a: NewUnionVariable(
-			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
-			NewStructuralVar(NewNamed("x", Real), NewNamed("y", Real)),
-		),
-		b: NewUnionVariable(
-			NewStructuralVar(NewNamed("x", Int), NewNamed("a", Bool)),
-			NewStructuralVar(NewNamed("b", Bool)),
-		),
-		want: NewUnionVariable(
-			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real), NewNamed("a", Bool)),
-			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real), NewNamed("b", Bool)),
-			NewStructuralVar(NewNamed("x", Real), NewNamed("y", Real), NewNamed("b", Bool)),
-		),
-	}, {
-		name: "removes duplicates in union variables",
-		a: NewUnionVariable(
-			NewStructuralVar(NewNamed("x", Int)),
-			NewStructuralVar(NewNamed("y", Real)),
-		),
-		b: NewUnionVariable(
-			NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
-		),
-		want: NewStructuralVar(NewNamed("x", Int), NewNamed("y", Real)),
-	}, {
-		name: "unifies functions with union variables",
-		a: NewUnionVariable(
-			Int,
-			NewFunction(Int, Int),
-			NewFunction(Int, Real),
-		),
-		b: NewFunction(Int, NewVariable()),
-		want: NewUnionVariable(
-			NewFunction(Int, Int),
-			NewFunction(Int, Real),
-		),
-	}, {
-		name: "unifies primitives with free variables in unions",
-		a: NewUnionVariable(
-			Real,
-			NewFunction(NewVariable(), NewVariable()),
-			NewStructuralVar(NewNamed("x", NewVariable())),
-			NewVariable(),
-		),
-		b:    Int,
-		want: Int,
-	}, {
-		name: "unifies functions with free variables with functions with union variables",
-		a:    NewFunction(NewVariable(), NewUnionVariable(Int, Real)),
-		b:    NewFunction(NewUnionVariable(Int, Real), NewUnionVariable(Bool, Real)),
-		want: NewFunction(NewUnionVariable(Int, Real), Real),
-	}, {
-		name: "unifies dependent variables in unions",
-		a:    NewFunction(var1, var1),
-		b:    NewFunction(NewUnionVariable(Int, Real), NewUnionVariable(Bool, Real)),
-		want: NewFunction(Real, Real),
-	}, {
-		name: "unifies functions based on a union variable",
-		a:    NewFunction(Int, NewVariable()),
-		b:    NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
-		want: NewFunction(Int, Int),
-	}, {
-		name: "unifies variable functions with union variables",
-		a:    NewFunction(NewVariable(), NewVariable()),
-		b:    NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
-		want: NewUnionVariable(NewFunction(Int, Int), NewFunction(Real, Real)),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

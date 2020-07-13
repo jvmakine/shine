@@ -23,7 +23,7 @@ func UnificationError(a Type, b Type) error {
 }
 
 func Unifier(t Type, o Type) (Substitutions, error) {
-	sub, err := unifier(t, o, &unificationCtx{seenIDs: map[VariableID]bool{}})
+	sub, err := unifier(t, o)
 	if err != nil {
 		return MakeSubstitutions(), err
 	}
@@ -35,17 +35,13 @@ func Unify(t Type, o Type) (Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Convert(t, sub), nil
+	return t.Convert(sub), nil
 }
 
-func Convert(t Type, s Substitutions) Type {
-	return t.convert(s, &unificationCtx{seenIDs: map[VariableID]bool{}})
-}
-
-func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	sub, err := t.unifier(o, ctx)
+func unifier(t Type, o Type) (Substitutions, error) {
+	sub, err := t.unifier(o)
 	if err != nil {
-		sub, err = o.unifier(t, ctx)
+		sub, err = o.unifier(t)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}

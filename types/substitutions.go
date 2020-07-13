@@ -17,7 +17,7 @@ type substCtx struct {
 }
 
 func (s Substitutions) Apply(t Type) Type {
-	return Convert(t, s)
+	return t.Convert(s)
 }
 
 func (s Substitutions) Update(from VariableID, to Type) error {
@@ -41,7 +41,7 @@ func (s Substitutions) Update(from VariableID, to Type) error {
 
 	s.substitutions[from] = result
 
-	for _, fv := range result.freeVars(&unificationCtx{seenIDs: map[VariableID]bool{}}) {
+	for _, fv := range result.freeVars() {
 		if s.references[fv.ID] == nil {
 			s.references[fv.ID] = map[VariableID]bool{}
 		}
@@ -55,7 +55,7 @@ func (s Substitutions) Update(from VariableID, to Type) error {
 		for k := range rs {
 			substit := s.substitutions[k]
 			s.substitutions[k] = subs.Apply(substit)
-			for _, fv := range s.substitutions[k].freeVars(&unificationCtx{seenIDs: map[VariableID]bool{}}) {
+			for _, fv := range s.substitutions[k].freeVars() {
 				if s.references[fv.ID] == nil {
 					s.references[fv.ID] = map[VariableID]bool{}
 				}
