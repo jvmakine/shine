@@ -14,9 +14,9 @@ func TestType_Signature(t *testing.T) {
 	}, {
 		name: "support structural variables with variables",
 		typ: WithType(NewVariable(), func(t Type) Type {
-			return NewStructuralVar(Named{"a", t}, Named{"b", NewFunction(t, Int)}, Named{"c", Bool})
+			return NewVariable(Named{"a", t}, Named{"b", NewFunction(Int, Int)}, Named{"c", Bool})
 		}),
-		want: "V1{a:V2,b:(V2)=>int,c:bool}",
+		want: "V1{a:V2,b:(int)=>int,c:bool}",
 	}, {
 		name: "support named structures",
 		typ:  NewNamed("data", NewStructure(Named{"a", Int}, Named{"b", Bool})),
@@ -27,7 +27,7 @@ func TestType_Signature(t *testing.T) {
 		want: "data[{a:int,b:data}]",
 	}, {
 		name: "support structural variables",
-		typ:  NewStructuralVar(NewNamed("x", Int)),
+		typ:  NewVariable(NewNamed("x", Int)),
 		want: "V1{x:int}",
 	}}
 	for _, tt := range tests {

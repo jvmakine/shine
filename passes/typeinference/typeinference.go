@@ -268,22 +268,15 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if o, ok := v.(*Op); ok {
-			inters := interfacesFor(o.Name, ctx)
-			wantFun := NewFunction(o.Left.Type(), o.Right.Type(), o.OpType)
-			match := false
-			for _, in := range inters {
-				it := in.Definitions.Assignments[o.Name].Type()
-				s, err := Unifier(it, wantFun)
-				if err == nil {
-					err = unifier.Combine(s)
-					if err == nil {
-						match = true
-						break
-					}
-				}
+			wantFun := NewFunction(o.Right.Type(), o.OpType)
+			strct := NewStructuralVar(NewNamed(o.Name, wantFun))
+			uni, err := Unifier(o.Left.Type(), strct)
+			if err != nil {
+				return err
 			}
-			if !match {
-				return errors.New("no operation \"" + o.Name + "\" found of type " + Signature(wantFun))
+			err = unifier.Combine(uni)
+			if err != nil {
+				return err
 			}
 		} else if c, ok := v.(*FCall); ok {
 			if err := typeCall(c, unifier); err != nil {

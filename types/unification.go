@@ -14,26 +14,26 @@ func UnificationError(a Type, b Type) error {
 	}
 }
 
-func Unifier(t Type, o Type) (Substitutions, error) {
-	sub, err := unifier(t, o)
+func Unifier(t Type, o Type, ctx UnificationCtx) (Substitutions, error) {
+	sub, err := unifier(t, o, ctx)
 	if err != nil {
 		return MakeSubstitutions(), err
 	}
 	return sub, nil
 }
 
-func Unify(t Type, o Type) (Type, error) {
-	sub, err := Unifier(t, o)
+func Unify(t Type, o Type, ctx UnificationCtx) (Type, error) {
+	sub, err := Unifier(t, o, ctx)
 	if err != nil {
 		return nil, err
 	}
 	return t.Convert(sub), nil
 }
 
-func unifier(t Type, o Type) (Substitutions, error) {
-	sub, err := t.unifier(o)
+func unifier(t Type, o Type, ctx UnificationCtx) (Substitutions, error) {
+	sub, err := t.unifier(o, ctx)
 	if err != nil {
-		sub, err = o.unifier(t)
+		sub, err = o.unifier(t, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
@@ -41,7 +41,7 @@ func unifier(t Type, o Type) (Substitutions, error) {
 	return sub, nil
 }
 
-func UnifiesWith(t Type, o Type) bool {
-	_, e := Unifier(t, o)
+func UnifiesWith(t Type, o Type, ctx UnificationCtx) bool {
+	_, e := Unifier(t, o, ctx)
 	return e == nil
 }

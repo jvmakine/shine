@@ -20,7 +20,7 @@ func (s Substitutions) Apply(t Type) Type {
 	return t.Convert(s)
 }
 
-func (s Substitutions) Update(from VariableID, to Type) error {
+func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) error {
 	if v, ok := to.(Variable); ok && v.ID == from {
 		return nil
 	}
@@ -28,11 +28,11 @@ func (s Substitutions) Update(from VariableID, to Type) error {
 	result := s.Apply(to)
 
 	if p := (*s.substitutions)[from]; p != nil {
-		uni, err := Unifier(result, p)
+		uni, err := Unifier(result, p, ctx)
 		if err != nil {
 			return err
 		}
-		err = s.Combine(uni)
+		err = s.Combine(uni, ctx)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ func (s Substitutions) Update(from VariableID, to Type) error {
 	if rs := (*s.references)[from]; rs != nil {
 		(*s.references)[from] = nil
 		subs := MakeSubstitutions()
-		subs.Update(from, result)
+		subs.Update(from, result, ctx)
 		for k := range rs {
 			substit := (*s.substitutions)[k]
 			(*s.substitutions)[k] = subs.Apply(substit)
@@ -66,11 +66,11 @@ func (s Substitutions) Update(from VariableID, to Type) error {
 	return nil
 }
 
-func (s Substitutions) Combine(o Substitutions) error {
+func (s Substitutions) Combine(o Substitutions, ctx UnificationCtx) error {
 	// do not modify s if the combination fails
 	attempt := s.Copy()
 	for f, t := range *o.substitutions {
-		err := attempt.Update(f, t)
+		err := attempt.Update(f, t, ctx)
 		if err != nil {
 			return err
 		}

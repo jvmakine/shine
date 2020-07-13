@@ -1,7 +1,6 @@
 package typeinference
 
 import (
-	"errors"
 	"reflect"
 	"testing"
 
@@ -31,7 +30,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer integer comparisons as boolean",
 		exp:  NewBlock(NewOp(">", NewConst(1), NewConst(2))),
 		typ:  "bool",
-	}, {
+	}, /*{
 		name: "infer if expressions",
 		exp:  NewBlock(NewBranch(NewConst(true), NewConst(1), NewConst(2))),
 		typ:  "int",

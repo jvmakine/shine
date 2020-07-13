@@ -28,6 +28,23 @@ func NewTypeCopyCtx() *TypeCopyCtx {
 	}
 }
 
+type UCID string
+
+type UnificationCtx interface {
+	StructuralTypeFor(name string, typ Type) Type
+	GetID() UCID
+}
+
+type MockUnificationCtx map[string]Type
+
+func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {
+	return ctx[name]
+}
+
+func (ctx MockUnificationCtx) GetID() UCID {
+	return ""
+}
+
 // Primitive types
 var (
 	Int    = NewPrimitive("int")
@@ -41,7 +58,7 @@ type Type interface {
 	Convert(s Substitutions) Type
 
 	freeVars() []Variable
-	unifier(o Type) (Substitutions, error)
+	unifier(o Type, ctx UnificationCtx) (Substitutions, error)
 	signature(ctx *signatureContext) string
 }
 
@@ -61,7 +78,7 @@ func (t Primitive) Copy(ctx *TypeCopyCtx) Type {
 	return t
 }
 
-func (t Primitive) unifier(o Type) (Substitutions, error) {
+func (t Primitive) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if p, ok := o.(Primitive); ok && p.ID == t.ID {
 		return MakeSubstitutions(), nil
 	} else {
@@ -86,26 +103,27 @@ type Function struct {
 }
 
 func NewFunction(ts ...Type) Function {
+	for _, t := range ts {
+		if _, isVar := t.(Variable); isVar {
+			panic("variable in function")
+		}
+	}
 	return Function{Fields: ts}
 }
 
 func (t Function) Copy(ctx *TypeCopyCtx) Type {
-	ts := make([]Type, len(t.Fields))
-	for i, f := range t.Fields {
-		ts[i] = f.Copy(ctx)
-	}
-	return NewFunction(ts...)
+	return t
 }
 
-func (t Function) unifier(o Type) (Substitutions, error) {
+func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if fun, ok := o.(Function); ok && len(fun.Fields) == len(t.Fields) {
 		result := MakeSubstitutions()
 		for i, f := range t.Fields {
-			s, err := unifier(f, fun.Fields[i])
+			s, err := unifier(f, fun.Fields[i], ctx)
 			if err != nil {
 				return MakeSubstitutions(), err
 			}
-			err = result.Combine(s)
+			err = result.Combine(s, ctx)
 			if err != nil {
 				return MakeSubstitutions(), err
 			}
@@ -116,19 +134,11 @@ func (t Function) unifier(o Type) (Substitutions, error) {
 }
 
 func (t Function) Convert(s Substitutions) Type {
-	ts := make([]Type, len(t.Fields))
-	for i, f := range t.Fields {
-		ts[i] = f.Convert(s)
-	}
-	return NewFunction(ts...)
+	return t
 }
 
 func (t Function) freeVars() []Variable {
-	res := []Variable{}
-	for _, f := range t.Fields {
-		res = append(res, f.freeVars()...)
-	}
-	return res
+	return []Variable{}
 }
 
 func (t Function) signature(ctx *signatureContext) string {
@@ -169,11 +179,11 @@ func (t Named) Copy(ctx *TypeCopyCtx) Type {
 	}
 }
 
-func (t Named) unifier(o Type) (Substitutions, error) {
+func (t Named) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if n, ok := o.(Named); ok && n.Name != t.Name {
 		return MakeSubstitutions(), UnificationError(t, o)
 	}
-	return unifier(t.Type, o)
+	return unifier(t.Type, o, ctx)
 }
 
 func (t Named) Convert(s Substitutions) Type {
@@ -219,7 +229,7 @@ func (t Structure) Copy(ctx *TypeCopyCtx) Type {
 	return t
 }
 
-func (t Structure) unifier(o Type) (Substitutions, error) {
+func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if s, ok := o.(Structure); ok && len(s.Fields) == len(t.Fields) {
 		resmap := map[string]Type{}
 		for _, f := range t.Fields {
@@ -228,7 +238,7 @@ func (t Structure) unifier(o Type) (Substitutions, error) {
 		for _, f := range s.Fields {
 			p := resmap[f.Name]
 			if p != nil {
-				_, err := unifier(f.Type, p)
+				_, err := unifier(f.Type, p, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -270,12 +280,18 @@ func (s Structure) signature(ctx *signatureContext) string {
 type Variable struct {
 	Replacable
 
-	ID VariableID
+	ID     VariableID
+	Fields map[string]Type
 }
 
-func NewVariable() Variable {
+func NewVariable(Fields ...Named) Variable {
+	fs := map[string]Type{}
+	for _, f := range Fields {
+		fs[f.Name] = f.Type
+	}
 	return Variable{
-		ID: NewVariableID(),
+		ID:     NewVariableID(),
+		Fields: fs,
 	}
 }
 
@@ -288,76 +304,11 @@ func (t Variable) Copy(ctx *TypeCopyCtx) Type {
 	if c != nil {
 		return c
 	}
-	copy := Variable{
-		ID: NewVariableID(),
-	}
-	ctx.vars[t.ID] = copy
-	return copy
-}
-
-func (t Variable) unifier(o Type) (Substitutions, error) {
-	result := MakeSubstitutions()
-	if v, ok := o.(Variable); ok {
-		result.Update(v.ID, t)
-	}
-	result.Update(t.ID, o)
-	return result, nil
-}
-
-func (t Variable) Convert(s Substitutions) Type {
-	if r := (*s.substitutions)[t.ID]; r != nil {
-		return r
-	}
-	return t
-}
-
-func (t Variable) freeVars() []Variable {
-	return []Variable{t}
-}
-
-func (t Variable) signature(ctx *signatureContext) string {
-	c := ctx.variables[t.ID]
-	if c != "" {
-		return c
-	}
-	ctx.variableCount++
-	str := "V" + strconv.Itoa(ctx.variableCount)
-	ctx.variables[t.ID] = str
-	return str
-}
-
-type StructuralVar struct {
-	Replacable
-
-	ID     VariableID
-	Fields map[string]Type
-}
-
-func NewStructuralVar(Fields ...Named) StructuralVar {
-	fs := map[string]Type{}
-	for _, f := range Fields {
-		fs[f.Name] = f.Type
-	}
-	return StructuralVar{
-		ID:     NewVariableID(),
-		Fields: fs,
-	}
-}
-
-func (t StructuralVar) GetVariableID() VariableID {
-	return t.ID
-}
-
-func (t StructuralVar) Copy(ctx *TypeCopyCtx) Type {
-	c := ctx.vars[t.ID]
-	if c != nil {
-		return c
-	}
 	fs := map[string]Type{}
 	for n, f := range t.Fields {
 		fs[n] = f.Copy(ctx)
 	}
-	copy := StructuralVar{
+	copy := Variable{
 		ID:     NewVariableID(),
 		Fields: fs,
 	}
@@ -365,17 +316,22 @@ func (t StructuralVar) Copy(ctx *TypeCopyCtx) Type {
 	return copy
 }
 
-func (t StructuralVar) unifier(o Type) (Substitutions, error) {
-	if v, ok := o.(StructuralVar); ok {
+func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+	if len(t.Fields) == 0 {
+		result := MakeSubstitutions()
+		err := result.Update(t.ID, o, ctx)
+		return result, err
+	}
+	if v, ok := o.(Variable); ok {
 		result := MakeSubstitutions()
 		sum := map[string]Type{}
 		for n, f := range t.Fields {
 			if of := v.Fields[n]; of != nil {
-				sub, err := Unifier(of, f)
+				sub, err := Unifier(of, f, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
-				err = result.Combine(sub)
+				err = result.Combine(sub, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -389,12 +345,12 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 				sum[n] = f
 			}
 		}
-		res := StructuralVar{
+		res := Variable{
 			Fields: sum,
 			ID:     NewVariableID(),
 		}
-		result.Update(v.ID, res)
-		result.Update(t.ID, res)
+		result.Update(v.ID, res, ctx)
+		result.Update(t.ID, res, ctx)
 		return result, nil
 	}
 	if v, ok := o.(Structure); ok {
@@ -404,7 +360,7 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 		}
 		for n, f := range t.Fields {
 			if p := sFields[n]; p != nil {
-				_, err := Unifier(p, f)
+				_, err := Unifier(p, f, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -413,13 +369,13 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 			}
 		}
 		result := MakeSubstitutions()
-		result.Update(t.ID, v)
+		result.Update(t.ID, v, ctx)
 		return result, nil
 	}
 	return MakeSubstitutions(), UnificationError(t, o)
 }
 
-func (t StructuralVar) Convert(s Substitutions) Type {
+func (t Variable) Convert(s Substitutions) Type {
 	if r := (*s.substitutions)[t.ID]; r != nil {
 		return r
 	}
@@ -427,21 +383,24 @@ func (t StructuralVar) Convert(s Substitutions) Type {
 	for n, f := range t.Fields {
 		res[n] = f.Convert(s)
 	}
-	return StructuralVar{
+	return Variable{
 		Fields: res,
 		ID:     NewVariableID(),
 	}
 }
 
-func (t StructuralVar) freeVars() []Variable {
+func (t Variable) freeVars() []Variable {
 	res := []Variable{}
 	for _, f := range t.Fields {
 		res = append(res, f.freeVars()...)
 	}
+	if len(res) == 0 {
+		res = []Variable{t}
+	}
 	return res
 }
 
-func (t StructuralVar) signature(ctx *signatureContext) string {
+func (t Variable) signature(ctx *signatureContext) string {
 	keys := []string{}
 	for n := range t.Fields {
 		keys = append(keys, n)
@@ -457,18 +416,20 @@ func (t StructuralVar) signature(ctx *signatureContext) string {
 		sb.WriteString(str)
 		ctx.variables[t.ID] = str
 	}
-	sb.WriteString("{")
-	i := 0
-	for _, n := range keys {
-		f := t.Fields[n]
-		sb.WriteString(n)
-		sb.WriteString(":")
-		sb.WriteString(f.signature(ctx))
-		if i < len(t.Fields)-1 {
-			sb.WriteString(",")
+	if len(t.Fields) > 0 {
+		sb.WriteString("{")
+		i := 0
+		for _, n := range keys {
+			f := t.Fields[n]
+			sb.WriteString(n)
+			sb.WriteString(":")
+			sb.WriteString(f.signature(ctx))
+			if i < len(t.Fields)-1 {
+				sb.WriteString(",")
+			}
+			i++
 		}
-		i++
+		sb.WriteString("}")
 	}
-	sb.WriteString("}")
 	return sb.String()
 }
