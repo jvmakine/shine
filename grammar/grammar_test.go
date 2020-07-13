@@ -32,104 +32,104 @@ func TestExpressionParsing(tes *testing.T) {
 	}, {
 		name:  "parse + term expression",
 		input: "1 + 2",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewConst(1), a.NewConst(2))),
+		want:  a.NewBlock(a.NewOp("+", a.NewConst(1), a.NewConst(2))),
 	}, {
 		name:  "parse - term expression",
 		input: "1 - 2",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("-"), a.NewConst(1), a.NewConst(2))),
+		want:  a.NewBlock(a.NewOp("-", a.NewConst(1), a.NewConst(2))),
 	}, {
 		name:  "parse * factor expression",
 		input: "2 * 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("*"), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("*", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse / factor expression",
 		input: "2 / 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("/"), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("/", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse % factor expression",
 		input: "2 % 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("%"), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("%", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "maintain right precedence with + and *",
 		input: "2 + 3 * 4",
 		want: a.NewBlock(
-			a.NewFCall(a.NewOp("+"),
+			a.NewOp("+",
 				a.NewConst(2),
-				a.NewFCall(a.NewOp("*"), a.NewConst(3), a.NewConst(4)),
+				a.NewOp("*", a.NewConst(3), a.NewConst(4)),
 			),
 		),
 	}, {
 		name:  "parse numeric expressions with brackets",
 		input: "(2 + 4) * 3",
 		want: a.NewBlock(
-			a.NewFCall(a.NewOp("*"),
-				a.NewFCall(a.NewOp("+"), a.NewConst(2), a.NewConst(4)),
+			a.NewOp("*",
+				a.NewOp("+", a.NewConst(2), a.NewConst(4)),
 				a.NewConst(3),
 			),
 		)}, {
 		name:  "parse id expressions with brackets",
 		input: "(c % 2) == 0",
 		want: a.NewBlock(
-			a.NewFCall(a.NewOp("=="),
-				a.NewFCall(a.NewOp("%"), a.NewId("c"), a.NewConst(2)),
+			a.NewOp("==",
+				a.NewOp("%", a.NewId("c"), a.NewConst(2)),
 				a.NewConst(0),
 			),
 		)}, {
 		name:  "parse == operator",
 		input: "2 == 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("=="), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("==", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse != operator",
 		input: "a != 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("!="), a.NewId("a"), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("!=", a.NewId("a"), a.NewConst(3))),
 	}, {
 		name:  "parse < operator",
 		input: "2 < 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("<"), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("<", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse > operator",
 		input: "2 > 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp(">"), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp(">", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse >= operator",
 		input: "2 >= 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp(">="), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp(">=", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse <= operator",
 		input: "2 <= 3",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("<="), a.NewConst(2), a.NewConst(3))),
+		want:  a.NewBlock(a.NewOp("<=", a.NewConst(2), a.NewConst(3))),
 	}, {
 		name:  "parse || operator",
 		input: "true || false",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("||"), a.NewConst(true), a.NewConst(false))),
+		want:  a.NewBlock(a.NewOp("||", a.NewConst(true), a.NewConst(false))),
 	}, {
 		name:  "parse && operator",
 		input: "true && false",
-		want:  a.NewBlock(a.NewFCall(a.NewOp("&&"), a.NewConst(true), a.NewConst(false))),
+		want:  a.NewBlock(a.NewOp("&&", a.NewConst(true), a.NewConst(false))),
 	}, {
 		name:  "parse if expression",
 		input: "if(2 > 3) 1 else 2",
-		want: a.NewBlock(a.NewFCall(a.NewOp("if"),
-			a.NewFCall(a.NewOp(">"), a.NewConst(2), a.NewConst(3)),
+		want: a.NewBlock(a.NewBranch(
+			a.NewOp(">", a.NewConst(2), a.NewConst(3)),
 			a.NewConst(1),
 			a.NewConst(2),
 		)),
 	}, {
 		name:  "parse if expressions with blocks",
 		input: "if(2 > 3) { 1 } else { 2 }",
-		want: a.NewBlock(a.NewFCall(a.NewOp("if"),
-			a.NewFCall(a.NewOp(">"), a.NewConst(2), a.NewConst(3)),
+		want: a.NewBlock(a.NewBranch(
+			a.NewOp(">", a.NewConst(2), a.NewConst(3)),
 			a.NewBlock(a.NewConst(1)).WithID(1),
 			a.NewBlock(a.NewConst(2)).WithID(2),
 		)),
 	}, {
 		name:  "parse if else if expression",
 		input: "if (2 > 3) 1 else if (3 > 4) 2 else 4",
-		want: a.NewBlock(a.NewFCall(a.NewOp("if"),
-			a.NewFCall(a.NewOp(">"), a.NewConst(2), a.NewConst(3)),
+		want: a.NewBlock(a.NewBranch(
+			a.NewOp(">", a.NewConst(2), a.NewConst(3)),
 			a.NewConst(1),
-			a.NewFCall(a.NewOp("if"),
-				a.NewFCall(a.NewOp(">"), a.NewConst(3), a.NewConst(4)),
+			a.NewBranch(
+				a.NewOp(">", a.NewConst(3), a.NewConst(4)),
 				a.NewConst(2),
 				a.NewConst(4),
 			),
@@ -146,8 +146,8 @@ func TestExpressionParsing(tes *testing.T) {
 		name:  "parse functions as values",
 		input: "f((x) => {x + 2}, (y) => {y + 1})",
 		want: a.NewBlock(a.NewFCall(a.NewId("f"),
-			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewConst(2))).WithID(1), "x"),
-			a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("y"), a.NewConst(1))).WithID(2), "y"),
+			a.NewFDef(a.NewBlock(a.NewOp("+", a.NewId("x"), a.NewConst(2))).WithID(1), "x"),
+			a.NewFDef(a.NewBlock(a.NewOp("+", a.NewId("y"), a.NewConst(1))).WithID(2), "y"),
 		)),
 	}, {
 		name: "parse several assignments",
@@ -158,10 +158,10 @@ func TestExpressionParsing(tes *testing.T) {
 				a + b + c
 			`,
 		want: a.
-			NewBlock(a.NewFCall(a.NewOp("+"), a.NewFCall(a.NewOp("+"), a.NewId("a"), a.NewId("b")), a.NewId("c"))).
-			WithAssignment("a", a.NewFCall(a.NewOp("+"), a.NewConst(1), a.NewConst(2))).
-			WithAssignment("b", a.NewFCall(a.NewOp("+"), a.NewConst(2), a.NewConst(3))).
-			WithAssignment("c", a.NewFCall(a.NewOp("+"), a.NewConst(3), a.NewConst(4))),
+			NewBlock(a.NewOp("+", a.NewOp("+", a.NewId("a"), a.NewId("b")), a.NewId("c"))).
+			WithAssignment("a", a.NewOp("+", a.NewConst(1), a.NewConst(2))).
+			WithAssignment("b", a.NewOp("+", a.NewConst(2), a.NewConst(3))).
+			WithAssignment("c", a.NewOp("+", a.NewConst(3), a.NewConst(4))),
 	}, {
 		name: "parse a function definition",
 		input: `
@@ -170,7 +170,7 @@ func TestExpressionParsing(tes *testing.T) {
 			`,
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).WithID(1).
-			WithAssignment("a", a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewId("y"))), "x", "y")),
+			WithAssignment("a", a.NewFDef(a.NewBlock(a.NewOp("+", a.NewId("x"), a.NewId("y"))), "x", "y")),
 	}, {
 		name: "parse a nested function definition",
 		input: `
@@ -183,8 +183,8 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2))).WithID(2).
 			WithAssignment("a", a.NewFDef(a.
-				NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewFCall(a.NewId("b"), a.NewId("y")))).WithID(1).
-				WithAssignment("b", a.NewFDef(a.NewBlock(a.NewFCall(a.NewOp("+"), a.NewId("z"), a.NewConst(1))), "z")),
+				NewBlock(a.NewOp("+", a.NewId("x"), a.NewFCall(a.NewId("b"), a.NewId("y")))).WithID(1).
+				WithAssignment("b", a.NewFDef(a.NewBlock(a.NewOp("+", a.NewId("z"), a.NewConst(1))), "z")),
 				"x", "y",
 			)),
 	}, {
@@ -195,7 +195,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.
 			NewBlock(a.NewFCall(a.NewFCall(a.NewId("a"), a.NewConst(1)), a.NewConst(2))).
-			WithAssignment("a", a.NewFDef(a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("x"), a.NewId("y")), "y"), "x")),
+			WithAssignment("a", a.NewFDef(a.NewFDef(a.NewOp("+", a.NewId("x"), a.NewId("y")), "y"), "x")),
 	}, {
 		name: "parse explicit type definitions on functions",
 		input: `
@@ -205,8 +205,8 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2.0), a.NewConst(true))).
 			WithAssignment("a", a.NewFDef(
-				a.NewTypeDecl(types.Real, a.NewFCall(a.NewOp("if"),
-					a.NewFCall(a.NewOp("&&"), a.NewId("b"), a.NewFCall(a.NewOp(">"), a.NewId("y"), a.NewConst(1.0))),
+				a.NewTypeDecl(types.Real, a.NewBranch(
+					a.NewOp("&&", a.NewId("b"), a.NewOp(">", a.NewId("y"), a.NewConst(1.0))),
 					a.NewId("x"),
 					a.NewConst(0))),
 				&a.FParam{"x", types.Int}, &a.FParam{"y", types.Real}, &a.FParam{"z", types.Bool},
@@ -215,7 +215,7 @@ func TestExpressionParsing(tes *testing.T) {
 		name:  "parse explicit type definitions on generic expression",
 		input: `((1:int) + (2:bool)):real`,
 		want: a.NewBlock(a.NewTypeDecl(types.Real,
-			a.NewFCall(a.NewOp("+"),
+			a.NewOp("+",
 				a.NewTypeDecl(types.Int, a.NewConst(1)),
 				a.NewTypeDecl(types.Bool, a.NewConst(2)),
 			),
@@ -229,7 +229,7 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewId("b"))).
 			WithAssignment("a", a.NewFDef(
-				a.NewFCall(a.NewOp("if"), a.NewFCall(a.NewId("f"), a.NewId("x")), a.NewId("x"), a.NewConst(0)),
+				a.NewBranch(a.NewFCall(a.NewId("f"), a.NewId("x")), a.NewId("x"), a.NewConst(0)),
 				&a.FParam{"x", types.Int}, &a.FParam{"f", types.NewFunction(types.Int, types.Bool)},
 			)),
 	}, {
@@ -281,10 +281,10 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1)), a.NewConst(4))).
 			WithID(2).
 			WithInterface(types.Int, a.NewDefinitions(0).WithAssignment(
-				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
+				"add", a.NewFDef(a.NewOp("+", a.NewId("$"), a.NewId("b")), "b"),
 			)).
 			WithInterface(types.Int, a.NewDefinitions(1).WithAssignment(
-				"sub", a.NewFDef(a.NewFCall(a.NewOp("-"), a.NewId("$"), a.NewId("x")), "x"),
+				"sub", a.NewFDef(a.NewOp("-", a.NewId("$"), a.NewId("x")), "x"),
 			)),
 	}, {
 		name: "parse untyped interfaces",
@@ -294,7 +294,7 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1.0)), a.NewConst(4.0))).
 			WithID(1).
 			WithInterface(nil, a.NewDefinitions(0).WithAssignment(
-				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
+				"add", a.NewFDef(a.NewOp("+", a.NewId("$"), a.NewId("b")), "b"),
 			)),
 	}, {
 		name: "parse interfaces for functions",

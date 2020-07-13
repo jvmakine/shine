@@ -32,8 +32,121 @@ type Expression interface {
 
 // Expressions
 
+type Branch struct {
+	Condition Expression
+	True      Expression
+	False     Expression
+}
+
+func NewBranch(cond Expression, tru Expression, fal Expression) *Branch {
+	return &Branch{
+		Condition: cond,
+		True:      tru,
+		False:     fal,
+	}
+}
+
+func (e *Branch) Type() types.Type {
+	return e.True.Type()
+}
+
+func (e *Branch) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
+	return &Branch{
+		Condition: e.Condition.CopyWithCtx(ctx),
+		True:      e.True.CopyWithCtx(ctx),
+		False:     e.False.CopyWithCtx(ctx),
+	}
+}
+
+func (e *Branch) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
+	err := before(e, ctx)
+	if err != nil {
+		return err
+	}
+	e.Condition = rewrite(e.Condition, ctx).(Expression)
+	err = e.Condition.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	e.True = rewrite(e.True, ctx).(Expression)
+	err = e.True.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	e.False = rewrite(e.False, ctx).(Expression)
+	err = e.False.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	return after(e, ctx)
+}
+
+func (e *Branch) Format(builder *strings.Builder, level int, options *FormatOptions) {
+	builder.WriteString("if")
+	builder.WriteString("(")
+	e.Condition.Format(builder, level, options)
+	builder.WriteString(",")
+	e.True.Format(builder, level, options)
+	builder.WriteString(",")
+	e.False.Format(builder, level, options)
+	builder.WriteString(")")
+}
+
+type PrimitiveOp struct {
+	ID         string
+	Left       Expression
+	Right      Expression
+	ReturnType types.Type
+}
+
+func (e *PrimitiveOp) Type() types.Type {
+	return types.NewFunction(e.Left.Type(), e.Right.Type(), e.ReturnType)
+}
+
+func (e *PrimitiveOp) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
+	return &PrimitiveOp{
+		ID:         e.ID,
+		Left:       e.Left.CopyWithCtx(ctx),
+		Right:      e.Right.CopyWithCtx(ctx),
+		ReturnType: e.ReturnType.Copy(ctx),
+	}
+}
+
+func (e *PrimitiveOp) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite RewriteFunc, ctx *VisitContext) error {
+	err := before(e, ctx)
+	if err != nil {
+		return err
+	}
+	e.Left = rewrite(e.Left, ctx).(Expression)
+	err = e.Left.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	e.Right = rewrite(e.Right, ctx).(Expression)
+	err = e.Right.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	return after(e, ctx)
+}
+
+func (e *PrimitiveOp) Format(builder *strings.Builder, level int, options *FormatOptions) {
+	builder.WriteString(e.ID)
+	builder.WriteString("(")
+	e.Left.Format(builder, level, options)
+	builder.WriteString(",")
+	e.Right.Format(builder, level, options)
+	builder.WriteString(")")
+}
+
+func NewPrimitiveOp(id string, typ types.Type, left Expression, right Expression) *PrimitiveOp {
+	return &PrimitiveOp{ID: id, ReturnType: typ, Left: left, Right: right}
+}
+
 type Op struct {
-	Name string
+	Name  string
+	Left  Expression
+	Right Expression
 
 	OpType types.Type
 }
@@ -45,6 +158,8 @@ func (e *Op) Type() types.Type {
 func (e *Op) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 	return &Op{
 		Name:   e.Name,
+		Left:   e.Left.CopyWithCtx(ctx),
+		Right:  e.Right.CopyWithCtx(ctx),
 		OpType: e.OpType.Copy(ctx),
 	}
 }
@@ -54,15 +169,33 @@ func (e *Op) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rewrit
 	if err != nil {
 		return err
 	}
+	e.Left = rewrite(e.Left, ctx).(Expression)
+	err = e.Left.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
+	e.Right = rewrite(e.Right, ctx).(Expression)
+	err = e.Right.Visit(before, after, crawl, rewrite, ctx)
+	if err != nil {
+		return err
+	}
 	return after(e, ctx)
 }
 
 func (e *Op) Format(builder *strings.Builder, level int, options *FormatOptions) {
 	builder.WriteString(e.Name)
+	builder.WriteString("(")
+	e.Left.Format(builder, level, options)
+	builder.WriteString(",")
+	e.Right.Format(builder, level, options)
+	builder.WriteString(")")
 }
 
-func NewOp(name string) *Op {
-	return &Op{Name: name}
+func NewOp(name string, left Expression, right Expression) *Op {
+	if left == nil || right == nil {
+		panic("nil value for op expression")
+	}
+	return &Op{Name: name, Left: left, Right: right}
 }
 
 type Id struct {
@@ -112,6 +245,13 @@ func (e *Id) Format(b *strings.Builder, level int, options *FormatOptions) {
 
 func NewId(name string) *Id {
 	return &Id{Name: name}
+}
+
+func (e *Id) WithType(t types.Type) *Id {
+	return &Id{
+		Name:   e.Name,
+		IdType: t,
+	}
 }
 
 type Const struct {

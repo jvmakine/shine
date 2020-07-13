@@ -4,52 +4,18 @@ import (
 	"errors"
 
 	. "github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/types"
 	. "github.com/jvmakine/shine/types"
 )
 
-func fun(ts ...Type) Expression {
-	return &Op{OpType: function(ts...)}
-}
-
-func union(un ...Type) Type {
-	return Type{Variable: &TypeVar{Union: un}}
-}
-
-func function(ts ...Type) Type {
-	return MakeFunction(ts...)
-}
-
-func withVar(v Type, f func(t Type) Expression) Expression {
-	return f(v)
-}
-
-var global map[string]Expression = map[string]Expression{
-	"+":  withVar(union(IntP, RealP, StringP), func(t Type) Expression { return fun(t, t, t) }),
-	"-":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
-	"*":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
-	"%":  fun(IntP, IntP, IntP),
-	"/":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, t) }),
-	"<":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	">":  withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	">=": withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"<=": withVar(union(IntP, RealP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"||": fun(BoolP, BoolP, BoolP),
-	"&&": fun(BoolP, BoolP, BoolP),
-	"==": withVar(union(IntP, BoolP, StringP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"!=": withVar(union(IntP, BoolP), func(t Type) Expression { return fun(t, t, BoolP) }),
-	"if": withVar(MakeVariable(), func(t Type) Expression { return fun(BoolP, t, t, t) }),
-}
-
 func typeConstant(constant *Const) {
 	if constant.Int != nil {
-		constant.ConstType = IntP
+		constant.ConstType = Int
 	} else if constant.Bool != nil {
-		constant.ConstType = BoolP
+		constant.ConstType = Bool
 	} else if constant.Real != nil {
-		constant.ConstType = RealP
+		constant.ConstType = Real
 	} else if constant.String != nil {
-		constant.ConstType = StringP
+		constant.ConstType = String
 	} else {
 		panic("invalid const")
 	}
@@ -58,10 +24,14 @@ func typeConstant(constant *Const) {
 func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	defin := ctx.DefinitionOf(id.Name)
 	if ctx.Path()[id.Name] {
-		id.IdType = MakeVariable()
+		id.IdType = NewVariable()
 	} else if defin != nil && ctx.DefinitionOf(id.Name).Assignments[id.Name] != nil {
 		ref := ctx.DefinitionOf(id.Name).Assignments[id.Name]
-		id.IdType = ref.Type().Copy(NewTypeCopyCtx())
+		if _, ok := ref.(*FDef); ok {
+			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
+		} else {
+			id.IdType = ref.Type()
+		}
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.IdType = p.ParamType
 	} else {
@@ -78,19 +48,10 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	return nil
 }
 
-func typeOp(op *Op, ctx *VisitContext) error {
-	g := global[op.Name]
-	if g == nil {
-		panic("invalid op " + op.Name)
-	}
-	op.OpType = g.Type().Copy(NewTypeCopyCtx())
-	return nil
-}
-
 func typeCall(call *FCall, unifier Substitutions) error {
-	call.CallType = MakeVariable()
+	call.CallType = NewVariable()
 	ftype := call.MakeFunType()
-	s, err := ftype.Unifier(call.Function.Type())
+	s, err := Unifier(ftype, call.Function.Type())
 	if err != nil {
 		return err
 	}
@@ -109,10 +70,12 @@ func initialiseVariables(exp Expression) error {
 				if ctx.DefinitionOf(name) != nil || ctx.ParamOf(name) != nil {
 					return errors.New("redefinition of " + name)
 				}
-				if !p.ParamType.IsDefined() {
-					p.ParamType = MakeVariable()
+				if p.ParamType == nil {
+					p.ParamType = NewVariable()
 				}
 			}
+		} else if o, ok := v.(*Op); ok {
+			o.OpType = NewVariable()
 		} else if b, ok := v.(*Block); ok {
 			err := b.CheckValueCycles()
 			if err != nil {
@@ -121,31 +84,28 @@ func initialiseVariables(exp Expression) error {
 		} else if d, ok := v.(*Definitions); ok {
 			for name, value := range d.Assignments {
 				if s, ok := value.(*Struct); ok {
-					ts := make([]types.Type, len(s.Fields)+1)
-					sf := make([]types.SField, len(s.Fields))
+					ts := make([]Type, len(s.Fields)+1)
+					sf := make([]Named, len(s.Fields))
 					for i, v := range s.Fields {
 						typ := v.Type
-						if !typ.IsDefined() {
-							typ = MakeVariable()
+						if typ == nil {
+							typ = NewVariable()
 						}
 						v.Type = typ
 
 						ts[i] = typ
-						sf[i] = SField{
-							Name: v.Name,
-							Type: typ,
-						}
+						sf[i] = NewNamed(v.Name, typ)
 					}
 
-					stru := types.MakeStructure(name, sf...)
+					stru := NewNamed(name, NewStructure(sf...))
 					ts[len(s.Fields)] = stru
 
 					s.StructType = stru
 				}
 			}
 			for _, in := range d.Interfaces {
-				if !in.InterfaceType.IsDefined() {
-					varit := MakeVariable()
+				if in.InterfaceType == nil {
+					varit := NewVariable()
 					in.InterfaceType = varit
 					for _, d := range in.Definitions.Assignments {
 						_, isDef := d.(*FDef)
@@ -156,7 +116,7 @@ func initialiseVariables(exp Expression) error {
 				}
 			}
 		} else if fa, ok := v.(*FieldAccessor); ok {
-			fa.FAType = MakeVariable()
+			fa.FAType = NewVariable()
 		}
 		return nil
 	})
@@ -165,40 +125,94 @@ func initialiseVariables(exp Expression) error {
 func resolveNamed(name string, ctx *VisitContext) (Type, error) {
 	defin := ctx.DefinitionOf(name)
 	if defin == nil {
-		return Type{}, errors.New("type " + name + " is undefined")
+		return nil, errors.New("type " + name + " is undefined")
 	}
 	value := defin.Assignments[name]
 	if value == nil {
-		return Type{}, errors.New(name + " is not a type")
+		return nil, errors.New(name + " is not a type")
 	}
 	struc, ok := value.(*Struct)
 	if !ok {
-		return Type{}, errors.New(name + " is not a type")
+		return nil, errors.New(name + " is not a type")
 	}
-	fs := make([]types.SField, len(struc.Fields))
+	fs := make([]Named, len(struc.Fields))
 	for i, f := range struc.Fields {
-		if !f.Type.IsDefined() {
-			fs[i] = types.SField{
-				Name: f.Name,
-				Type: types.MakeVariable(),
-			}
+		if f.Type == nil {
+			fs[i] = NewNamed(f.Name, NewVariable())
 		} else {
-			fs[i] = types.SField{
-				Name: f.Name,
-				Type: f.Type,
-			}
+			fs[i] = NewNamed(f.Name, f.Type)
 		}
 	}
-	return types.MakeStructure(name, fs...), nil
+	return NewStructure(fs...), nil
 }
 
 func rewriteNamed(exp Expression) error {
 	return RewriteTypes(exp, func(t Type, ctx *VisitContext) (Type, error) {
-		if t.IsNamed() {
-			return resolveNamed(*t.Named, ctx)
+		if n, ok := t.(Named); ok {
+			typ, err := resolveNamed(n.Name, ctx)
+			if err != nil {
+				return nil, err
+			}
+			n.Type = typ
+			return n, nil
 		}
 		return t, nil
 	})
+}
+
+var global = []*Interface{
+	&Interface{InterfaceType: Int, Definitions: &Definitions{Assignments: map[string]Expression{
+		">":  NewPrimitiveOp("int_>", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"<":  NewPrimitiveOp("int_<", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"==": NewPrimitiveOp("int_==", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"!=": NewPrimitiveOp("int_!=", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"+":  NewPrimitiveOp("int_+", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"-":  NewPrimitiveOp("int_-", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"*":  NewPrimitiveOp("int_*", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"/":  NewPrimitiveOp("int_/", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"%":  NewPrimitiveOp("int_%", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+	}}},
+	&Interface{InterfaceType: Real, Definitions: &Definitions{Assignments: map[string]Expression{
+		">":  NewPrimitiveOp("real_>", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"<":  NewPrimitiveOp("real_<", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"==": NewPrimitiveOp("real_==", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"!=": NewPrimitiveOp("real_!=", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"+":  NewPrimitiveOp("real_+", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"-":  NewPrimitiveOp("real_-", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"*":  NewPrimitiveOp("real_*", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"/":  NewPrimitiveOp("real_/", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+	}}},
+	&Interface{InterfaceType: String, Definitions: &Definitions{Assignments: map[string]Expression{
+		"==": NewPrimitiveOp("string_==", Bool, NewId("$").WithType(String), NewId("$2").WithType(String)),
+		"!=": NewPrimitiveOp("string_!=", Bool, NewId("$").WithType(String), NewId("$2").WithType(String)),
+		"+":  NewPrimitiveOp("string_+", String, NewId("$").WithType(String), NewId("$2").WithType(String)),
+	}}},
+	&Interface{InterfaceType: Bool, Definitions: &Definitions{Assignments: map[string]Expression{
+		"==": NewPrimitiveOp("bool_==", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+		"!=": NewPrimitiveOp("bool_!=", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+	}}},
+}
+
+func buildInInterfaceaFor(name string) []*Interface {
+	result := []*Interface{}
+	for _, i := range global {
+		if i.Definitions.Assignments[name] != nil {
+			result = append(result, i)
+		}
+	}
+	return result
+}
+
+func interfacesFor(name string, ctx *VisitContext) []*Interface {
+	inters := ctx.InterfacesWith(name)
+	if len(inters) > 0 {
+		res := []*Interface{}
+		for _, i := range inters {
+			res = append(res, i.Interf)
+		}
+		return res
+	}
+	return buildInInterfaceaFor(name)
 }
 
 func Infer(exp Expression) error {
@@ -217,6 +231,23 @@ func Infer(exp Expression) error {
 		visited[v] = true
 		if c, ok := v.(*Const); ok {
 			typeConstant(c)
+		} else if b, ok := v.(*Branch); ok {
+			u, err := Unifier(b.Condition.Type(), Bool)
+			if err != nil {
+				return err
+			}
+			err = unifier.Combine(u)
+			if err != nil {
+				return err
+			}
+			u, err = Unifier(b.True.Type(), b.False.Type())
+			if err != nil {
+				return err
+			}
+			err = unifier.Combine(u)
+			if err != nil {
+				return err
+			}
 		} else if b, ok := v.(*Block); ok {
 			ConvertTypes(b.Value, unifier)
 			for _, a := range b.Def.Assignments {
@@ -237,8 +268,22 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if o, ok := v.(*Op); ok {
-			if err := typeOp(o, ctx); err != nil {
-				return err
+			inters := interfacesFor(o.Name, ctx)
+			wantFun := NewFunction(o.Left.Type(), o.Right.Type(), o.OpType)
+			match := false
+			for _, in := range inters {
+				it := in.Definitions.Assignments[o.Name].Type()
+				s, err := Unifier(it, wantFun)
+				if err == nil {
+					err = unifier.Combine(s)
+					if err == nil {
+						match = true
+						break
+					}
+				}
+			}
+			if !match {
+				return errors.New("no operation \"" + o.Name + "\" found of type " + Signature(wantFun))
 			}
 		} else if c, ok := v.(*FCall); ok {
 			if err := typeCall(c, unifier); err != nil {
@@ -246,9 +291,8 @@ func Infer(exp Expression) error {
 			}
 		} else if d, ok := v.(*FDef); ok {
 			ConvertTypes(d, unifier)
-			println("a")
 		} else if t, ok := v.(*TypeDecl); ok {
-			uni, err := t.DeclType.Unifier(t.Exp.Type())
+			uni, err := Unifier(t.DeclType, t.Exp.Type())
 			if err != nil {
 				return err
 			}
@@ -257,27 +301,11 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
-			inters := ctx.InterfacesWith(a.Field)
+			inters := interfacesFor(a.Field, ctx)
 			if len(inters) == 0 {
 				return errors.New("no interface with field \"" + a.Field + "\" found")
 			}
-			bindFuns := Type{}
-			for _, in := range inters {
-				tctx := types.NewTypeCopyCtx()
-				ift := in.Interf.InterfaceType
-				funt := in.Interf.Definitions.Assignments[a.Field].Type()
-				newFun := MakeFunction(ift.Copy(tctx), funt.Copy(tctx))
-				bindFuns = bindFuns.AddToUnion(newFun)
-			}
-			bindFunAct := MakeFunction(a.Exp.Type(), a.FAType)
-			uni, err := bindFuns.Unifier(bindFunAct)
-			if err != nil {
-				return err
-			}
-			err = unifier.Combine(uni)
-			if err != nil {
-				return err
-			}
+			panic("NOT IMPLEMENTED")
 		}
 		return nil
 	}
@@ -314,5 +342,7 @@ func Infer(exp Expression) error {
 		}
 		return nil
 	})
+	// TODO: skip defs / interfaces / assignments for performance
+	ConvertTypes(exp, unifier)
 	return err
 }

@@ -305,7 +305,7 @@ func (t Variable) unifier(o Type) (Substitutions, error) {
 }
 
 func (t Variable) Convert(s Substitutions) Type {
-	if r := s.substitutions[t.ID]; r != nil {
+	if r := (*s.substitutions)[t.ID]; r != nil {
 		return r
 	}
 	return t
@@ -420,7 +420,7 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 }
 
 func (t StructuralVar) Convert(s Substitutions) Type {
-	if r := s.substitutions[t.ID]; r != nil {
+	if r := (*s.substitutions)[t.ID]; r != nil {
 		return r
 	}
 	res := map[string]Type{}

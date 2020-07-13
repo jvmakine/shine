@@ -177,7 +177,7 @@ func CrawlAfter(a Ast, f VisitFunc) (map[Ast]bool, error) {
 func RewriteTypes(a Ast, f func(t types.Type, ctx *VisitContext) (types.Type, error)) error {
 	return a.Visit(NullFun, func(v Ast, ctx *VisitContext) error {
 		if op, ok := v.(*Op); ok {
-			t, err := f(op.Type(), ctx)
+			t, err := f(op.OpType, ctx)
 			if err != nil {
 				return err
 			}

@@ -160,10 +160,11 @@ func convUTE(from *UTExpression, ctx *ConvCtx) ast.Ast {
 }
 
 func convIf(from *IfExpression, ctx *ConvCtx) ast.Expression {
-	return &ast.FCall{
-		Function: &ast.Op{Name: "if"},
-		Params:   []ast.Expression{convExp(from.Cond, ctx), convExp(from.True, ctx), convExp(from.False, ctx)},
-	}
+	return ast.NewBranch(
+		convExp(from.Cond, ctx),
+		convExp(from.True, ctx),
+		convExp(from.False, ctx),
+	)
 }
 
 func convFDef(from *FDefinition, ctx *ConvCtx) ast.Ast {
@@ -243,10 +244,7 @@ func convOpComp(left ast.Expression, right []*OpComp, ctx *ConvCtx) ast.Expressi
 	if right == nil || len(right) == 0 {
 		return left
 	}
-	res := &ast.FCall{
-		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convComp(right[0].Right, ctx)},
-	}
+	res := ast.NewOp(*right[0].Operation, left, convComp(right[0].Right, ctx))
 	return convOpComp(res, right[1:], ctx)
 }
 
@@ -258,10 +256,7 @@ func convOpTerm(left ast.Expression, right []*OpTerm, ctx *ConvCtx) ast.Expressi
 	if right == nil || len(right) == 0 {
 		return left
 	}
-	res := &ast.FCall{
-		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convTerm(right[0].Right, ctx)},
-	}
+	res := ast.NewOp(*right[0].Operation, left, convTerm(right[0].Right, ctx))
 	return convOpTerm(res, right[1:], ctx)
 }
 
@@ -299,10 +294,7 @@ func convOpFact(left ast.Expression, right []*OpFactor, ctx *ConvCtx) ast.Expres
 	if right == nil || len(right) == 0 {
 		return left
 	}
-	res := &ast.FCall{
-		Function: &ast.Op{Name: *right[0].Operation},
-		Params:   []ast.Expression{left, convAccessor(right[0].Right, ctx)},
-	}
+	res := ast.NewOp(*right[0].Operation, left, convAccessor(right[0].Right, ctx))
 	return convOpFact(res, right[1:], ctx)
 }
 
