@@ -183,7 +183,7 @@ func convFDef(from *FDefinition, ctx *ConvCtx) ast.Ast {
 	} else {
 		fields := make([]*ast.StructField, len(from.Params))
 		for i, p := range from.Params {
-			td := types.Type{}
+			var td types.Type
 			if p.Type != nil {
 				td = convTypeDef(p.Type)
 			}
@@ -200,18 +200,18 @@ func convFDef(from *FDefinition, ctx *ConvCtx) ast.Ast {
 
 func convTypeDef(t *TypeDef) types.Type {
 	if t == nil {
-		return types.Type{}
+		return nil
 	}
 	if t.Primitive != "" {
 		switch t.Primitive {
 		case "int":
-			return types.IntP
+			return types.Int
 		case "real":
-			return types.RealP
+			return types.Real
 		case "bool":
-			return types.BoolP
+			return types.Bool
 		case "string":
-			return types.StringP
+			return types.String
 		default:
 			panic("invalid type: " + t.Primitive)
 		}
@@ -221,15 +221,15 @@ func convTypeDef(t *TypeDef) types.Type {
 			ps[i] = convTypeDef(p)
 		}
 		ps[len(t.Function.Params)] = convTypeDef(t.Function.Return)
-		return types.MakeFunction(ps...)
+		return types.NewFunction(ps...)
 	} else if t.Named != "" {
-		return types.MakeNamed(t.Named)
+		return types.NewNamed(t.Named, nil)
 	}
 	panic("invalid type")
 }
 
 func convFParam(from *TypedName) *ast.FParam {
-	typ := types.Type{}
+	var typ types.Type
 	if from.Type != nil {
 		typ = convTypeDef(from.Type)
 	}

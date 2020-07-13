@@ -18,6 +18,16 @@ func NewVariableID() VariableID {
 	return VariableID(uid.String())
 }
 
+type TypeCopyCtx struct {
+	vars map[VariableID]Type
+}
+
+func NewTypeCopyCtx() *TypeCopyCtx {
+	return &TypeCopyCtx{
+		vars: map[VariableID]Type{},
+	}
+}
+
 // Primitive types
 var (
 	Int    = NewPrimitive("int")
@@ -72,26 +82,26 @@ func (t Primitive) signature(ctx *signatureContext) string {
 }
 
 type Function struct {
-	fields []Type
+	Fields []Type
 }
 
 func NewFunction(ts ...Type) Function {
-	return Function{fields: ts}
+	return Function{Fields: ts}
 }
 
 func (t Function) Copy(ctx *TypeCopyCtx) Type {
-	ts := make([]Type, len(t.fields))
-	for i, f := range t.fields {
+	ts := make([]Type, len(t.Fields))
+	for i, f := range t.Fields {
 		ts[i] = f.Copy(ctx)
 	}
 	return NewFunction(ts...)
 }
 
 func (t Function) unifier(o Type) (Substitutions, error) {
-	if fun, ok := o.(Function); ok && len(fun.fields) == len(t.fields) {
+	if fun, ok := o.(Function); ok && len(fun.Fields) == len(t.Fields) {
 		result := MakeSubstitutions()
-		for i, f := range t.fields {
-			s, err := unifier(f, fun.fields[i])
+		for i, f := range t.Fields {
+			s, err := unifier(f, fun.Fields[i])
 			if err != nil {
 				return MakeSubstitutions(), err
 			}
@@ -106,8 +116,8 @@ func (t Function) unifier(o Type) (Substitutions, error) {
 }
 
 func (t Function) Convert(s Substitutions) Type {
-	ts := make([]Type, len(t.fields))
-	for i, f := range t.fields {
+	ts := make([]Type, len(t.Fields))
+	for i, f := range t.Fields {
 		ts[i] = f.Convert(s)
 	}
 	return NewFunction(ts...)
@@ -115,7 +125,7 @@ func (t Function) Convert(s Substitutions) Type {
 
 func (t Function) freeVars() []Variable {
 	res := []Variable{}
-	for _, f := range t.fields {
+	for _, f := range t.Fields {
 		res = append(res, f.freeVars()...)
 	}
 	return res
@@ -124,18 +134,18 @@ func (t Function) freeVars() []Variable {
 func (t Function) signature(ctx *signatureContext) string {
 	var sb strings.Builder
 	sb.WriteString("(")
-	if len(t.fields) > 1 {
-		for i, p := range t.fields {
+	if len(t.Fields) > 1 {
+		for i, p := range t.Fields {
 			sb.WriteString(p.signature(ctx))
-			if i < len(t.fields)-2 {
+			if i < len(t.Fields)-2 {
 				sb.WriteString(",")
-			} else if i < len(t.fields)-1 {
+			} else if i < len(t.Fields)-1 {
 				sb.WriteString(")=>")
 			}
 		}
 	} else {
 		sb.WriteString(")=>")
-		sb.WriteString(t.fields[0].signature(ctx))
+		sb.WriteString(t.Fields[0].signature(ctx))
 	}
 	return sb.String()
 }
@@ -191,17 +201,17 @@ func (t Named) signature(ctx *signatureContext) string {
 }
 
 type Structure struct {
-	fields []Named
+	Fields []Named
 }
 
-func NewStructure(fields ...Named) Structure {
-	for _, n := range fields {
+func NewStructure(Fields ...Named) Structure {
+	for _, n := range Fields {
 		if len(n.freeVars()) > 0 {
 			panic("free variables in a structure")
 		}
 	}
 	return Structure{
-		fields: fields,
+		Fields: Fields,
 	}
 }
 
@@ -210,12 +220,12 @@ func (t Structure) Copy(ctx *TypeCopyCtx) Type {
 }
 
 func (t Structure) unifier(o Type) (Substitutions, error) {
-	if s, ok := o.(Structure); ok && len(s.fields) == len(t.fields) {
+	if s, ok := o.(Structure); ok && len(s.Fields) == len(t.Fields) {
 		resmap := map[string]Type{}
-		for _, f := range t.fields {
+		for _, f := range t.Fields {
 			resmap[f.Name] = f.Type
 		}
-		for _, f := range s.fields {
+		for _, f := range s.Fields {
 			p := resmap[f.Name]
 			if p != nil {
 				_, err := unifier(f.Type, p)
@@ -243,12 +253,12 @@ func (s Structure) signature(ctx *signatureContext) string {
 	var sb strings.Builder
 	sb.WriteString("{")
 	i := 0
-	for _, f := range s.fields {
+	for _, f := range s.Fields {
 		p := f.Type
 		sb.WriteString(f.Name)
 		sb.WriteString(":")
 		sb.WriteString(p.signature(ctx))
-		if i < len(s.fields)-1 {
+		if i < len(s.Fields)-1 {
 			sb.WriteString(",")
 		}
 		i++
@@ -320,17 +330,17 @@ type StructuralVar struct {
 	Replacable
 
 	ID     VariableID
-	fields map[string]Type
+	Fields map[string]Type
 }
 
-func NewStructuralVar(fields ...Named) StructuralVar {
+func NewStructuralVar(Fields ...Named) StructuralVar {
 	fs := map[string]Type{}
-	for _, f := range fields {
+	for _, f := range Fields {
 		fs[f.Name] = f.Type
 	}
 	return StructuralVar{
 		ID:     NewVariableID(),
-		fields: fs,
+		Fields: fs,
 	}
 }
 
@@ -344,12 +354,12 @@ func (t StructuralVar) Copy(ctx *TypeCopyCtx) Type {
 		return c
 	}
 	fs := map[string]Type{}
-	for n, f := range t.fields {
+	for n, f := range t.Fields {
 		fs[n] = f.Copy(ctx)
 	}
 	copy := StructuralVar{
 		ID:     NewVariableID(),
-		fields: fs,
+		Fields: fs,
 	}
 	ctx.vars[t.ID] = copy
 	return copy
@@ -359,8 +369,8 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 	if v, ok := o.(StructuralVar); ok {
 		result := MakeSubstitutions()
 		sum := map[string]Type{}
-		for n, f := range t.fields {
-			if of := v.fields[n]; of != nil {
+		for n, f := range t.Fields {
+			if of := v.Fields[n]; of != nil {
 				sub, err := Unifier(of, f)
 				if err != nil {
 					return MakeSubstitutions(), err
@@ -374,13 +384,13 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 				sum[n] = f
 			}
 		}
-		for n, f := range v.fields {
+		for n, f := range v.Fields {
 			if sum[n] == nil {
 				sum[n] = f
 			}
 		}
 		res := StructuralVar{
-			fields: sum,
+			Fields: sum,
 			ID:     NewVariableID(),
 		}
 		result.Update(v.ID, res)
@@ -388,12 +398,12 @@ func (t StructuralVar) unifier(o Type) (Substitutions, error) {
 		return result, nil
 	}
 	if v, ok := o.(Structure); ok {
-		sfields := map[string]Type{}
-		for _, f := range v.fields {
-			sfields[f.Name] = f.Type
+		sFields := map[string]Type{}
+		for _, f := range v.Fields {
+			sFields[f.Name] = f.Type
 		}
-		for n, f := range t.fields {
-			if p := sfields[n]; p != nil {
+		for n, f := range t.Fields {
+			if p := sFields[n]; p != nil {
 				_, err := Unifier(p, f)
 				if err != nil {
 					return MakeSubstitutions(), err
@@ -414,18 +424,18 @@ func (t StructuralVar) Convert(s Substitutions) Type {
 		return r
 	}
 	res := map[string]Type{}
-	for n, f := range t.fields {
+	for n, f := range t.Fields {
 		res[n] = f.Convert(s)
 	}
 	return StructuralVar{
-		fields: res,
+		Fields: res,
 		ID:     NewVariableID(),
 	}
 }
 
 func (t StructuralVar) freeVars() []Variable {
 	res := []Variable{}
-	for _, f := range t.fields {
+	for _, f := range t.Fields {
 		res = append(res, f.freeVars()...)
 	}
 	return res
@@ -433,7 +443,7 @@ func (t StructuralVar) freeVars() []Variable {
 
 func (t StructuralVar) signature(ctx *signatureContext) string {
 	keys := []string{}
-	for n := range t.fields {
+	for n := range t.Fields {
 		keys = append(keys, n)
 	}
 	sort.Strings(keys)
@@ -450,11 +460,11 @@ func (t StructuralVar) signature(ctx *signatureContext) string {
 	sb.WriteString("{")
 	i := 0
 	for _, n := range keys {
-		f := t.fields[n]
+		f := t.Fields[n]
 		sb.WriteString(n)
 		sb.WriteString(":")
 		sb.WriteString(f.signature(ctx))
-		if i < len(t.fields)-1 {
+		if i < len(t.Fields)-1 {
 			sb.WriteString(",")
 		}
 		i++

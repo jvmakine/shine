@@ -4,14 +4,6 @@ import (
 	"errors"
 )
 
-type unificationCtx struct {
-	seenIDs map[VariableID]bool
-}
-
-func NewUnificationCtx() *unificationCtx {
-	return &unificationCtx{map[VariableID]bool{}}
-}
-
 func UnificationError(a Type, b Type) error {
 	sa := Signature(a)
 	sb := Signature(b)

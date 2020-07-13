@@ -205,19 +205,19 @@ func TestExpressionParsing(tes *testing.T) {
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(2.0), a.NewConst(true))).
 			WithAssignment("a", a.NewFDef(
-				a.NewTypeDecl(types.RealP, a.NewFCall(a.NewOp("if"),
+				a.NewTypeDecl(types.Real, a.NewFCall(a.NewOp("if"),
 					a.NewFCall(a.NewOp("&&"), a.NewId("b"), a.NewFCall(a.NewOp(">"), a.NewId("y"), a.NewConst(1.0))),
 					a.NewId("x"),
 					a.NewConst(0))),
-				&a.FParam{"x", types.IntP}, &a.FParam{"y", types.RealP}, &a.FParam{"z", types.BoolP},
+				&a.FParam{"x", types.Int}, &a.FParam{"y", types.Real}, &a.FParam{"z", types.Bool},
 			)),
 	}, {
 		name:  "parse explicit type definitions on generic expression",
 		input: `((1:int) + (2:bool)):real`,
-		want: a.NewBlock(a.NewTypeDecl(types.RealP,
+		want: a.NewBlock(a.NewTypeDecl(types.Real,
 			a.NewFCall(a.NewOp("+"),
-				a.NewTypeDecl(types.IntP, a.NewConst(1)),
-				a.NewTypeDecl(types.BoolP, a.NewConst(2)),
+				a.NewTypeDecl(types.Int, a.NewConst(1)),
+				a.NewTypeDecl(types.Bool, a.NewConst(2)),
 			),
 		)),
 	}, {
@@ -230,7 +230,7 @@ func TestExpressionParsing(tes *testing.T) {
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewId("b"))).
 			WithAssignment("a", a.NewFDef(
 				a.NewFCall(a.NewOp("if"), a.NewFCall(a.NewId("f"), a.NewId("x")), a.NewId("x"), a.NewConst(0)),
-				&a.FParam{"x", types.IntP}, &a.FParam{"f", types.MakeFunction(types.IntP, types.BoolP)},
+				&a.FParam{"x", types.Int}, &a.FParam{"f", types.NewFunction(types.Int, types.Bool)},
 			)),
 	}, {
 		name: "parse structure definitions",
@@ -240,7 +240,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewConst(1), a.NewConst(true))).
-			WithAssignment("a", a.NewStruct(a.StructField{"x", types.IntP}, a.StructField{"c", types.Type{}})),
+			WithAssignment("a", a.NewStruct(a.StructField{"x", types.Int}, a.StructField{"c", nil})),
 	}, {
 		name:  "parse simple field accessors",
 		input: `a.foo.bar`,
@@ -263,7 +263,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.
 			NewBlock(a.NewFCall(a.NewId("a"), a.NewId("b"))).
-			WithAssignment("a", a.NewFDef(a.NewId("x"), &a.FParam{"x", types.MakeNamed("A")})),
+			WithAssignment("a", a.NewFDef(a.NewId("x"), &a.FParam{"x", types.NewNamed("A", nil)})),
 	}, {
 		name: "parse typed constants",
 		input: `a:int = 5
@@ -271,7 +271,7 @@ func TestExpressionParsing(tes *testing.T) {
 			`,
 		want: a.
 			NewBlock(a.NewId("a")).
-			WithAssignment("a", a.NewTypeDecl(types.IntP, a.NewConst(5))),
+			WithAssignment("a", a.NewTypeDecl(types.Int, a.NewConst(5))),
 	}, {
 		name: "parse interface bindings to a primitive",
 		input: `a:int ~> { add = (b) => a + b }
@@ -280,10 +280,10 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1)), a.NewConst(4))).
 			WithID(2).
-			WithInterface(types.IntP, a.NewDefinitions(0).WithAssignment(
+			WithInterface(types.Int, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)).
-			WithInterface(types.IntP, a.NewDefinitions(1).WithAssignment(
+			WithInterface(types.Int, a.NewDefinitions(1).WithAssignment(
 				"sub", a.NewFDef(a.NewFCall(a.NewOp("-"), a.NewId("$"), a.NewId("x")), "x"),
 			)),
 	}, {
@@ -293,7 +293,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.NewBlock(a.NewFCall(a.NewFieldAccessor("add", a.NewConst(1.0)), a.NewConst(4.0))).
 			WithID(1).
-			WithInterface(types.Type{}, a.NewDefinitions(0).WithAssignment(
+			WithInterface(nil, a.NewDefinitions(0).WithAssignment(
 				"add", a.NewFDef(a.NewFCall(a.NewOp("+"), a.NewId("$"), a.NewId("b")), "b"),
 			)),
 	}, {
@@ -303,7 +303,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: a.NewBlock(a.NewConst(1)).
 			WithID(1).
-			WithInterface(types.MakeFunction(types.IntP, types.IntP, types.IntP), a.NewDefinitions(0).WithAssignment(
+			WithInterface(types.NewFunction(types.Int, types.Int, types.Int), a.NewDefinitions(0).WithAssignment(
 				"call", a.NewFDef(a.NewFCall(a.NewId("$"), a.NewId("a"), a.NewId("b")), "a", "b"),
 			)),
 	}}

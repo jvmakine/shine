@@ -106,7 +106,7 @@ func (e *Id) Format(b *strings.Builder, level int, options *FormatOptions) {
 	b.WriteString("\"")
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -159,7 +159,7 @@ func (e *Const) Format(b *strings.Builder, level int, options *FormatOptions) {
 	}
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -210,7 +210,7 @@ func (e *TypeDecl) Format(b *strings.Builder, level int, options *FormatOptions)
 	e.Exp.Format(b, level, options)
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -269,7 +269,7 @@ func (e *FieldAccessor) Format(b *strings.Builder, level int, options *FormatOpt
 	b.WriteString(e.Field)
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -340,7 +340,7 @@ func (e *FCall) Format(b *strings.Builder, level int, options *FormatOptions) {
 	b.WriteString(")")
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -357,7 +357,7 @@ func (call *FCall) MakeFunType() types.Type {
 		funps[i] = p.Type()
 	}
 	funps[len(call.Params)] = call.Type()
-	return types.MakeFunction(funps...)
+	return types.NewFunction(funps...)
 }
 
 func NewFCall(fun Expression, params ...Expression) *FCall {
@@ -385,7 +385,7 @@ func (e *FDef) Type() types.Type {
 		ts[i] = p.ParamType
 	}
 	ts[len(e.Params)] = e.Body.Type()
-	return types.MakeFunction(ts...)
+	return types.NewFunction(ts...)
 }
 
 func (a *FDef) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
@@ -396,10 +396,11 @@ func (a *FDef) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 			Name:      p.Name,
 		}
 	}
+	cc := (*a.Closure).Copy(ctx).(types.Structure)
 	return &FDef{
 		Params:  pc,
 		Body:    a.Body.CopyWithCtx(ctx),
-		Closure: a.Closure.Copy(ctx),
+		Closure: &cc,
 	}
 }
 
@@ -422,7 +423,7 @@ func (e *FDef) Format(b *strings.Builder, level int, options *FormatOptions) {
 		b.WriteString(p.Name)
 		if options.Types {
 			b.WriteString(":")
-			b.WriteString(p.ParamType.Signature())
+			b.WriteString(types.Signature(p.ParamType))
 		}
 		if i < len(e.Params)-1 || e.HasClosure() {
 			b.WriteString(",")
@@ -434,7 +435,7 @@ func (e *FDef) Format(b *strings.Builder, level int, options *FormatOptions) {
 			b.WriteString(p.Name)
 			if options.Types {
 				b.WriteString(":")
-				b.WriteString(p.Type.Signature())
+				b.WriteString(types.Signature(p.Type))
 			}
 			if i < len(e.Closure.Fields)-1 {
 				b.WriteString(",")
@@ -528,7 +529,7 @@ func (e *Block) Format(b *strings.Builder, level int, options *FormatOptions) {
 	b.WriteString("}")
 	if options.Types {
 		b.WriteString(":")
-		b.WriteString(e.Type().Signature())
+		b.WriteString(types.Signature(e.Type()))
 	}
 }
 
@@ -746,7 +747,7 @@ func (s *Struct) Type() types.Type {
 		ts[i] = t.Type
 	}
 	ts[len(s.Fields)] = s.StructType
-	return types.MakeFunction(ts...)
+	return types.NewFunction(ts...)
 }
 
 func (s *Struct) Format(builder *strings.Builder, level int, options *FormatOptions) {
