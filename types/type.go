@@ -28,21 +28,8 @@ func NewTypeCopyCtx() *TypeCopyCtx {
 	}
 }
 
-type UCID string
-
 type UnificationCtx interface {
 	StructuralTypeFor(name string, typ Type) Type
-	GetID() UCID
-}
-
-type MockUnificationCtx map[string]Type
-
-func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {
-	return ctx[name]
-}
-
-func (ctx MockUnificationCtx) GetID() UCID {
-	return ""
 }
 
 // Primitive types

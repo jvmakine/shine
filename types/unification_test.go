@@ -46,7 +46,7 @@ func TestType_Unify(t *testing.T) {
 			a:    NewVariable(),
 			b:    NewFunction(NewVariable(), Real),
 			want: NewFunction(NewVariable(), Real),
-		}, {
+		},{
 			name: "unifies variables within functions",
 			a:    NewFunction(Int, NewVariable()),
 			b:    NewFunction(NewVariable(), Real),
@@ -127,6 +127,11 @@ func TestType_Unify(t *testing.T) {
 			b:    NewVariable(NewNamed("a", NewFunction(Int, Int))),
 			ctx:  MockUnificationCtx{"a": NewFunction(Int, Int)},
 			want: Int,
+		}, {
+			name: "unifies variables in structures",
+			a:    NewVariable(NewNamed("a", Int), NewNamed("b", NewVariable())),
+			b:    NewVariable(NewNamed("a", NewVariable()), NewNamed("b", Real)),
+			want: NewVariable(NewNamed("a", Int), NewNamed("b", Real)),
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -149,4 +154,10 @@ func TestType_Unify(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockUnificationCtx map[string]Type
+
+func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {
+	return ctx[name]
 }
