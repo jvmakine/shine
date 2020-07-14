@@ -105,7 +105,7 @@ func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if fun, ok := o.(Function); ok && len(fun.Fields) == len(t.Fields) {
 		result := MakeSubstitutions()
 		for i, f := range t.Fields {
-			s, err := unifier(f, fun.Fields[i], ctx)
+			s, err := Unifier(f, fun.Fields[i], ctx)
 			if err != nil {
 				return MakeSubstitutions(), err
 			}
@@ -180,7 +180,7 @@ func (t Named) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	if n, ok := o.(Named); ok && n.Name != t.Name {
 		return MakeSubstitutions(), UnificationError(t, o)
 	}
-	return unifier(t.Type, o, ctx)
+	return Unifier(t.Type, o, ctx)
 }
 
 func (t Named) Convert(s Substitutions) (Type, bool) {
@@ -226,7 +226,7 @@ func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		for _, f := range s.Fields {
 			p := resmap[f.Name]
 			if p != nil {
-				_, err := unifier(f.Type, p, ctx)
+				_, err := Unifier(f.Type, p, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -380,7 +380,7 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	}
 	if f, ok := o.(Function); ok && len(f.freeVars()) > 0 {
 		stru := NewVariable(NewNamed("%call", f))
-		return unifier(stru, t, ctx)
+		return Unifier(stru, t, ctx)
 	}
 	result := MakeSubstitutions()
 	for name, typ := range t.Fields {
@@ -389,7 +389,7 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
 		ftyp := NewFunction(o, typ)
-		sub, err := unifier(in, ftyp, ctx)
+		sub, err := Unifier(in, ftyp, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}

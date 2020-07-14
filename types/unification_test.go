@@ -85,7 +85,7 @@ func TestType_Unify(t *testing.T) {
 		name: "fails to unify on name mismatch",
 		a:    NewNamed("s1", NewStructure(Named{"a", Int})),
 		b:    NewNamed("s2", NewStructure(Named{"a", Int})),
-		err:  errors.New("can not unify s1[{a:int}] with s2[{a:int}]"),
+		err:  errors.New("can not unify s1 with s2"),
 	}, {
 		name: "unifies identical recursive structures",
 		a:    recursiveStruct("data", "r", Named{"a", Int}),
@@ -120,18 +120,18 @@ func TestType_Unify(t *testing.T) {
 		name: "fails to unify conflicting structural variables with structures",
 		a:    NewNamed("a", NewStructure(NewNamed("x", Int))),
 		b:    NewVariable(NewNamed("y", NewVariable())),
-		err:  errors.New("can not unify V1{y:V2} with a[{x:int}]"),
+		err:  errors.New("can not unify V1{y:V2} with a"),
 	}, {
 		name: "unifies structural variables based on the unification context",
 		a:    Int,
 		b:    NewVariable(NewNamed("a", NewFunction(Int, Int))),
-		ctx:  MockUnificationCtx{"a": NewFunction(Int, Int)},
+		ctx:  MockUnificationCtx{"a": NewFunction(Int, NewFunction(Int, Int))},
 		want: Int,
 	}, {
 		name: "unifies structural variables based on the unification context for functions",
 		a:    NewFunction(Int, String),
 		b:    NewVariable(NewNamed("a", NewFunction(Int, String))),
-		ctx:  MockUnificationCtx{"a": NewFunction(Int, String)},
+		ctx:  MockUnificationCtx{"a": NewFunction(NewVariable(), NewFunction(Int, String))},
 		want: NewFunction(Int, String),
 	}, {
 		name: "unifies variables in structures",
