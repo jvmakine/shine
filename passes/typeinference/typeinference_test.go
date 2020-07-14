@@ -91,7 +91,7 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("a", NewId("b")).
 			WithAssignment("b", NewId("a")),
 		err: errors.New("recursive value: a -> b -> a"),
-	}, /*{
+	}, {
 		name: "work on non-recursive values",
 		exp: NewBlock(NewId("a")).
 			WithAssignment("a", NewOp("+", NewId("b"), NewId("c"))).
@@ -112,7 +112,7 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "infer functions as arguments",
 		exp: NewBlock(
-			NewFDef(NewOp("+", NewFCall(NewId("x"), NewConst(true), NewConst(2)), NewConst(1)), "x"),
+			NewFDef(NewOp("+", NewConst(1), NewFCall(NewId("x"), NewConst(true), NewConst(2))), "x"),
 		),
 		typ: "((bool,int)=>int)=>int",
 	}, {
@@ -175,7 +175,7 @@ func TestInfer(tes *testing.T) {
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.Bool, NewOp("+", NewId("x"), NewId("x"))), "x")),
 		typ: "",
-		err: errors.New("can not unify V1[int|real|string] with bool"),
+		err: errors.New("can not unify (int)=>V1 with bool"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: NewBlock(NewBranch(NewConst(true), NewId("ai"), NewId("bi"))).
@@ -207,7 +207,7 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("a", NewStruct(StructField{"a1", nil})),
 		typ: "a{a1:a}",
 		err: nil,
-	}, {
+	}, /*{
 		name: "infer function types from structure fields",
 		exp:  NewBlock(NewFDef(NewOp("+", NewFieldAccessor("a", NewId("x")), NewConst(1)), "x")),
 		typ:  "(V1{a:int})=>int",

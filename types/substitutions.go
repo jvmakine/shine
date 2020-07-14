@@ -17,7 +17,8 @@ type substCtx struct {
 }
 
 func (s Substitutions) Apply(t Type) Type {
-	return t.Convert(s)
+	conv, _ := t.Convert(s)
+	return conv
 }
 
 func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) error {
@@ -25,7 +26,7 @@ func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) erro
 		return nil
 	}
 
-	result := s.Apply(to)
+	result, changed := to.Convert(s)
 
 	if p := (*s.substitutions)[from]; p != nil {
 		uni, err := Unifier(result, p, ctx)
@@ -48,7 +49,7 @@ func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) erro
 		(*s.references)[fv.ID][from] = true
 	}
 
-	if rs := (*s.references)[from]; rs != nil {
+	if rs := (*s.references)[from]; rs != nil && changed {
 		(*s.references)[from] = nil
 		subs := MakeSubstitutions()
 		subs.Update(from, result, ctx)
