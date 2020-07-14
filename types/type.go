@@ -388,7 +388,8 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		if in == nil {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
-		sub, err := unifier(in, typ, ctx)
+		ftyp := NewFunction(o, typ)
+		sub, err := unifier(in, ftyp, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}

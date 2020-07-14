@@ -190,7 +190,7 @@ func (c VisitContext) StructuralTypeFor(name string, typ types.Type) types.Type 
 	}
 	for _, in := range ifs {
 		if types.UnifiesWith(in.Interf.InterfaceType, typ, c) {
-			return in.Interf.Definitions.Assignments[name].Type()
+			return NewFunction(in.Interf.InterfaceType, in.Interf.Definitions.Assignments[name].Type())
 		}
 	}
 	return nil

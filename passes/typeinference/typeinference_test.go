@@ -205,7 +205,7 @@ func TestInfer(tes *testing.T) {
 				WithInterface(types.Int, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
 			typ: "int",
 			err: nil,
-		}, /* {
+		}, {
 			name: "infer untyped interface function calls",
 			exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
 				WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
@@ -227,7 +227,7 @@ func TestInfer(tes *testing.T) {
 			name: "fail on invalid interface call",
 			exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
 				WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x"))),
-			err: errors.New("can not unify V1[int|real] with string"),
+			err: errors.New("can not unify V1{add:V2} with string"),
 		}, {
 			name: "infers aggregate type from all methods of an interface",
 			exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("identity", NewConst("str"))))).
@@ -235,15 +235,15 @@ func TestInfer(tes *testing.T) {
 					WithAssignment("sub", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x")).
 					WithAssignment("identity", NewFDef(NewId("$"))),
 				),
-			err: errors.New("can not unify V1[int|real] with string"),
-		}, {
+			err: errors.New("can not unify V1{identity:V2} with string"),
+		}, /* {
 			name: "infers the interface method return type from the interface type",
 			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
 				WithInterface(nil, NewDefinitions(0).
 					WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("$")), "x")),
 				),
 			typ: "int",
-		}, {
+		}, /* {
 			name: "infers the interface method return type from multiple interfaces with different types",
 			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
 				WithInterface(types.Int, NewDefinitions(0).

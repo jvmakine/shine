@@ -253,8 +253,9 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
+			et := a.Exp.Type()
 			strct := NewVariable(NewNamed(a.Field, a.FAType))
-			uni, err := Unifier(a.Exp.Type(), strct, ctx)
+			uni, err := Unifier(et, strct, ctx)
 			if err != nil {
 				return err
 			}
