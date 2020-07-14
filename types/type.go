@@ -90,11 +90,6 @@ type Function struct {
 }
 
 func NewFunction(ts ...Type) Function {
-	for _, t := range ts {
-		if _, isVar := t.(Variable); isVar {
-			panic("variable in function")
-		}
-	}
 	return Function{Fields: ts}
 }
 
@@ -121,11 +116,19 @@ func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 }
 
 func (t Function) Convert(s Substitutions) Type {
-	return t
+	ts := make([]Type, len(t.Fields))
+	for i, f := range t.Fields {
+		ts[i] = f.Convert(s)
+	}
+	return NewFunction(ts...)
 }
 
 func (t Function) freeVars() []Variable {
-	return []Variable{}
+	res := []Variable{}
+	for _, f := range t.Fields {
+		res = append(res, f.freeVars()...)
+	}
+	return res
 }
 
 func (t Function) signature(ctx *signatureContext) string {
@@ -309,6 +312,11 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		if err := result.Update(t.ID, o, ctx); err != nil {
 			return MakeSubstitutions(), err
 		}
+		if v, ok := o.(Variable); ok {
+			if err := result.Update(v.ID, t, ctx); err != nil {
+				return MakeSubstitutions(), err
+			}
+		}
 		return result, nil
 	}
 	if v, ok := o.(Variable); ok {
@@ -361,6 +369,10 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		result.Update(t.ID, v, ctx)
 		return result, nil
 	}
+	if f, ok := o.(Function); ok && len(f.freeVars()) > 0 {
+		stru := NewVariable(NewNamed("%call", f))
+		return unifier(stru, t, ctx)
+	}
 	for name, typ := range t.Fields {
 		in := ctx.StructuralTypeFor(name, o)
 		if in == nil {
@@ -380,6 +392,9 @@ func (t Variable) Convert(s Substitutions) Type {
 	if r := (*s.substitutions)[t.ID]; r != nil {
 		return r
 	}
+	if len(t.Fields) == 0 {
+		return t
+	}
 	res := map[string]Type{}
 	for n, f := range t.Fields {
 		res[n] = f.Convert(s)
@@ -391,12 +406,9 @@ func (t Variable) Convert(s Substitutions) Type {
 }
 
 func (t Variable) freeVars() []Variable {
-	res := []Variable{}
+	res := []Variable{t}
 	for _, f := range t.Fields {
 		res = append(res, f.freeVars()...)
-	}
-	if len(res) == 0 {
-		res = []Variable{t}
 	}
 	return res
 }
