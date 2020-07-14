@@ -373,17 +373,21 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		stru := NewVariable(NewNamed("%call", f))
 		return unifier(stru, t, ctx)
 	}
+	result := MakeSubstitutions()
 	for name, typ := range t.Fields {
 		in := ctx.StructuralTypeFor(name, o)
 		if in == nil {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
-		_, err := unifier(in, typ, ctx)
+		sub, err := unifier(in, typ, ctx)
+		if err != nil {
+			return MakeSubstitutions(), err
+		}
+		err = result.Combine(sub, ctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
 	}
-	result := MakeSubstitutions()
 	result.Update(t.ID, o, ctx)
 	return result, nil
 }

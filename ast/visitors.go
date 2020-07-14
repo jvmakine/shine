@@ -1,6 +1,42 @@
 package ast
 
-import "github.com/jvmakine/shine/types"
+import (
+	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
+)
+
+var global = []*Interface{
+	&Interface{InterfaceType: Int, Definitions: &Definitions{Assignments: map[string]Expression{
+		">":  NewPrimitiveOp("int_>", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"<":  NewPrimitiveOp("int_<", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"==": NewPrimitiveOp("int_==", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"!=": NewPrimitiveOp("int_!=", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"+":  NewPrimitiveOp("int_+", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"-":  NewPrimitiveOp("int_-", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"*":  NewPrimitiveOp("int_*", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"/":  NewPrimitiveOp("int_/", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"%":  NewPrimitiveOp("int_%", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+	}}},
+	&Interface{InterfaceType: Real, Definitions: &Definitions{Assignments: map[string]Expression{
+		">":  NewPrimitiveOp("real_>", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"<":  NewPrimitiveOp("real_<", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"==": NewPrimitiveOp("real_==", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"!=": NewPrimitiveOp("real_!=", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"+":  NewPrimitiveOp("real_+", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"-":  NewPrimitiveOp("real_-", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"*":  NewPrimitiveOp("real_*", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"/":  NewPrimitiveOp("real_/", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+	}}},
+	&Interface{InterfaceType: String, Definitions: &Definitions{Assignments: map[string]Expression{
+		"==": NewPrimitiveOp("string_==", Bool, NewId("$").WithType(String), NewId("$2").WithType(String)),
+		"!=": NewPrimitiveOp("string_!=", Bool, NewId("$").WithType(String), NewId("$2").WithType(String)),
+		"+":  NewPrimitiveOp("string_+", String, NewId("$").WithType(String), NewId("$2").WithType(String)),
+	}}},
+	&Interface{InterfaceType: Bool, Definitions: &Definitions{Assignments: map[string]Expression{
+		"==": NewPrimitiveOp("bool_==", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+		"!=": NewPrimitiveOp("bool_!=", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+	}}},
+}
 
 type GlobalVCtx struct {
 	visited map[Ast]bool
@@ -43,8 +79,11 @@ func (c *VisitContext) WithInterface(i *Interface) *VisitContext {
 }
 
 func NewVisitCtx() *VisitContext {
-	global := &GlobalVCtx{visited: map[Ast]bool{}}
-	return &VisitContext{parent: nil, defin: nil, def: nil, assignment: "", interf: nil, global: global}
+	gctx := &GlobalVCtx{visited: map[Ast]bool{}}
+	defin := &Definitions{
+		Interfaces: global,
+	}
+	return &VisitContext{parent: nil, defin: defin, def: nil, assignment: "", interf: nil, global: gctx}
 }
 
 func (c *VisitContext) Path() map[string]bool {
@@ -142,6 +181,19 @@ func (c *VisitContext) InterfacesWith(id string) []IResult {
 		}
 	}
 	return res
+}
+
+func (c VisitContext) StructuralTypeFor(name string, typ types.Type) types.Type {
+	ifs := c.InterfacesWith(name)
+	if len(ifs) == 0 {
+		return nil
+	}
+	for _, in := range ifs {
+		if types.UnifiesWith(in.Interf.InterfaceType, typ, c) {
+			return in.Interf.Definitions.Assignments[name].Type()
+		}
+	}
+	return nil
 }
 
 func NullFun(_ Ast, _ *VisitContext) error {

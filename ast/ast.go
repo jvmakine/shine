@@ -100,7 +100,7 @@ type PrimitiveOp struct {
 }
 
 func (e *PrimitiveOp) Type() types.Type {
-	return types.NewFunction(e.Left.Type(), e.Right.Type(), e.ReturnType)
+	return types.NewFunction(e.Right.Type(), e.ReturnType)
 }
 
 func (e *PrimitiveOp) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {

@@ -1,6 +1,7 @@
 package typeinference
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer integer comparisons as boolean",
 		exp:  NewBlock(NewOp(">", NewConst(1), NewConst(2))),
 		typ:  "bool",
-	}, /*{
+	}, {
 		name: "infer if expressions",
 		exp:  NewBlock(NewBranch(NewConst(true), NewConst(1), NewConst(2))),
 		typ:  "int",
@@ -41,7 +42,7 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "fail when adding booleans together",
 		exp:  NewOp("+", NewConst(true), NewConst(false)),
-		err:  errors.New("no operation \"+\" found of type (bool,bool)=>V1"),
+		err:  errors.New("can not unify V1{+:(bool)=>V2} with bool"),
 	}, {
 		name: "infer recursive functions",
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(false))).WithAssignment(
@@ -90,7 +91,7 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("a", NewId("b")).
 			WithAssignment("b", NewId("a")),
 		err: errors.New("recursive value: a -> b -> a"),
-	}, {
+	}, /*{
 		name: "work on non-recursive values",
 		exp: NewBlock(NewId("a")).
 			WithAssignment("a", NewOp("+", NewId("b"), NewId("c"))).
