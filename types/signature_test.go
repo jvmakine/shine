@@ -20,11 +20,11 @@ func TestType_Signature(t *testing.T) {
 	}, {
 		name: "support named structures",
 		typ:  NewNamed("data", NewStructure(Named{"a", Int}, Named{"b", Bool})),
-		want: "data[{a:int,b:bool}]",
+		want: "data",
 	}, {
 		name: "support recursive structures",
 		typ:  recursiveStruct("data", "b", Named{"a", Int}),
-		want: "data[{a:int,b:data}]",
+		want: "data",
 	}, {
 		name: "support structural variables",
 		typ:  NewVariable(NewNamed("x", Int)),

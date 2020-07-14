@@ -136,7 +136,6 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("sw", NewFDef(NewBranch(NewId("x"), NewId("a"), NewId("b")), "x")).
 			WithAssignment("r", NewFDef(NewFCall(NewId("f"), NewConst(1.0), NewConst(2.0)), "f")),
 		typ: "real",
-		err: nil,
 	}, {
 		name: "infer return values based on Closure",
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(1))).
@@ -144,37 +143,31 @@ func TestInfer(tes *testing.T) {
 				WithAssignment("b", NewFDef(NewBranch(NewId("bo"), NewId("x"), NewConst(2)), "bo")),
 				"x")),
 		typ: "int",
-		err: nil,
 	}, {
 		name: "fail on type errors in unused code",
 		exp: NewBlock(NewFCall(NewId("a"), NewConst(3))).
 			WithAssignment("a", NewFDef(NewBranch(NewConst(true), NewId("x"), NewConst(2)), "x")).
 			WithAssignment("b", NewFDef(NewBranch(NewId("bo"), NewConst(1.0), NewConst(2)), "bo")),
-		typ: "",
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "leave free variables to functions",
 		exp: NewBlock(NewBranch(NewOp("<", NewFCall(NewId("a"), NewConst(1.0)), NewConst(2.0)), NewFCall(NewId("a"), NewConst(1)), NewConst(3))).
 			WithAssignment("a", NewFDef(NewOp("+", NewId("x"), NewId("x")), "x")),
 		typ: "int",
-		err: nil,
 	}, {
 		name: "infer sequential function definitions",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewFDef(NewOp("+", NewId("x"), NewId("y")), "y"), "x")),
 		typ: "int",
-		err: nil,
 	}, {
 		name: "fail on parameter redefinitions",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewFDef(NewOp("+", NewId("x"), NewId("x")), "x"), "x")),
-		typ: "",
 		err: errors.New("redefinition of x"),
 	}, {
 		name: "fails when function return type contradicts explicit type",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.Bool, NewOp("+", NewId("x"), NewId("x"))), "x")),
-		typ: "",
 		err: errors.New("can not unify (int)=>V1 with bool"),
 	}, {
 		name: "fail to unify two different named types",
@@ -183,90 +176,84 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("b", NewStruct(StructField{"a1", types.Int})).
 			WithAssignment("ai", NewFCall(NewId("a"), NewConst(1))).
 			WithAssignment("bi", NewFCall(NewId("b"), NewConst(1))),
-		typ: "",
-		err: errors.New("can not unify a[{a1:int}] with b[{a1:int}]"),
+		err: errors.New("can not unify a with b"),
 	}, {
 		name: "fail on invalid field access",
 		exp:  NewBlock(NewFieldAccessor("xx", NewConst(1))),
-		typ:  "",
-		err:  errors.New("no interface with field \"xx\" found"),
+		err:  errors.New("can not unify V1{xx:V2} with int"),
 	}, {
 		name: "fail on unknown named type",
 		exp:  NewBlock(NewTypeDecl(types.NewNamed("t", nil), NewId("a"))),
-		typ:  "",
 		err:  errors.New("type t is undefined"),
 	}, {
 		name: "work on known named type",
 		exp: NewBlock(NewTypeDecl(types.NewNamed("t", nil), NewFCall(NewId("t"), NewConst(1)))).
 			WithAssignment("t", NewStruct(StructField{"x", types.Int})),
-		typ: "t[{x:int}]",
-		err: nil,
-	}, /* {
+		typ: "t",
+	}, {
 		name: "unify recursive types",
 		exp: NewBlock(NewFCall(NewId("a"), NewFCall(NewId("a"), NewConst(0)))).
 			WithAssignment("a", NewStruct(StructField{"a1", nil})),
-		typ: "a{a1:a}",
-		err: nil,
+		typ: "a",
 	}, /*{
-		name: "infer function types from structure fields",
-		exp:  NewBlock(NewFDef(NewOp("+", NewFieldAccessor("a", NewId("x")), NewConst(1)), "x")),
-		typ:  "(V1{a:int})=>int",
-		err:  nil,
-	},  {
-		name: "infer typed interface function calls",
-		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
-			WithInterface(types.Int, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
-		typ: "int",
-		err: nil,
-	}, {
-		name: "infer untyped interface function calls",
-		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
-			WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
-		typ: "int",
-		err: nil,
-	}, {
-		name: "infer multiple interface invocations",
-		exp: NewBlock(NewFCall(NewFieldAccessor("add", NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))), NewConst(3))).
-			WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
-		typ: "int",
-		err: nil,
-	}, {
-		name: "infer interface usage in functions",
-		exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
-			WithInterface(nil, NewDefinitions(0).WithAssignment("isOdd", NewFDef(NewOp("==", NewConst(0), NewOp("%", NewId("$"), NewConst(2)))))).
-			WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.Int})),
-		typ: "bool",
-	}, {
-		name: "fail on invalid interface call",
-		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
-			WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x"))),
-		err: errors.New("can not unify V1[int|real] with string"),
-	}, {
-		name: "infers aggregate type from all methods of an interface",
-		exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("identity", NewConst("str"))))).
-			WithInterface(nil, NewDefinitions(0).
-				WithAssignment("sub", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x")).
-				WithAssignment("identity", NewFDef(NewId("$"))),
-			),
-		err: errors.New("can not unify V1[int|real] with string"),
-	}, {
-		name: "infers the interface method return type from the interface type",
-		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
-			WithInterface(nil, NewDefinitions(0).
-				WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("$")), "x")),
-			),
-		typ: "int",
-	}, {
-		name: "infers the interface method return type from multiple interfaces with different types",
-		exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
-			WithInterface(types.Int, NewDefinitions(0).
-				WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x")),
-			).
-			WithInterface(types.Real, NewDefinitions(0).
-				WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x")),
-			),
-		typ: "int",
-	},*/
+			name: "infer function types from structure fields",
+			exp:  NewBlock(NewFDef(NewOp("+", NewFieldAccessor("a", NewId("x")), NewConst(1)), "x")),
+			typ:  "(V1{a:int})=>int",
+		}, */{
+			name: "infer typed interface function calls",
+			exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
+				WithInterface(types.Int, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
+			typ: "int",
+			err: nil,
+		}, /* {
+			name: "infer untyped interface function calls",
+			exp: NewBlock(NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))).
+				WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
+			typ: "int",
+			err: nil,
+		}, {
+			name: "infer multiple interface invocations",
+			exp: NewBlock(NewFCall(NewFieldAccessor("add", NewFCall(NewFieldAccessor("add", NewConst(1)), NewConst(2))), NewConst(3))).
+				WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"))),
+			typ: "int",
+			err: nil,
+		}, {
+			name: "infer interface usage in functions",
+			exp: NewBlock(NewFCall(NewId("f"), NewConst(2))).
+				WithInterface(nil, NewDefinitions(0).WithAssignment("isOdd", NewFDef(NewOp("==", NewConst(0), NewOp("%", NewId("$"), NewConst(2)))))).
+				WithAssignment("f", NewFDef(NewFCall(NewFieldAccessor("isOdd", NewId("x"))), &FParam{"x", types.Int})),
+			typ: "bool",
+		}, {
+			name: "fail on invalid interface call",
+			exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("add", NewConst("a")), NewConst("b")))).
+				WithInterface(nil, NewDefinitions(0).WithAssignment("add", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x"))),
+			err: errors.New("can not unify V1[int|real] with string"),
+		}, {
+			name: "infers aggregate type from all methods of an interface",
+			exp: NewBlock(NewFCall(NewFCall(NewFieldAccessor("identity", NewConst("str"))))).
+				WithInterface(nil, NewDefinitions(0).
+					WithAssignment("sub", NewFDef(NewOp("-", NewId("$"), NewId("x")), "x")).
+					WithAssignment("identity", NewFDef(NewId("$"))),
+				),
+			err: errors.New("can not unify V1[int|real] with string"),
+		}, {
+			name: "infers the interface method return type from the interface type",
+			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
+				WithInterface(nil, NewDefinitions(0).
+					WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("$")), "x")),
+				),
+			typ: "int",
+		}, {
+			name: "infers the interface method return type from multiple interfaces with different types",
+			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
+				WithInterface(types.Int, NewDefinitions(0).
+					WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x")),
+				).
+				WithInterface(types.Real, NewDefinitions(0).
+					WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x")),
+				),
+			typ: "int",
+		},*/
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {

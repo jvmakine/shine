@@ -29,6 +29,8 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 		ref := ctx.DefinitionOf(id.Name).Assignments[id.Name]
 		if _, ok := ref.(*FDef); ok {
 			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
+		} else if _, ok := ref.(*Struct); ok {
+			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
 		} else {
 			id.IdType = ref.Type()
 		}
@@ -251,11 +253,15 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
-			inters := interfacesFor(a.Field, ctx)
-			if len(inters) == 0 {
-				return errors.New("no interface with field \"" + a.Field + "\" found")
+			strct := NewVariable(NewNamed(a.Field, a.FAType))
+			uni, err := Unifier(a.Exp.Type(), strct, ctx)
+			if err != nil {
+				return err
 			}
-			panic("NOT IMPLEMENTED")
+			err = unifier.Combine(uni, ctx)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	}

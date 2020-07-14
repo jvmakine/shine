@@ -196,16 +196,7 @@ func (t Named) freeVars() []Variable {
 }
 
 func (t Named) signature(ctx *signatureContext) string {
-	if ctx.definingNamed[t.Name] {
-		return t.Name
-	}
-	ctx.definingNamed[t.Name] = true
-	var sb strings.Builder
-	sb.WriteString(t.Name)
-	sb.WriteString("[")
-	sb.WriteString(t.Type.signature(ctx))
-	sb.WriteString("]")
-	return sb.String()
+	return t.Name
 }
 
 type Structure struct {
@@ -213,18 +204,17 @@ type Structure struct {
 }
 
 func NewStructure(Fields ...Named) Structure {
-	for _, n := range Fields {
-		if len(n.freeVars()) > 0 {
-			panic("free variables in a structure")
-		}
-	}
 	return Structure{
 		Fields: Fields,
 	}
 }
 
 func (t Structure) Copy(ctx *TypeCopyCtx) Type {
-	return t
+	ts := make([]Named, len(t.Fields))
+	for i, f := range t.Fields {
+		ts[i] = NewNamed(f.Name, f.Type.Copy(ctx))
+	}
+	return NewStructure(ts...)
 }
 
 func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
@@ -250,11 +240,22 @@ func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 }
 
 func (t Structure) Convert(s Substitutions) (Type, bool) {
-	return t, false
+	ts := make([]Named, len(t.Fields))
+	changed := false
+	for i, f := range t.Fields {
+		n, c := f.Type.Convert(s)
+		ts[i] = NewNamed(f.Name, n)
+		changed = changed || c
+	}
+	return NewStructure(ts...), changed
 }
 
 func (t Structure) freeVars() []Variable {
-	return []Variable{}
+	res := []Variable{}
+	for _, f := range t.Fields {
+		res = append(res, f.Type.freeVars()...)
+	}
+	return res
 }
 
 func (s Structure) signature(ctx *signatureContext) string {
