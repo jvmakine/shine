@@ -6,6 +6,7 @@ import (
 
 	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 )
 
 type FSign = string
@@ -46,43 +47,46 @@ func ResolveFunctions(exp Expression) {
 	exp.Visit(NullFun, NullFun, true, func(v Ast, ctx *VisitContext) Ast {
 		switch e := v.(type) {
 		case *FCall:
-			resolveCall(e)
+			resolveCall(e, ctx)
 		case *Id:
-			if e.Type().IsFunction() && !strings.Contains(e.Name, "%%") {
+			_, isFun := e.Type().(Function)
+			if isFun && !strings.Contains(e.Name, "%%") {
 				resolveIdFunct(e, ctx)
 			}
 		case *FDef:
 			if ctx.NameOf(e) == "" {
 				anonCount++
 				typ := e.Type()
-				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Definitions().ID, e.Type().TSignature())
-				ctx.Definitions().Assignments[fsig] = e.CopyWithCtx(types.NewTypeCopyCtx())
+				fsig := MakeFSign("<anon"+strconv.Itoa(anonCount)+">", ctx.Definitions().ID, Signature(e.Type()))
+				ctx.Definitions().Assignments[fsig] = e.CopyWithCtx(NewTypeCopyCtx())
 				return &Id{Name: fsig, IdType: typ}
 			}
 		case *FieldAccessor:
 			interfs := ctx.InterfacesWith(e.Field)
 			for _, in := range interfs {
-				if in.Interf.InterfaceType.UnifiesWith(e.Exp.Type()) {
+				if UnifiesWith(in.Interf.InterfaceType, e.Exp.Type(), ctx) {
 					res := in.Interf
-					newName := e.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + res.InterfaceType.Signature()
+					newName := e.Field + "%interface%" + strconv.Itoa(res.Definitions.ID) + "%" + Signature(res.InterfaceType)
 					id := NewId(newName)
-					if !res.InterfaceType.IsDefined() {
+					if res.InterfaceType == nil {
 						panic("untyped interface at resolution for " + e.Field)
 					}
-					uni, err := res.InterfaceType.Unifier(e.Exp.Type())
+					uni, err := Unifier(res.InterfaceType, e.Exp.Type(), ctx)
 					if err != nil {
 						panic(err)
 					}
 					ConvertTypes(e, uni)
-					ts := append([]types.Type{e.Exp.Type()}, e.Type())
-					typ := types.MakeFunction(ts...)
+					ts := append([]Type{e.Exp.Type()}, e.Type())
+					typ := NewFunction(ts...)
 					id.IdType = typ
-					if id.IdType.IsFunction() {
-						resolveIdFunct(id, ctx)
-					}
 					call := NewFCall(id, e.Exp)
-					call.CallType = id.IdType.FunctReturn()
-					if id.IdType.HasFreeVars() {
+					if fun, isFun := id.IdType.(Function); isFun {
+						resolveIdFunct(id, ctx)
+						call.CallType = fun.Fields[len(fun.Fields)-1]
+					} else {
+						panic("field accessor must be a function")
+					}
+					if HasFreeVars(id.IdType) {
 						panic("free result type vars at resolver for " + e.Field)
 					}
 					return call
@@ -93,9 +97,9 @@ func ResolveFunctions(exp Expression) {
 	}, NewVisitCtx())
 }
 
-func resolveCall(v *FCall) {
+func resolveCall(v *FCall, ctx *VisitContext) {
 	fun := v.MakeFunType()
-	uni, err := fun.Unifier(v.Function.Type())
+	uni, err := Unifier(fun, v.Function.Type(), ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -111,22 +115,22 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 			_, isStruct := assig.(*Struct)
 			_, isBlock := assig.(*Block)
 			if isDef || isStruct || isBlock {
-				fsig := MakeFSign(v.Name, defin.ID, v.Type().TSignature())
+				fsig := MakeFSign(v.Name, defin.ID, Signature(v.Type()))
 				if defin.Assignments[fsig] == nil {
 					cop := assig.CopyWithCtx(types.NewTypeCopyCtx())
-					subs, err := cop.Type().Unifier(v.Type())
+					subs, err := Unifier(cop.Type(), v.Type(), ctx)
 					if err != nil {
 						panic(err)
 					}
 					ConvertTypes(cop, subs)
-					if cop.Type().HasFreeVars() {
-						panic("could not unify " + assig.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
+					if HasFreeVars(cop.Type()) {
+						panic("could not unify " + Signature(assig.Type()) + " u " + Signature(v.Type()) + " => " + Signature(cop.Type()))
 					}
 					defin.Assignments[fsig] = cop
 				} else {
 					f := defin.Assignments[v.Name]
 					cop := f.CopyWithCtx(types.NewTypeCopyCtx())
-					_, err := cop.Type().Unifier(v.Type())
+					_, err := Unifier(cop.Type(), v.Type(), ctx)
 					if err != nil {
 						panic(err)
 					}

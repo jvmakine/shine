@@ -6,7 +6,7 @@ import (
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/typeinference"
-	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 	"github.com/roamz/deepdiff"
 )
 
@@ -17,60 +17,60 @@ func TestResolveFunctions(t *testing.T) {
 		after  Expression
 	}{{
 		name: "resolves function signatures based on the call type",
-		before: NewBlock(NewFCall(NewOp("if"),
+		before: NewBlock(NewBranch(
 			NewFCall(NewId("a"), NewConst(true), NewConst(true), NewConst(false)),
 			NewFCall(NewId("a"), NewConst(true), NewConst(5), NewConst(6)),
 			NewConst(7)),
 		).WithID(1).WithAssignment("a",
-			NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x"),
+			NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x"),
 		),
-		after: NewBlock(NewFCall(NewOp("if"),
+		after: NewBlock(NewBranch(
 			NewFCall(NewId("a%%1%%(bool,bool,bool)=>bool"), NewConst(true), NewConst(true), NewConst(false)),
 			NewFCall(NewId("a%%1%%(bool,int,int)=>int"), NewConst(true), NewConst(5), NewConst(6)),
 			NewConst(7)),
-		).WithAssignment("a", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
-			WithAssignment("a%%1%%(bool,bool,bool)=>bool", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
-			WithAssignment("a%%1%%(bool,int,int)=>int", NewFDef(NewFCall(NewOp("if"), NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
+		).WithAssignment("a", NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
+			WithAssignment("a%%1%%(bool,bool,bool)=>bool", NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
+			WithAssignment("a%%1%%(bool,int,int)=>int", NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
 	}, {
 		name: "resolves functions as arguments",
 		before: NewBlock(NewFCall(NewId("a"), NewId("b"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("b", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("b%%1%%(int,int)=>int"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("b", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("b", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
 	}, {
 		name: "resolves anonymous functions",
-		before: NewBlock(NewFCall(NewId("a"), NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y"))).
+		before: NewBlock(NewFCall(NewId("a"), NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("<anon1>%%1%%(int,int)=>int"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
 	}, {
 		name: "resolves simple structures",
 		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})).
+			WithAssignment("a", NewStruct(ast.StructField{"x", Int})).
 			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.IntP})).
-			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})).
+			WithAssignment("a", NewStruct(ast.StructField{"x", Int})).
+			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", Int})).
 			WithID(1),
 	}, {
 		name: "resolves multitype structures",
 		before: NewBlock(NewFCall(NewId("a"), NewFCall(NewId("a"), NewConst(1)))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})).
+			WithAssignment("a", NewStruct(ast.StructField{"x", NewVariable()})).
 			WithID(1),
 		after: NewBlock(NewFCall(NewId("a%%1%%(a{x:int})=>a"), NewFCall(NewId("a%%1%%(int)=>a{x:int}"), NewConst(1)))).
-			WithAssignment("a", NewStruct(ast.StructField{"x", types.MakeVariable()})).
-			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", types.IntP})).
-			WithAssignment("a%%1%%(a{x:int})=>a", NewStruct(ast.StructField{"x", types.MakeNamed("a")})).
+			WithAssignment("a", NewStruct(ast.StructField{"x", NewVariable()})).
+			WithAssignment("a%%1%%(int)=>a{x:int}", NewStruct(ast.StructField{"x", Int})).
+			WithAssignment("a%%1%%(a{x:int})=>a", NewStruct(ast.StructField{"x", NewNamed("a", nil)})).
 			WithID(1),
 	}}
 	for _, tt := range tests {
@@ -88,8 +88,8 @@ func TestResolveFunctions(t *testing.T) {
 }
 
 func eraseType(e Expression) {
-	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
-		return types.IntP, nil
+	RewriteTypes(e, func(t Type, ctx *VisitContext) (Type, error) {
+		return Int, nil
 	})
 	VisitBefore(e, func(v Ast, ctx *VisitContext) error {
 		if b, ok := v.(*Block); ok {

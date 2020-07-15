@@ -456,3 +456,7 @@ func (t Variable) signature(ctx *signatureContext) string {
 	}
 	return sb.String()
 }
+
+func HasFreeVars(t Type) bool {
+	return len(t.freeVars()) > 0
+}

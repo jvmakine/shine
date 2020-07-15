@@ -6,7 +6,7 @@ import (
 
 	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/passes/typeinference"
-	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 	"github.com/roamz/deepdiff"
 )
 
@@ -19,36 +19,36 @@ func TestResolve(t *testing.T) {
 	}{{
 		name: "converts interface call into a function",
 		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
-			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			WithInterface(Int, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)),
-		after: NewBlock(NewFCall(NewFCall(NewId("a%interface%0%int"), NewConst(0)), NewConst(1))).
-			WithAssignment("a%interface%0%int", NewFDef(NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"), "$")).
-			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+		after: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
+			WithAssignment("a%interface%0%int", NewFDef(NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"), "$")).
+			WithInterface(Int, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)),
 	}, {
 		name: "returns an error if a method is declared twice for the same type",
 		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
-			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			WithInterface(Int, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)).
-			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			WithInterface(Int, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)),
 		after: nil,
 		err:   errors.New("a declared twice for unifiable types: int, int"),
 	}, {
 		name: "returns an error if a method could unify to two different implementations",
 		before: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(0)), NewConst(1))).
-			WithInterface(types.IntP, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			WithInterface(Int, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)).
-			WithInterface(types.Type{}, NewDefinitions(0).WithAssignment(
-				"a", NewFDef(NewFCall(NewOp("+"), NewId("$"), NewId("x")), "x"),
+			WithInterface(nil, NewDefinitions(0).WithAssignment(
+				"a", NewFDef(NewOp("+", NewId("$"), NewId("x")), "x"),
 			)),
 		after: nil,
-		err:   errors.New("a declared twice for unifiable types: V1[int|real|string], int"),
+		err:   errors.New("a declared twice for unifiable types: V1{+:(V2)=>V3}, int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -75,8 +75,8 @@ func TestResolve(t *testing.T) {
 }
 
 func eraseType(e Expression) {
-	RewriteTypes(e, func(t types.Type, ctx *VisitContext) (types.Type, error) {
-		return types.IntP, nil
+	RewriteTypes(e, func(t Type, ctx *VisitContext) (Type, error) {
+		return nil, nil
 	})
 	VisitBefore(e, func(v Ast, ctx *VisitContext) error {
 		if b, ok := v.(*Block); ok {
