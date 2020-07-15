@@ -215,13 +215,6 @@ func Infer(exp Expression) error {
 					ConvertTypes(a, unifier)
 				}
 			}
-			newinfers := []*Interface{}
-			for _, i := range b.Def.Interfaces {
-				ConvertTypes(i.Definitions, unifier)
-				i.InterfaceType = unifier.Apply(i.InterfaceType)
-				newinfers = append(newinfers, i)
-			}
-			b.Def.Interfaces = newinfers
 		} else if i, ok := v.(*Id); ok {
 			if err := typeId(i, ctx, unifier); err != nil {
 				return err

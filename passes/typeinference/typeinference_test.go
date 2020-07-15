@@ -236,14 +236,19 @@ func TestInfer(tes *testing.T) {
 					WithAssignment("identity", NewFDef(NewId("$"))),
 				),
 			err: errors.New("can not unify V1{identity:V2} with string"),
-		}, /*{
+		}, {
+			name: "support functions summing over same argument",
+			exp: NewBlock(NewFCall(NewId("a"), NewConst(0))).
+				WithAssignment("a", NewFDef(NewOp("+", NewId("x"), NewId("x")), "x")),
+			typ: "int",
+		}, {
 			name: "infers the interface method return type from the interface type",
 			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)))).
 				WithInterface(nil, NewDefinitions(0).
 					WithAssignment("a", NewFDef(NewOp("+", NewId("$"), NewId("$")))),
 				),
 			typ: "int",
-		}, */{
+		}, {
 			name: "infers the interface method return type from multiple interfaces with different types",
 			exp: NewBlock(NewFCall(NewFieldAccessor("a", NewConst(1)), NewConst(1))).
 				WithInterface(types.Int, NewDefinitions(0).

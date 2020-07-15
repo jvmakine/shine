@@ -49,10 +49,6 @@ type Type interface {
 	signature(ctx *signatureContext) string
 }
 
-type Replacable interface {
-	GetVariableID() VariableID
-}
-
 type Primitive struct {
 	ID string
 }
@@ -277,8 +273,6 @@ func (s Structure) signature(ctx *signatureContext) string {
 }
 
 type Variable struct {
-	Replacable
-
 	ID     VariableID
 	Fields map[string]Type
 }
@@ -292,10 +286,6 @@ func NewVariable(Fields ...Named) Variable {
 		ID:     NewVariableID(),
 		Fields: fs,
 	}
-}
-
-func (t Variable) GetVariableID() VariableID {
-	return t.ID
 }
 
 func (t Variable) Copy(ctx *TypeCopyCtx) Type {

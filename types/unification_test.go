@@ -167,6 +167,29 @@ func TestType_Unify(t *testing.T) {
 	}
 }
 
+func TestType_RecursiveUnify(t *testing.T) {
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", var1))
+	ctx := MockUnificationCtx{"a": NewFunction(Int, Int)}
+
+	result, err := Unifier(var1, var2, ctx)
+	if err != nil {
+		t.Errorf("Type.Unify() error = %v", err)
+		return
+	}
+	err = result.Update(var1.ID, Int, ctx)
+	if err != nil {
+		t.Errorf("Type.Unify() error = %v", err)
+		return
+	}
+	typ, _ := var1.Convert(result)
+	p, isP := typ.(Primitive)
+	if !isP || p.ID != "int" {
+		t.Errorf("result is not an int")
+		return
+	}
+}
+
 type MockUnificationCtx map[string]Type
 
 func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {
