@@ -8,7 +8,9 @@ import (
 var global = []*Interface{
 	&Interface{InterfaceType: Int, Definitions: &Definitions{Assignments: map[string]Expression{
 		">":  NewPrimitiveOp("int_>", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		">=": NewPrimitiveOp("int_>=", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
 		"<":  NewPrimitiveOp("int_<", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
+		"<=": NewPrimitiveOp("int_<=", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
 		"==": NewPrimitiveOp("int_==", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
 		"!=": NewPrimitiveOp("int_!=", Bool, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
 		"+":  NewPrimitiveOp("int_+", Int, NewId("$").WithType(Int), NewId("$2").WithType(Int)),
@@ -19,7 +21,9 @@ var global = []*Interface{
 	}}},
 	&Interface{InterfaceType: Real, Definitions: &Definitions{Assignments: map[string]Expression{
 		">":  NewPrimitiveOp("real_>", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		">=": NewPrimitiveOp("real_>=", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
 		"<":  NewPrimitiveOp("real_<", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
+		"<=": NewPrimitiveOp("real_<=", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
 		"==": NewPrimitiveOp("real_==", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
 		"!=": NewPrimitiveOp("real_!=", Bool, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
 		"+":  NewPrimitiveOp("real_+", Real, NewId("$").WithType(Real), NewId("$2").WithType(Real)),
