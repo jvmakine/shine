@@ -25,9 +25,12 @@ func CollectClosures(exp Expression) {
 			closureAt[v] = map[string]Type{a.Name: a.IdType}
 			if b := ctx.DefinitionOf(a.Name); b != nil {
 				def := b.Assignments[a.Name]
-				if d, ok := def.(*FDef); ok && def.Type().IsFunction() && d.Closure != nil {
-					for _, c := range d.Closure.Fields {
-						closureAt[v][c.Name] = c.Type
+				if d, ok := def.(*FDef); ok {
+					_, isFun := def.Type().(Function)
+					if isFun && d.Closure != nil {
+						for _, c := range d.Closure.Fields {
+							closureAt[v][c.Name] = c.Type
+						}
 					}
 				}
 			}
@@ -67,10 +70,15 @@ func CollectClosures(exp Expression) {
 					closureAt[v][k] = b
 				}
 			}
-			result := Structure{Name: "", Fields: []SField{}}
+			result := NewStructure()
 			for n, t := range closureAt[v] {
-				if d := ctx.DefinitionOf(n); d == nil || !d.Assignments[n].Type().IsFunction() {
-					result.Fields = append(result.Fields, SField{Name: n, Type: t})
+				d := ctx.DefinitionOf(n)
+				isFun := false
+				if d != nil {
+					_, isFun = d.Assignments[n].Type().(Function)
+				}
+				if !isFun {
+					result.Fields = append(result.Fields, NewNamed(n, t))
 				}
 			}
 			a.Closure = &result

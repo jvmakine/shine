@@ -2,12 +2,12 @@ package optimisation
 
 import (
 	. "github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 )
 
 // Optimise sequential function definitions into one when called with multiple arguments
 func SequentialFunctionPass(exp Expression) {
-	tctx := types.NewTypeCopyCtx()
+	tctx := NewTypeCopyCtx()
 
 	CrawlBefore(exp, func(v Ast, ctx *VisitContext) error {
 		if c, ok := v.(*FCall); ok {
@@ -15,7 +15,7 @@ func SequentialFunctionPass(exp Expression) {
 			var def *FDef
 			var defin *Definitions
 			var id string
-			var typ types.Type
+			var typ Type
 			changed := false
 
 			if i, ok := root.(*Id); ok {
@@ -55,8 +55,9 @@ func SequentialFunctionPass(exp Expression) {
 
 				_, isDefB = def.Body.(*FDef)
 				fcall, isFCall = fcall.Function.(*FCall)
-				ts := append(typ.FunctParams(), (*typ.FunctReturn().Function)...)
-				typ = types.MakeFunction(ts...)
+				ftyp := typ.(Function)
+				ts := append(ftyp.Params(), (ftyp.Return().(Function).Fields)...)
+				typ = NewFunction(ts...)
 			}
 
 			if changed {

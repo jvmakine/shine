@@ -15,10 +15,11 @@ func ClosureRemoval(exp Expression) {
 					for _, c := range d.Closure.Fields {
 						newparams = append(newparams, &FParam{Name: c.Name, ParamType: c.Type})
 					}
+					cls := types.NewStructure()
 					b.Def.Assignments[newname] = &FDef{
 						Body:    d.Body,
 						Params:  newparams,
-						Closure: types.MakeStructure("").Structure,
+						Closure: &cls,
 					}
 				}
 			}

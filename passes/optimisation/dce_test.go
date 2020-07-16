@@ -20,11 +20,11 @@ func TestDCE(t *testing.T) {
 	}{{
 		name: "removes unused assignments from blocks",
 		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
-			WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x")).
+			WithAssignment("a", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x")).
 			WithAssignment("y", NewConst(5)).
 			WithAssignment("z", NewConst(4)),
 		after: NewBlock(NewFCall(NewId("a"), NewConst(1))).
-			WithAssignment("a", NewFDef(NewFCall(NewOp("+"), NewId("x"), NewId("y")), "x")).
+			WithAssignment("a", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x")).
 			WithAssignment("y", NewConst(5)),
 	}}
 	for _, tt := range tests {
@@ -38,6 +38,8 @@ func TestDCE(t *testing.T) {
 				panic(err)
 			}
 			DeadCodeElimination(tt.before)
+			eraseType(tt.after)
+			eraseType(tt.before)
 			if !reflect.DeepEqual(tt.before, tt.after) {
 				t.Errorf("Resolve() = %v, want %v", tt.before, tt.after)
 			}

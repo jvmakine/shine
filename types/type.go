@@ -153,6 +153,14 @@ func (t Function) signature(ctx *signatureContext) string {
 	return sb.String()
 }
 
+func (t Function) Params() []Type {
+	return t.Fields[:((len(t.Fields)) - 1)]
+}
+
+func (t Function) Return() Type {
+	return t.Fields[(len(t.Fields))-1]
+}
+
 type Named struct {
 	Name string
 	Type Type

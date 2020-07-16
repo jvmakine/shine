@@ -22,6 +22,9 @@ func newSubstCtx() *substitutionCtx {
 }
 
 func (s Substitutions) Apply(t Type) Type {
+	if t == nil {
+		return nil
+	}
 	conv, _ := t.Convert(s)
 	return conv
 }

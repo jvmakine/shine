@@ -536,11 +536,15 @@ func (a *FDef) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
 			Name:      p.Name,
 		}
 	}
-	cc := (*a.Closure).Copy(ctx).(types.Structure)
+	var cc *types.Structure = nil
+	if a.Closure != nil {
+		c := (*a.Closure).Copy(ctx).(types.Structure)
+		cc = &c
+	}
 	return &FDef{
 		Params:  pc,
 		Body:    a.Body.CopyWithCtx(ctx),
-		Closure: &cc,
+		Closure: cc,
 	}
 }
 
