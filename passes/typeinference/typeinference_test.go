@@ -5,7 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/types"
 )
 
@@ -276,4 +278,32 @@ func TestInfer(tes *testing.T) {
 			}
 		})
 	}
+}
+
+func TestComplexInferences(t *testing.T) {
+	p, _ := grammar.Parse(`
+		operate = (x, y, f) => { f(x, y) }
+		add = (x, y) => { x + y }
+		sub = (x, y) => { x - y }
+		pick = (b) => { if (b) sub else add }
+		
+		operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
+	`)
+	a := p.ToAst()
+	err := Infer(a)
+	if err != nil {
+		t.Error(err)
+	}
+	sign := types.Signature(a.Type())
+	if sign != "int" {
+		t.Error("got " + sign + ", expected int")
+	}
+	ast.VisitAfter(a.(*Block).Value, func(v ast.Ast, ctx *ast.VisitContext) error {
+		if e, ok := v.(ast.Expression); ok {
+			if types.HasFreeVars(e.Type()) {
+				t.Error("free variables in the root expression: " + ast.Stringify(e))
+			}
+		}
+		return nil
+	})
 }

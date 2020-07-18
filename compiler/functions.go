@@ -2,6 +2,7 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/passes/callresolver"
+	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/enum"
 )
@@ -51,7 +52,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			subCtx.loadClosure(v.Def.Closure, ir.NewParam("+cls", ClosurePType))
+			subCtx.loadClosure(*v.Def.Closure, ir.NewParam("+cls", ClosurePType))
 			result := compileExp(v.Def.Body, subCtx, true)
 			if result.value != nil { // result can be nil if it has already been returned from the function
 				subCtx.ret(result)
@@ -67,7 +68,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			s := subCtx.makeStructure(v.Struct.StructType.Structure, nil)
+			s := subCtx.makeStructure(v.Struct.StructType.(t.Structure), nil)
 			subCtx.Block.NewRet(s)
 		}
 	}

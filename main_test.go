@@ -11,6 +11,10 @@ func TestCompile(t *testing.T) {
 		program string
 		err     error
 	}{ /*{
+			name:    "compiles a simple expression",
+			program: `1 + 2`,
+			err:     nil,
+		}, */{
 			name: "compiles functions as variables program without errors",
 			program: `
 							operate = (x, y, f) => { f(x, y) }
@@ -21,7 +25,7 @@ func TestCompile(t *testing.T) {
 							operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
 						`,
 			err: nil,
-		}, {
+		}, /*{
 			name: "compile euler2 without errors",
 			program: `
 									agg = (p2, p1, u, sum) => {
@@ -144,7 +148,7 @@ func TestCompile(t *testing.T) {
 					b(1, 2)
 				`,
 			err: nil,
-		}, */{
+		}, {
 			name: "support interface types in resolution",
 			program: `
 				a:int ~> { add = (x) => a + x }
@@ -152,7 +156,7 @@ func TestCompile(t *testing.T) {
 				f = (x) => x.add(4)
 				f(2)
 			`,
-		}}
+		}*/}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := Compile(tt.program)

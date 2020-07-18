@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"github.com/jvmakine/shine/ast"
-	t "github.com/jvmakine/shine/types"
+	. "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir"
 	"github.com/llir/llvm/ir/constant"
 	"github.com/llir/llvm/ir/enum"
@@ -18,7 +18,7 @@ func compileExp(from ast.Expression, ctx *context, funcRoot bool) cresult {
 	} else if c, ok := from.(*ast.FCall); ok {
 		return compileCall(c, ctx, funcRoot)
 	} else if d, ok := from.(*ast.FDef); ok {
-		panic("non resolved anonymous function: " + d.Type().Signature())
+		panic("non resolved anonymous function: " + Signature(d.Type()))
 	} else if b, ok := from.(*ast.Block); ok {
 		return compileBlock(b, ctx, funcRoot)
 	} else if t, ok := from.(*ast.TypeDecl); ok {
@@ -31,11 +31,11 @@ func compileExp(from ast.Expression, ctx *context, funcRoot bool) cresult {
 	panic("invalid empty expression")
 }
 
-func getStructFieldIndex(s *t.Structure, name string) int {
+func getStructFieldIndex(s Structure, name string) int {
 	index := 0
 	found := false
 	for _, v := range s.Fields {
-		if v.Type.IsFunction() {
+		if IsFunction(v.Type) {
 			if v.Name == name {
 				found = true
 				break
@@ -45,7 +45,7 @@ func getStructFieldIndex(s *t.Structure, name string) int {
 	}
 	if !found {
 		for _, v := range s.Fields {
-			if v.Type.IsStructure() || v.Type.IsString() {
+			if IsStructure(v.Type) || IsString(v.Type) {
 				if v.Name == name {
 					found = true
 					break
@@ -56,7 +56,7 @@ func getStructFieldIndex(s *t.Structure, name string) int {
 	}
 	if !found {
 		for _, v := range s.Fields {
-			if !v.Type.IsStructure() && !v.Type.IsFunction() {
+			if !IsStructure(v.Type) && !IsFunction(v.Type) {
 				if v.Name == name {
 					found = true
 					break
@@ -74,10 +74,10 @@ func getStructFieldIndex(s *t.Structure, name string) int {
 func compileFAccess(fa *ast.FieldAccessor, ctx *context) cresult {
 	cstru := compileExp(fa.Exp, ctx, false)
 	tstru := fa.Exp.Type()
-	ctyp := structureType(tstru.Structure, false)
+	ctyp := structureType(tstru.(Structure), false)
 	typ := types.NewPointer(ctyp)
 	bc := ctx.Block.NewBitCast(cstru.value, typ)
-	index := getStructFieldIndex(tstru.Structure, fa.Field)
+	index := getStructFieldIndex(tstru.(Structure), fa.Field)
 	ptr := ctx.Block.NewGetElementPtr(ctyp, bc, constant.NewInt(types.I32, 0), constant.NewInt(types.I32, int64(index+3)))
 	res := ctx.Block.NewLoad(getType(fa.Type()), ptr)
 	return makeCR(fa, res)
@@ -102,7 +102,7 @@ func compileID(id *ast.Id, ctx *context) cresult {
 	name := id.Name
 	if ctx.isFun(name) {
 		f := ctx.global.functions[name]
-		clj := ctx.makeStructure(f.From.Closure, f.Fun)
+		clj := ctx.makeStructure(*f.From.Closure, f.Fun)
 		return makeCR(id, clj)
 	}
 	r, err := ctx.resolveId(name)
@@ -160,52 +160,52 @@ func compileIf(c ast.Expression, t ast.Expression, f ast.Expression, ctx *contex
 func compileBinOp(from *ast.FCall, exp ast.Expression, op string, params []cresult, ctx *context) cresult {
 	switch op {
 	case "*":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFMul(params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewMul(params[0].value, params[1].value))
 	case "/":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFDiv(params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewUDiv(params[0].value, params[1].value))
 	case "%":
 		return makeCR(exp, ctx.Block.NewURem(params[0].value, params[1].value))
 	case "+":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFAdd(params[0].value, params[1].value))
-		} else if from.Params[0].Type().AsPrimitive() == t.String {
+		} else if from.Params[0].Type() == String {
 			v := ctx.Block.NewCall(ctx.global.utils.PVCombine16, params[0].value, params[1].value)
 			return makeCR(exp, v)
 		}
 		return makeCR(exp, ctx.Block.NewAdd(params[0].value, params[1].value))
 	case "-":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFSub(params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewSub(params[0].value, params[1].value))
 	case ">":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value))
 	case "<":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value))
 	case ">=":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value))
 	case "<=":
-		if from.Params[0].Type().AsPrimitive() == t.Real {
+		if from.Params[0].Type() == Real {
 			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value))
 		}
 		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
 	case "==":
-		if from.Params[0].Type().IsString() {
+		if from.Params[0].Type() == String {
 			v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, params[0].value, params[1].value)
 			r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
 			return makeCR(exp, r)
@@ -315,12 +315,12 @@ func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
 				if err != nil {
 					panic(err)
 				}
-				if c.Type().IsFunction() {
+				if IsFunction(c.Type()) {
 					closureids[k] = v.value
 					if _, isId := c.(*ast.Id); isId { // TODO: Optimise renames away
 						sub.incRef(v.value)
 					}
-				} else if c.Type().IsStructure() || c.Type().IsString() {
+				} else if IsStructure(c.Type()) || IsString(c.Type()) {
 					structids[k] = v.value
 					if _, isId := c.(*ast.Id); isId { // TODO: Optimise renames away
 						sub.incRef(v.value)
@@ -352,7 +352,7 @@ func collectDeps(exp ast.Expression, c *context) []string {
 		if id, ok := v.(*ast.Id); ok {
 			name := id.Name
 			ids[name] = true
-			if id.Type().IsFunction() && c.isFun(name) {
+			if IsFunction(id.Type()) && c.isFun(name) {
 				f := c.resolveFun(name)
 				if f.From.HasClosure() {
 					for _, c := range f.From.Closure.Fields {

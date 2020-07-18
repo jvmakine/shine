@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/compiler"
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/passes/callresolver"
@@ -45,6 +46,9 @@ func Compile(text string) (*ir.Module, error) {
 	}
 
 	optimisation.SequentialFunctionPass(ast)
+
+	fmt.Fprintln(os.Stderr, Format(ast, &FormatOptions{Types: true}))
+
 	callresolver.ResolveFunctions(ast)
 	closureresolver.CollectClosures(ast)
 	optimisation.ClosureRemoval(ast)

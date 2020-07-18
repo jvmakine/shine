@@ -1,6 +1,7 @@
 package compiler
 
 import (
+	. "github.com/jvmakine/shine/types"
 	t "github.com/jvmakine/shine/types"
 	"github.com/llir/llvm/ir/types"
 )
@@ -19,7 +20,7 @@ var (
 	RealType = types.Double
 )
 
-func structureType(s *t.Structure, closure bool) types.Type {
+func structureType(s t.Structure, closure bool) types.Type {
 	extra := 3
 	if closure {
 		extra = 4
@@ -34,20 +35,20 @@ func structureType(s *t.Structure, closure bool) types.Type {
 
 	structures := 0
 	for _, p := range s.Fields {
-		if p.Type.IsStructure() {
+		if IsStructure(p.Type) {
 			ps[extra+structures] = getType(p.Type)
 			structures++
-		} else if p.Type.IsFunction() {
+		} else if IsFunction(p.Type) {
 			ps[extra+structures] = FunType
 			structures++
-		} else if p.Type.IsString() {
+		} else if IsString(p.Type) {
 			ps[extra+structures] = StringPType
 			structures++
 		}
 	}
 	primitives := 0
 	for _, p := range s.Fields {
-		if !p.Type.IsFunction() && !p.Type.IsStructure() && !p.Type.IsString() {
+		if !IsFunction(p.Type) && !IsStructure(p.Type) && !IsString(p.Type) {
 			ps[extra+structures+primitives] = getType(p.Type)
 			primitives++
 		}
@@ -55,9 +56,10 @@ func structureType(s *t.Structure, closure bool) types.Type {
 	return types.NewStruct(ps...)
 }
 
-func getFunctPtr(fun t.Type) types.Type {
-	ret := getType(fun.FunctReturn())
-	fparams := fun.FunctParams()
+func getFunctPtr(funt t.Type) types.Type {
+	fun := funt.(Function)
+	ret := getType(fun.Return())
+	fparams := fun.Params()
 	params := make([]types.Type, len(fparams)+1)
 	for i, p := range fparams {
 		params[i] = getType(p)
@@ -67,12 +69,15 @@ func getFunctPtr(fun t.Type) types.Type {
 }
 
 func getType(typ t.Type) types.Type {
-	if !typ.IsDefined() && !typ.IsVariable() {
+	_, isVar := typ.(Variable)
+	if typ == nil && !isVar {
 		panic("trying to use undefined type at compilation")
 	}
-	if typ.IsPrimitive() {
+	_, isPrim := typ.(Primitive)
+	_, isNamed := typ.(Named)
+	if isPrim {
 		var rtype types.Type = nil
-		switch typ.AsPrimitive() {
+		switch typ {
 		case t.Int:
 			rtype = IntType
 		case t.Bool:
@@ -85,12 +90,12 @@ func getType(typ t.Type) types.Type {
 			panic("unsupported type at compilation")
 		}
 		return rtype
-	} else if typ.IsFunction() {
+	} else if IsFunction(typ) {
 		return FunType
-	} else if typ.IsStructure() {
+	} else if IsStructure(typ) {
 		return StruType
-	} else if typ.IsNamed() {
+	} else if isNamed {
 		panic("trying to use named type at compilation")
 	}
-	panic("invalid type: " + typ.Signature())
+	panic("invalid type: " + Signature(typ))
 }

@@ -124,7 +124,7 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 					}
 					ConvertTypes(cop, subs)
 					if HasFreeVars(cop.Type()) {
-						panic("could not unify " + Signature(assig.Type()) + " u " + Signature(v.Type()) + " => " + Signature(cop.Type()))
+						panic("could not unify " + fsig)
 					}
 					defin.Assignments[fsig] = cop
 				} else {

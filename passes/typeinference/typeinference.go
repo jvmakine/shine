@@ -22,11 +22,12 @@ func typeConstant(constant *Const) {
 }
 
 func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
-	defin := ctx.DefinitionOf(id.Name)
-	if ctx.Path()[id.Name] {
+	name := id.Name
+	defin := ctx.DefinitionOf(name)
+	if ctx.Path()[name] {
 		id.IdType = NewVariable()
-	} else if defin != nil && ctx.DefinitionOf(id.Name).Assignments[id.Name] != nil {
-		ref := ctx.DefinitionOf(id.Name).Assignments[id.Name]
+	} else if defin != nil && ctx.DefinitionOf(name).Assignments[name] != nil {
+		ref := ctx.DefinitionOf(name).Assignments[name]
 		if _, ok := ref.(*FDef); ok {
 			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
 		} else if _, ok := ref.(*Struct); ok {
@@ -34,34 +35,26 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 		} else {
 			id.IdType = ref.Type()
 		}
-	} else if p := ctx.ParamOf(id.Name); p != nil {
+	} else if p := ctx.ParamOf(name); p != nil {
 		id.IdType = p.ParamType
 	} else {
-		if id.Name == "$" {
+		if name == "$" {
 			inter := ctx.Interface()
 			if inter == nil {
 				panic("$ id outside of an interface")
 			}
 			id.IdType = inter.InterfaceType
 		} else {
-			return errors.New("undefined id " + id.Name)
+			return errors.New("undefined id " + name)
 		}
 	}
 	return nil
 }
 
 func typeCall(call *FCall, unifier Substitutions, ctx *VisitContext) error {
-	call.CallType = NewVariable()
-	ftype := call.MakeFunType()
-	s, err := Unifier(ftype, call.Function.Type(), ctx)
-	if err != nil {
-		return err
-	}
-	call.CallType = s.Apply(call.CallType)
-	for _, p := range call.Params {
-		ConvertTypes(p, s)
-	}
-	return unifier.Combine(s, ctx)
+	ftype1 := call.MakeFunType()
+	ftype2 := call.Function.Type()
+	return unifier.Add(ftype1, ftype2, ctx)
 }
 
 func initialiseVariables(exp Expression) error {
@@ -76,6 +69,8 @@ func initialiseVariables(exp Expression) error {
 					p.ParamType = NewVariable()
 				}
 			}
+		} else if c, ok := v.(*FCall); ok {
+			c.CallType = NewVariable()
 		} else if o, ok := v.(*Op); ok {
 			o.OpType = NewVariable()
 		} else if b, ok := v.(*Block); ok {
@@ -191,24 +186,15 @@ func Infer(exp Expression) error {
 		if c, ok := v.(*Const); ok {
 			typeConstant(c)
 		} else if b, ok := v.(*Branch); ok {
-			u, err := Unifier(b.Condition.Type(), Bool, ctx)
-			if err != nil {
+			if err := unifier.Add(b.Condition.Type(), Bool, ctx); err != nil {
 				return err
 			}
-			err = unifier.Combine(u, ctx)
-			if err != nil {
-				return err
-			}
-			u, err = Unifier(b.True.Type(), b.False.Type(), ctx)
-			if err != nil {
-				return err
-			}
-			err = unifier.Combine(u, ctx)
-			if err != nil {
+			if err := unifier.Add(b.True.Type(), b.False.Type(), ctx); err != nil {
 				return err
 			}
 		} else if b, ok := v.(*Block); ok {
 			ConvertTypes(b.Value, unifier)
+
 			for _, a := range b.Def.Assignments {
 				_, isDef := a.(*FDef)
 				if !isDef {
@@ -222,12 +208,7 @@ func Infer(exp Expression) error {
 		} else if o, ok := v.(*Op); ok {
 			wantFun := NewFunction(o.Right.Type(), o.OpType)
 			strct := NewVariable(NewNamed(o.Name, wantFun))
-			uni, err := Unifier(o.Left.Type(), strct, ctx)
-			if err != nil {
-				return err
-			}
-			err = unifier.Combine(uni, ctx)
-			if err != nil {
+			if err := unifier.Add(o.Left.Type(), strct, ctx); err != nil {
 				return err
 			}
 		} else if c, ok := v.(*FCall); ok {
@@ -237,23 +218,13 @@ func Infer(exp Expression) error {
 		} else if d, ok := v.(*FDef); ok {
 			ConvertTypes(d, unifier)
 		} else if t, ok := v.(*TypeDecl); ok {
-			uni, err := Unifier(t.DeclType, t.Exp.Type(), ctx)
-			if err != nil {
-				return err
-			}
-			err = unifier.Combine(uni, ctx)
-			if err != nil {
+			if err := unifier.Add(t.DeclType, t.Exp.Type(), ctx); err != nil {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
 			et := a.Exp.Type()
 			strct := NewVariable(NewNamed(a.Field, a.FAType))
-			uni, err := Unifier(et, strct, ctx)
-			if err != nil {
-				return err
-			}
-			err = unifier.Combine(uni, ctx)
-			if err != nil {
+			if err := unifier.Add(et, strct, ctx); err != nil {
 				return err
 			}
 		}
@@ -292,7 +263,5 @@ func Infer(exp Expression) error {
 		}
 		return nil
 	})
-	// TODO: skip defs / interfaces / assignments for performance
-	ConvertTypes(exp, unifier)
 	return err
 }

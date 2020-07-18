@@ -4,18 +4,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 type VariableID string
 
+var variables = 0
+
 func NewVariableID() VariableID {
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		panic(err)
-	}
-	return VariableID(uid.String())
+	variables++
+	return VariableID(strconv.Itoa(variables))
 }
 
 type TypeCopyCtx struct {
@@ -299,6 +296,9 @@ func NewVariable(Fields ...Named) Variable {
 func (t Variable) Copy(ctx *TypeCopyCtx) Type {
 	c := ctx.vars[t.ID]
 	if c != nil {
+		if len(t.Fields) != len(c.(Variable).Fields) {
+			panic("variable copy mismatch")
+		}
 		return c
 	}
 	fs := map[string]Type{}
@@ -331,15 +331,10 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		sum := map[string]Type{}
 		for n, f := range t.Fields {
 			if of := v.Fields[n]; of != nil {
-				sub, err := Unifier(of, f, ctx)
-				if err != nil {
+				if err := result.Add(of, f, ctx); err != nil {
 					return MakeSubstitutions(), err
 				}
-				err = result.Combine(sub, ctx)
-				if err != nil {
-					return MakeSubstitutions(), err
-				}
-				sum[n], _ = f.Convert(sub)
+				sum[n], _ = f.Convert(result)
 			} else {
 				sum[n] = f
 			}
@@ -387,12 +382,7 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
 		ftyp := NewFunction(o, typ)
-		sub, err := Unifier(in, ftyp, ctx)
-		if err != nil {
-			return MakeSubstitutions(), err
-		}
-		err = result.Combine(sub, ctx)
-		if err != nil {
+		if err := result.Add(in, ftyp, ctx); err != nil {
 			return MakeSubstitutions(), err
 		}
 	}
@@ -417,16 +407,20 @@ func (t Variable) Convert(s Substitutions) (Type, bool) {
 	if !changed {
 		return t, false
 	}
-	return Variable{
+	rest := Variable{
 		Fields: res,
 		ID:     NewVariableID(),
-	}, true
+	}
+	return rest, true
 }
 
 func (t Variable) freeVars() []Variable {
-	res := []Variable{t}
+	res := []Variable{}
 	for _, f := range t.Fields {
 		res = append(res, f.freeVars()...)
+	}
+	if len(res) == 0 {
+		return []Variable{t}
 	}
 	return res
 }
@@ -467,4 +461,19 @@ func (t Variable) signature(ctx *signatureContext) string {
 
 func HasFreeVars(t Type) bool {
 	return len(t.freeVars()) > 0
+}
+
+func IsFunction(t Type) bool {
+	_, isFun := t.(Function)
+	return isFun
+}
+
+func IsStructure(t Type) bool {
+	_, isStructure := t.(Structure)
+	return isStructure
+}
+
+func IsString(t Type) bool {
+	p, isPrim := t.(Primitive)
+	return isPrim && p.ID == "string"
 }

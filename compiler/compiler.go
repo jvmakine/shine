@@ -50,13 +50,13 @@ func Compile(prg ast.Expression, fcat *callresolver.FCat) *ir.Module {
 
 	v := compileExp(prg, &ctx, false)
 
-	if prg.Type().AsPrimitive() == t.Int {
+	if prg.Type() == t.Int {
 		ctx.Block.NewCall(utils.printInt, v.value)
-	} else if prg.Type().AsPrimitive() == t.Real {
+	} else if prg.Type() == t.Real {
 		ctx.Block.NewCall(utils.printReal, v.value)
-	} else if prg.Type().AsPrimitive() == t.Bool {
+	} else if prg.Type() == t.Bool {
 		ctx.Block.NewCall(utils.printBool, v.value)
-	} else if prg.Type().AsPrimitive() == t.String {
+	} else if prg.Type() == t.String {
 		ctx.Block.NewCall(utils.printString, v.value)
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))

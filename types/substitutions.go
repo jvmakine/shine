@@ -1,5 +1,10 @@
 package types
 
+import (
+	"sort"
+	"strings"
+)
+
 type Substitutions struct {
 	substitutions *map[VariableID]Type
 	references    *map[VariableID]map[VariableID]bool
@@ -50,7 +55,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 			if err != nil {
 				return err
 			}
-			result = uni.Apply(result)
+			result = s.Apply(result)
 		}
 	}
 
@@ -82,8 +87,17 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 	}
 	return nil
 }
+
 func (s Substitutions) Combine(o Substitutions, ctx UnificationCtx) error {
 	return s.combine(o, ctx, newSubstCtx())
+}
+
+func (s Substitutions) Add(from Type, to Type, ctx UnificationCtx) error {
+	sub, err := Unifier(from, to, ctx)
+	if err != nil {
+		return err
+	}
+	return s.combine(sub, ctx, newSubstCtx())
 }
 
 func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substitutionCtx) error {
@@ -118,4 +132,22 @@ func (s Substitutions) Copy() Substitutions {
 		references:    &newRef,
 		substitutions: &newSub,
 	}
+}
+
+func (s Substitutions) String() string {
+	var sb strings.Builder
+	keys := make([]string, 0, len(*s.substitutions))
+	for k := range *s.substitutions {
+		keys = append(keys, string(k))
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		t := (*s.substitutions)[VariableID(k)]
+		sb.WriteString(k)
+		sb.WriteString(" => ")
+		sb.WriteString(Signature(t))
+		sb.WriteString("\n")
+	}
+	return sb.String()
 }
