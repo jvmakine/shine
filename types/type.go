@@ -400,7 +400,18 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 
 func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 	if r := (*s.substitutions)[t.ID]; r != nil {
-		return r, true
+		if v, ok := r.(Variable); ok {
+			if ctx.visited[t.ID] == nil {
+				ctx.visited[t.ID] = map[VariableID]bool{}
+			}
+			if ctx.visited[t.ID][v.ID] {
+				return r, true
+			}
+			ctx.visited[t.ID][v.ID] = true
+		}
+		// Deals with recursive variables
+		c, _ := r.convert(s, ctx)
+		return c, true
 	}
 	if len(t.Fields) == 0 {
 		return t, false

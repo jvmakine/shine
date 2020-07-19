@@ -170,7 +170,7 @@ func TestInfer(tes *testing.T) {
 		name: "fails when function return type contradicts explicit type",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.Bool, NewOp("+", NewId("x"), NewId("x"))), "x")),
-		err: errors.New("can not unify V1{+:(V2{+:(V3)=>bool})=>bool} with int"),
+		err: errors.New("can not unify V1{+:(V2{+:(V3{+:(V4{+:(V5)=>bool})=>bool})=>bool})=>bool} with int"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: NewBlock(NewBranch(NewConst(true), NewId("ai"), NewId("bi"))).
