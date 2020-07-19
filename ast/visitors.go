@@ -187,6 +187,15 @@ func (c *VisitContext) InterfacesWith(id string) []IResult {
 	return res
 }
 
+func (c *VisitContext) IsActiveAssignment(e Expression) bool {
+	d := c.Definitions()
+	a := c.assignment
+	if d == nil || a == "" || d.Assignments[a] == nil {
+		return false
+	}
+	return d.Assignments[a] == e
+}
+
 func (c VisitContext) StructuralTypeFor(name string, typ types.Type) types.Type {
 	ifs := c.InterfacesWith(name)
 	if len(ifs) == 0 {

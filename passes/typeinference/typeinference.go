@@ -186,19 +186,22 @@ func Infer(exp Expression) error {
 			if err := unifier.Add(b.True.Type(), b.False.Type(), ctx); err != nil {
 				return err
 			}
-		} else if b, ok := v.(*Block); ok {
-			ConvertTypes(b.Value, unifier)
-			for _, a := range b.Def.Assignments {
-				ConvertTypes(a, unifier)
-			}
 		} else if i, ok := v.(*Id); ok {
 			if err := typeId(i, ctx, unifier); err != nil {
 				return err
 			}
 		} else if o, ok := v.(*Op); ok {
-			wantFun := NewFunction(o.Right.Type(), o.OpType)
+			nv1 := NewVariable()
+			nv2 := NewVariable()
+			wantFun := NewFunction(nv1, o.OpType)
 			strct := NewVariable(NewNamed(o.Name, wantFun))
-			if err := unifier.Add(o.Left.Type(), strct, ctx); err != nil {
+			if err := unifier.Add(nv2, strct, ctx); err != nil {
+				return err
+			}
+			if err := unifier.Add(nv1, o.Right.Type(), ctx); err != nil {
+				return err
+			}
+			if err := unifier.Add(nv2, o.Left.Type(), ctx); err != nil {
 				return err
 			}
 		} else if c, ok := v.(*FCall); ok {
@@ -207,32 +210,56 @@ func Infer(exp Expression) error {
 			if err := unifier.Add(ftype1, ftype2, ctx); err != nil {
 				return err
 			}
-		} else if d, ok := v.(*FDef); ok {
-			ConvertTypes(d, unifier)
 		} else if t, ok := v.(*TypeDecl); ok {
 			if err := unifier.Add(t.DeclType, t.Exp.Type(), ctx); err != nil {
 				return err
 			}
 		} else if a, ok := v.(*FieldAccessor); ok {
+			nv := NewVariable()
 			et := a.Exp.Type()
 			strct := NewVariable(NewNamed(a.Field, a.FAType))
-			if err := unifier.Add(et, strct, ctx); err != nil {
+			if err := unifier.Add(nv, strct, ctx); err != nil {
+				return err
+			}
+			if err := unifier.Add(nv, et, ctx); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-	// infer interfaces
+
+	crawlerWithDefRewrite := func(v Ast, ctx *VisitContext) error {
+		err := crawler(v, ctx)
+		if err != nil {
+			return err
+		}
+		// When crawling through the AST, we need to convert the function types
+		// so that when they are copied to the caller, they have the right structure
+		if def, ok := v.(*FDef); ok && ctx.IsActiveAssignment(def) {
+			ConvertTypes(def, unifier)
+		}
+		return nil
+	}
+
+	// infer interfaces and function definitions
 	err := VisitAfter(exp, func(v Ast, ctx *VisitContext) error {
 		if e, ok := v.(*Block); ok {
 			for _, in := range e.Def.Interfaces {
-				err := in.Definitions.Visit(NullFun, crawler, true, IdRewrite, ctx.WithBlock(e).WithInterface(in))
+				err := in.Definitions.Visit(NullFun, crawlerWithDefRewrite, true, IdRewrite, ctx.WithBlock(e).WithInterface(in))
 				if err != nil {
 					return err
 				}
 				in.InterfaceType = unifier.Apply(in.InterfaceType)
-				ConvertTypes(in.Definitions, unifier)
 			}
+			for name, ass := range e.Def.Assignments {
+				if def, ok := ass.(*FDef); ok {
+					err := ass.Visit(NullFun, crawlerWithDefRewrite, true, IdRewrite, ctx.WithBlock(e).WithAssignment(name).WithDef(def))
+					if err != nil {
+						return err
+					}
+				}
+			}
+			ConvertTypes(e, unifier)
 		}
 		return nil
 	})
@@ -240,20 +267,21 @@ func Infer(exp Expression) error {
 		return err
 	}
 
+	// Use a separate unifier for actual values
+	unifier = MakeSubstitutions()
+
 	// infer used code
 	_, err = CrawlAfter(exp, crawler)
 	if err != nil {
 		return err
 	}
+
 	// infer unused code
-	err = VisitAfter(exp, func(v Ast, ctx *VisitContext) error {
-		if !visited[v] {
-			err := crawler(v, ctx)
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
+	err = VisitAfter(exp, crawler)
+	if err != nil {
+		return err
+	}
+
+	ConvertTypes(exp, unifier)
+	return nil
 }
