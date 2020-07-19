@@ -170,7 +170,7 @@ func TestInfer(tes *testing.T) {
 		name: "fails when function return type contradicts explicit type",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.Bool, NewOp("+", NewId("x"), NewId("x"))), "x")),
-		err: errors.New("can not unify (int)=>V1 with bool"),
+		err: errors.New("can not unify V1{+:(V2)=>bool} with int"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: NewBlock(NewBranch(NewConst(true), NewId("ai"), NewId("bi"))).
@@ -282,11 +282,10 @@ func TestInfer(tes *testing.T) {
 
 func TestComplexInferences(t *testing.T) {
 	p, _ := grammar.Parse(`
-		operate = (x, y, f) => { f(x, y) }
+		operate = (x, y,  f) => { f(x, y) }
 		add = (x, y) => { x + y }
 		sub = (x, y) => { x - y }
 		pick = (b) => { if (b) sub else add }
-		
 		operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
 	`)
 	a := p.ToAst()

@@ -19,7 +19,7 @@ func Unify(t Type, o Type, ctx UnificationCtx) (Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	conv, _ := t.Convert(sub)
+	conv, _ := t.convert(sub, newSubstCtx())
 	return conv, nil
 }
 

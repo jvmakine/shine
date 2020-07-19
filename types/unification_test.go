@@ -174,19 +174,41 @@ func TestType_RecursiveUnify(t *testing.T) {
 
 	result, err := Unifier(var1, var2, ctx)
 	if err != nil {
-		t.Errorf("Type.Unify() error = %v", err)
+		t.Errorf("Type.Unifier() error = %v", err)
 		return
 	}
 	err = result.Update(var1.ID, Int, ctx)
 	if err != nil {
-		t.Errorf("Type.Unify() error = %v", err)
+		t.Errorf("Type.Update() error = %v", err)
 		return
 	}
-	typ, _ := var1.Convert(result)
+	typ, _ := var1.convert(result, newSubstCtx())
 	p, isP := typ.(Primitive)
 	if !isP || p.ID != "int" {
 		t.Errorf("result is not an int")
 		return
+	}
+}
+
+func TestType_ChainUnify(tt *testing.T) {
+	ctx := MockUnificationCtx{}
+	vars := make([]Variable, 10)
+	for i := range vars {
+		vars[i] = NewVariable()
+	}
+	res := MakeSubstitutions()
+	for i := range vars {
+		if i > 0 {
+			res.Update(vars[i].ID, vars[i-1], ctx)
+		}
+	}
+	res.Add(vars[0], Int, ctx)
+
+	for i := range vars {
+		t := res.Apply(vars[i])
+		if t != Int {
+			tt.Error("int expected, got " + Signature(t))
+		}
 	}
 }
 

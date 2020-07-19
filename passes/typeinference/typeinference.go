@@ -51,15 +51,11 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	return nil
 }
 
-func typeCall(call *FCall, unifier Substitutions, ctx *VisitContext) error {
-	ftype1 := call.MakeFunType()
-	ftype2 := call.Function.Type()
-	return unifier.Add(ftype1, ftype2, ctx)
-}
-
 func initialiseVariables(exp Expression) error {
 	return VisitBefore(exp, func(v Ast, ctx *VisitContext) error {
-		if d, ok := v.(*FDef); ok {
+		if c, ok := v.(*Const); ok {
+			typeConstant(c)
+		} else if d, ok := v.(*FDef); ok {
 			for _, p := range d.Params {
 				name := p.Name
 				if ctx.DefinitionOf(name) != nil || ctx.ParamOf(name) != nil {
@@ -183,9 +179,7 @@ func Infer(exp Expression) error {
 			return nil
 		}
 		visited[v] = true
-		if c, ok := v.(*Const); ok {
-			typeConstant(c)
-		} else if b, ok := v.(*Branch); ok {
+		if b, ok := v.(*Branch); ok {
 			if err := unifier.Add(b.Condition.Type(), Bool, ctx); err != nil {
 				return err
 			}
@@ -194,12 +188,8 @@ func Infer(exp Expression) error {
 			}
 		} else if b, ok := v.(*Block); ok {
 			ConvertTypes(b.Value, unifier)
-
 			for _, a := range b.Def.Assignments {
-				_, isDef := a.(*FDef)
-				if !isDef {
-					ConvertTypes(a, unifier)
-				}
+				ConvertTypes(a, unifier)
 			}
 		} else if i, ok := v.(*Id); ok {
 			if err := typeId(i, ctx, unifier); err != nil {
@@ -212,7 +202,9 @@ func Infer(exp Expression) error {
 				return err
 			}
 		} else if c, ok := v.(*FCall); ok {
-			if err := typeCall(c, unifier, ctx); err != nil {
+			ftype1 := c.MakeFunType()
+			ftype2 := c.Function.Type()
+			if err := unifier.Add(ftype1, ftype2, ctx); err != nil {
 				return err
 			}
 		} else if d, ok := v.(*FDef); ok {

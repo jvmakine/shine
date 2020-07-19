@@ -19,18 +19,18 @@ func MakeSubstitutions() Substitutions {
 
 // internal context used to deal with recursive structural variables
 type substitutionCtx struct {
-	visited map[VariableID]bool
+	visited map[VariableID]map[VariableID]bool
 }
 
 func newSubstCtx() *substitutionCtx {
-	return &substitutionCtx{map[VariableID]bool{}}
+	return &substitutionCtx{map[VariableID]map[VariableID]bool{}}
 }
 
 func (s Substitutions) Apply(t Type) Type {
 	if t == nil {
 		return nil
 	}
-	conv, _ := t.Convert(s)
+	conv, _ := t.convert(s, newSubstCtx())
 	return conv
 }
 
@@ -43,20 +43,27 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		return nil
 	}
 
-	result, changed := to.Convert(s)
-	if !sctx.visited[from] {
-		if p := (*s.substitutions)[from]; p != nil {
-			uni, err := Unifier(result, p, ctx)
-			if err != nil {
-				return err
-			}
-			sctx.visited[from] = true
-			err = s.combine(uni, ctx, sctx)
-			if err != nil {
-				return err
-			}
-			result = s.Apply(result)
+	result, _ := to.convert(s, sctx)
+	// deal with recursive variables
+	if v, ok := to.(Variable); ok {
+		if sctx.visited[from] == nil {
+			sctx.visited[from] = map[VariableID]bool{}
 		}
+		if sctx.visited[from][v.ID] {
+			return nil
+		}
+		sctx.visited[from][v.ID] = true
+	}
+	if p := (*s.substitutions)[from]; p != nil {
+		uni, err := Unifier(result, p, ctx)
+		if err != nil {
+			return err
+		}
+		err = s.combine(uni, ctx, sctx)
+		if err != nil {
+			return err
+		}
+		result = s.Apply(result)
 	}
 
 	(*s.substitutions)[from] = result
@@ -68,14 +75,15 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		(*s.references)[fv.ID][from] = true
 	}
 
-	if rs := (*s.references)[from]; rs != nil && changed {
+	if rs := (*s.references)[from]; rs != nil {
 		(*s.references)[from] = nil
 		subs := MakeSubstitutions()
-		subs.Update(from, result, ctx)
+		subs.update(from, result, ctx, sctx)
 		for k := range rs {
 			if k != from {
 				substit := (*s.substitutions)[k]
-				(*s.substitutions)[k] = subs.Apply(substit)
+				c, _ := substit.convert(subs, sctx)
+				(*s.substitutions)[k] = c
 				for _, fv := range (*s.substitutions)[k].freeVars() {
 					if (*s.references)[fv.ID] == nil {
 						(*s.references)[fv.ID] = map[VariableID]bool{}
