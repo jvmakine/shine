@@ -329,11 +329,15 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		sum := map[string]Type{}
 		for n, f := range t.Fields {
 			if of := v.Fields[n]; of != nil {
-				u, err := Unify(f, of, ctx)
+				u, err := Unifier(f, of, ctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
-				sum[n] = u
+				err = result.Combine(u, ctx)
+				if err != nil {
+					return MakeSubstitutions(), err
+				}
+				sum[n] = u.Apply(f)
 			} else {
 				sum[n] = f
 			}

@@ -212,6 +212,27 @@ func TestType_ChainUnify(tt *testing.T) {
 	}
 }
 
+func TestType_UnifyStructures(tt *testing.T) {
+	ctx := MockUnificationCtx{"a": NewFunction(Int, Int)}
+
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", NewFunction(var1, var1)))
+	var3 := NewVariable(NewNamed("a", NewFunction(Int, var1)))
+
+	res := MakeSubstitutions()
+	if err := res.Add(var2, var3, ctx); err != nil {
+		tt.Error(err)
+	}
+
+	t := res.Apply(var1)
+
+	signt := Signature(t)
+	singexp := Signature(Int)
+	if signt != singexp {
+		tt.Errorf("Type.Unify() got = %s", signt)
+	}
+}
+
 type MockUnificationCtx map[string]Type
 
 func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {
