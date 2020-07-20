@@ -9,21 +9,21 @@ func TestType_Signature(t *testing.T) {
 		want string
 	}{{
 		name: "support structures without variables",
-		typ:  NewStructure(Named{"a", Int}, Named{"b", NewFunction(Real, Real)}, Named{"c", Bool}),
+		typ:  NewStructure(NewNamed("a", Int), NewNamed("b", NewFunction(Real, Real)), NewNamed("c", Bool)),
 		want: "{a:int,b:(real)=>real,c:bool}",
 	}, {
 		name: "support structural variables with variables",
 		typ: WithType(NewVariable(), func(t Type) Type {
-			return NewVariable(Named{"a", t}, Named{"b", NewFunction(Int, Int)}, Named{"c", Bool})
+			return NewVariable(NewNamed("a", t), NewNamed("b", NewFunction(Int, Int)), NewNamed("c", Bool))
 		}),
 		want: "V1{a:V2,b:(int)=>int,c:bool}",
 	}, {
 		name: "support named structures",
-		typ:  NewNamed("data", NewStructure(Named{"a", Int}, Named{"b", Bool})),
+		typ:  NewNamed("data", NewStructure(NewNamed("a", Int), NewNamed("b", Bool))),
 		want: "data",
 	}, {
 		name: "support recursive structures",
-		typ:  recursiveStruct("data", "b", Named{"a", Int}),
+		typ:  recursiveStruct("data", "b", NewNamed("a", Int)),
 		want: "data",
 	}, {
 		name: "support structural variables",

@@ -46,8 +46,15 @@ type Type interface {
 	signature(ctx *signatureContext) string
 }
 
+type Contextual interface {
+	WithContext(ctx UnificationCtx) Contextual
+	GetContext() UnificationCtx
+}
+
 type Primitive struct {
 	ID string
+
+	ctx UnificationCtx
 }
 
 func NewPrimitive(id string) Primitive {
@@ -78,8 +85,20 @@ func (t Primitive) signature(ctx *signatureContext) string {
 	return t.ID
 }
 
+func (t Primitive) WithContext(ctx UnificationCtx) Contextual {
+	c := t.Copy(NewTypeCopyCtx()).(Primitive)
+	c.ctx = ctx
+	return c
+}
+
+func (t Primitive) GetContext() UnificationCtx {
+	return t.ctx
+}
+
 type Function struct {
 	Fields []Type
+
+	ctx UnificationCtx
 }
 
 func NewFunction(ts ...Type) Function {
@@ -91,7 +110,9 @@ func (t Function) Copy(ctx *TypeCopyCtx) Type {
 	for i, f := range t.Fields {
 		ts[i] = f.Copy(ctx)
 	}
-	return NewFunction(ts...)
+	nf := NewFunction(ts...)
+	nf.ctx = t.ctx
+	return nf
 }
 
 func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
@@ -158,9 +179,21 @@ func (t Function) Return() Type {
 	return t.Fields[(len(t.Fields))-1]
 }
 
+func (t Function) WithContext(ctx UnificationCtx) Contextual {
+	c := t.Copy(NewTypeCopyCtx()).(Function)
+	c.ctx = ctx
+	return c
+}
+
+func (t Function) GetContext() UnificationCtx {
+	return t.ctx
+}
+
 type Named struct {
 	Name string
 	Type Type
+
+	ctx UnificationCtx
 }
 
 func NewNamed(name string, typ Type) Named {
@@ -174,6 +207,7 @@ func (t Named) Copy(ctx *TypeCopyCtx) Type {
 	return Named{
 		Name: t.Name,
 		Type: t.Type.Copy(ctx),
+		ctx:  t.ctx,
 	}
 }
 
@@ -200,8 +234,20 @@ func (t Named) signature(ctx *signatureContext) string {
 	return t.Name
 }
 
+func (t Named) WithContext(ctx UnificationCtx) Contextual {
+	c := t.Copy(NewTypeCopyCtx()).(Named)
+	c.ctx = ctx
+	return c
+}
+
+func (t Named) GetContext() UnificationCtx {
+	return t.ctx
+}
+
 type Structure struct {
 	Fields []Named
+
+	ctx UnificationCtx
 }
 
 func NewStructure(Fields ...Named) Structure {
@@ -215,7 +261,9 @@ func (t Structure) Copy(ctx *TypeCopyCtx) Type {
 	for i, f := range t.Fields {
 		ts[i] = NewNamed(f.Name, f.Type.Copy(ctx))
 	}
-	return NewStructure(ts...)
+	ns := NewStructure(ts...)
+	ns.ctx = t.ctx
+	return ns
 }
 
 func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
@@ -275,6 +323,16 @@ func (s Structure) signature(ctx *signatureContext) string {
 	}
 	sb.WriteString("}")
 	return sb.String()
+}
+
+func (t Structure) WithContext(ctx UnificationCtx) Contextual {
+	c := t.Copy(NewTypeCopyCtx()).(Structure)
+	c.ctx = ctx
+	return c
+}
+
+func (t Structure) GetContext() UnificationCtx {
+	return t.ctx
 }
 
 type Variable struct {
@@ -412,6 +470,9 @@ func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 		}
 		// Deals with recursive variables
 		c, _ := r.convert(s, ctx)
+		if con, ok := c.(Contextual); ok && (*s.contexts)[t.ID] != nil {
+			c = con.WithContext((*s.contexts)[t.ID]).(Type)
+		}
 		return c, true
 	}
 	if len(t.Fields) == 0 {
