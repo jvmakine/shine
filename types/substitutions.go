@@ -47,7 +47,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 
 	result, _ := to.convert(s, sctx)
 	// deal with recursive variables
-	if v, ok := to.(Variable); ok {
+	if v, ok := result.(Variable); ok {
 		if sctx.visited[from] == nil {
 			sctx.visited[from] = map[VariableID]bool{}
 		}
@@ -69,6 +69,11 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 	}
 
 	(*s.substitutions)[from] = result
+	if v, ok := result.(Variable); ok {
+		if (*s.contexts)[v.ID] != nil {
+			s.AddContext(from, (*s.contexts)[v.ID])
+		}
+	}
 
 	for _, fv := range result.freeVars() {
 		if (*s.references)[fv.ID] == nil {
@@ -113,12 +118,17 @@ func (s Substitutions) Add(from Type, to Type, ctx UnificationCtx) error {
 func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substitutionCtx) error {
 	// do not modify s if the combination fails
 	attempt := s.Copy()
+	for k, v := range *o.contexts {
+		attempt.AddContext(k, v)
+	}
+
 	for f, t := range *o.substitutions {
 		err := attempt.update(f, t, ctx, sctx)
 		if err != nil {
 			return err
 		}
 	}
+
 	*s.references = *attempt.references
 	*s.substitutions = *attempt.substitutions
 	*s.contexts = *attempt.contexts

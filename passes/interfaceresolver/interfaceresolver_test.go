@@ -53,22 +53,14 @@ func TestResolve(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			typeinference.Infer(tt.before)
-			rerr := Resolve(tt.before)
+			Resolve(tt.before)
 			if tt.after != nil {
 				eraseType(tt.after)
 			}
 			eraseType(tt.before)
-			if tt.err != nil {
-				if rerr != nil && tt.err.Error() != rerr.Error() {
-					t.Error("wrong error: " + rerr.Error() + ", expected: " + tt.err.Error())
-				} else if rerr == nil {
-					t.Error("expected an error, got none")
-				}
-			} else {
-				ok, err := deepdiff.DeepDiff(tt.before, tt.after)
-				if !ok {
-					t.Error(err)
-				}
+			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
+			if !ok {
+				t.Error(err)
 			}
 		})
 	}

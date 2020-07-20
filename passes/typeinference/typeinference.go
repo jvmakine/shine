@@ -7,18 +7,19 @@ import (
 	. "github.com/jvmakine/shine/types"
 )
 
-func typeConstant(constant *Const) {
+func typeConstant(constant *Const, unifier Substitutions, ctx UnificationCtx) error {
 	if constant.Int != nil {
-		constant.ConstType = Int
+		return unifier.Add(constant.ConstType, Int, ctx)
 	} else if constant.Bool != nil {
-		constant.ConstType = Bool
+		return unifier.Add(constant.ConstType, Bool, ctx)
 	} else if constant.Real != nil {
-		constant.ConstType = Real
+		return unifier.Add(constant.ConstType, Real, ctx)
 	} else if constant.String != nil {
-		constant.ConstType = String
+		return unifier.Add(constant.ConstType, String, ctx)
 	} else {
 		panic("invalid const")
 	}
+	return nil
 }
 
 func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
@@ -54,7 +55,7 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 func initialiseVariables(exp Expression) error {
 	return VisitBefore(exp, func(v Ast, ctx *VisitContext) error {
 		if c, ok := v.(*Const); ok {
-			typeConstant(c)
+			c.ConstType = NewVariable()
 		} else if d, ok := v.(*FDef); ok {
 			for _, p := range d.Params {
 				name := p.Name
@@ -179,7 +180,12 @@ func Infer(exp Expression) error {
 			return nil
 		}
 		visited[v] = true
-		if b, ok := v.(*Branch); ok {
+		if c, ok := v.(*Const); ok {
+			err := typeConstant(c, unifier, ctx)
+			if err != nil {
+				return err
+			}
+		} else if b, ok := v.(*Branch); ok {
 			if err := unifier.Add(b.Condition.Type(), Bool, ctx); err != nil {
 				return err
 			}
@@ -195,7 +201,7 @@ func Infer(exp Expression) error {
 			nv2 := NewVariable()
 			wantFun := NewFunction(nv1, o.OpType)
 			strct := NewVariable(NewNamed(o.Name, wantFun))
-			if err := unifier.Add(nv2, strct, ctx); err != nil {
+			if err := unifier.Add(o.Left.Type(), strct, ctx); err != nil {
 				return err
 			}
 			if err := unifier.Add(nv1, o.Right.Type(), ctx); err != nil {
