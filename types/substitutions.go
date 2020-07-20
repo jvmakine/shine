@@ -8,12 +8,14 @@ import (
 type Substitutions struct {
 	substitutions *map[VariableID]Type
 	references    *map[VariableID]map[VariableID]bool
+	contexts      *map[VariableID]UnificationCtx
 }
 
 func MakeSubstitutions() Substitutions {
 	return Substitutions{
 		substitutions: &map[VariableID]Type{},
 		references:    &map[VariableID]map[VariableID]bool{},
+		contexts:      &map[VariableID]UnificationCtx{},
 	}
 }
 
@@ -119,12 +121,21 @@ func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substi
 	}
 	*s.references = *attempt.references
 	*s.substitutions = *attempt.substitutions
+	*s.contexts = *attempt.contexts
 	return nil
+}
+func (s Substitutions) AddContext(v VariableID, ctx UnificationCtx) {
+	if (*s.contexts)[v] != nil {
+		panic("context already set")
+	}
+	(*s.contexts)[v] = ctx
 }
 
 func (s Substitutions) Copy() Substitutions {
 	newRef := map[VariableID]map[VariableID]bool{}
 	newSub := map[VariableID]Type{}
+	newCon := map[VariableID]UnificationCtx{}
+
 	for k, m := range *s.references {
 		newRef[k] = map[VariableID]bool{}
 		for k2, v2 := range m {
@@ -136,9 +147,14 @@ func (s Substitutions) Copy() Substitutions {
 		newSub[k] = v
 	}
 
+	for k, v := range *s.contexts {
+		newCon[k] = v
+	}
+
 	return Substitutions{
 		references:    &newRef,
 		substitutions: &newSub,
+		contexts:      &newCon,
 	}
 }
 

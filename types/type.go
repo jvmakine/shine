@@ -394,6 +394,7 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 			return MakeSubstitutions(), err
 		}
 	}
+	result.AddContext(t.ID, ctx)
 	result.Update(t.ID, o, ctx)
 	return result, nil
 }
