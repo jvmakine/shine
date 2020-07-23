@@ -49,12 +49,74 @@ func compilePrimitiveOp(from *ast.PrimitiveOp, ctx *context) cresult {
 		res = makeCR(from, ctx.Block.NewURem(left.value, right.value))
 	case "int_/":
 		res = makeCR(from, ctx.Block.NewUDiv(left.value, right.value))
+	case "int_>":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredSGT, left.value, right.value))
+	case "int_<":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredSLT, left.value, right.value))
+	case "int_>=":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredSGE, left.value, right.value))
+	case "int_<=":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredSLE, left.value, right.value))
+	case "int_==":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredEQ, left.value, right.value))
+	case "int_!=":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredNE, left.value, right.value))
+	case "real_+":
+		res = makeCR(from, ctx.Block.NewFAdd(left.value, right.value))
+	case "real_*":
+		res = makeCR(from, ctx.Block.NewFMul(left.value, right.value))
+	case "real_-":
+		res = makeCR(from, ctx.Block.NewFSub(left.value, right.value))
+	case "real_/":
+		res = makeCR(from, ctx.Block.NewFDiv(left.value, right.value))
+	case "string_+":
+		res = makeCR(from, ctx.Block.NewCall(ctx.global.utils.PVCombine16, left.value, right.value))
 	default:
 		panic("unknown primary op " + from.ID)
 	}
 	ctx.freeIfUnboundRef(left)
 	ctx.freeIfUnboundRef(right)
 	return res
+}
+
+func compileBinOp(from *ast.FCall, exp ast.Expression, op string, params []cresult, ctx *context) cresult {
+	switch op {
+	case ">":
+		if from.Params[0].Type() == Real {
+			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value))
+		}
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value))
+	case "<":
+		if from.Params[0].Type() == Real {
+			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value))
+		}
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value))
+	case ">=":
+		if from.Params[0].Type() == Real {
+			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value))
+		}
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value))
+	case "<=":
+		if from.Params[0].Type() == Real {
+			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value))
+		}
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
+	case "==":
+		if from.Params[0].Type() == String {
+			v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, params[0].value, params[1].value)
+			r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
+			return makeCR(exp, r)
+		}
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value))
+	case "!=":
+		return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value))
+	case "||":
+		return makeCR(exp, ctx.Block.NewOr(params[0].value, params[1].value))
+	case "&&":
+		return makeCR(exp, ctx.Block.NewAnd(params[0].value, params[1].value))
+	default:
+		panic("unknown op " + op)
+	}
 }
 
 func getStructFieldIndex(s Structure, name string) int {
@@ -180,71 +242,6 @@ func compileIf(c ast.Expression, t ast.Expression, f ast.Expression, ctx *contex
 		return makeCR(c, continueB.NewLoad(typ, resV))
 	} else { // optimise root ifs at functions for tail recursion elimination
 		return cresult{}
-	}
-}
-
-func compileBinOp(from *ast.FCall, exp ast.Expression, op string, params []cresult, ctx *context) cresult {
-	switch op {
-	case "*":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFMul(params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewMul(params[0].value, params[1].value))
-	case "/":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFDiv(params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewUDiv(params[0].value, params[1].value))
-	case "%":
-		return makeCR(exp, ctx.Block.NewURem(params[0].value, params[1].value))
-	case "+":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFAdd(params[0].value, params[1].value))
-		} else if from.Params[0].Type() == String {
-			v := ctx.Block.NewCall(ctx.global.utils.PVCombine16, params[0].value, params[1].value)
-			return makeCR(exp, v)
-		}
-		return makeCR(exp, ctx.Block.NewAdd(params[0].value, params[1].value))
-	case "-":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFSub(params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewSub(params[0].value, params[1].value))
-	case ">":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value))
-	case "<":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value))
-	case ">=":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value))
-	case "<=":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
-	case "==":
-		if from.Params[0].Type() == String {
-			v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, params[0].value, params[1].value)
-			r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
-			return makeCR(exp, r)
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value))
-	case "!=":
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value))
-	case "||":
-		return makeCR(exp, ctx.Block.NewOr(params[0].value, params[1].value))
-	case "&&":
-		return makeCR(exp, ctx.Block.NewAnd(params[0].value, params[1].value))
-	default:
-		panic("unknown op " + op)
 	}
 }
 
