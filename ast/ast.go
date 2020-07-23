@@ -100,7 +100,7 @@ type PrimitiveOp struct {
 }
 
 func (e *PrimitiveOp) Type() types.Type {
-	return types.NewFunction(e.Right.Type(), e.ReturnType)
+	return e.ReturnType
 }
 
 func (e *PrimitiveOp) CopyWithCtx(ctx *types.TypeCopyCtx) Expression {
@@ -831,6 +831,27 @@ func (a *Definitions) copy(ctx *types.TypeCopyCtx) *Definitions {
 type Interface struct {
 	Definitions   *Definitions
 	InterfaceType types.Type
+}
+
+func (i *Interface) ReplaceOp(op *Op) Expression {
+	name := op.Name
+	exp := i.Definitions.Assignments[name].CopyWithCtx(types.NewTypeCopyCtx())
+	if exp == nil {
+		panic(name + " operation not found")
+	}
+
+	exp.Visit(NullFun, NullFun, false, func(v Ast, ctx *VisitContext) Ast {
+		if id, ok := v.(*Id); ok {
+			if id.Name == "$" {
+				return op.Left
+			}
+			if id.Name == "$2" {
+				return op.Right
+			}
+		}
+		return v
+	}, NewVisitCtx())
+	return exp
 }
 
 func (i *Interface) CopyWithCtx(ctx *types.TypeCopyCtx) *Interface {

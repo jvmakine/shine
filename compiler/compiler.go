@@ -49,14 +49,15 @@ func Compile(prg ast.Expression, fcat *callresolver.FCat) *ir.Module {
 	compileFDefs(fcat, &ctx)
 
 	v := compileExp(prg, &ctx, false)
+	typ := prg.Type()
 
-	if prg.Type() == t.Int {
+	if typ == t.Int {
 		ctx.Block.NewCall(utils.printInt, v.value)
-	} else if prg.Type() == t.Real {
+	} else if typ == t.Real {
 		ctx.Block.NewCall(utils.printReal, v.value)
-	} else if prg.Type() == t.Bool {
+	} else if typ == t.Bool {
 		ctx.Block.NewCall(utils.printBool, v.value)
-	} else if prg.Type() == t.String {
+	} else if typ == t.String {
 		ctx.Block.NewCall(utils.printString, v.value)
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))

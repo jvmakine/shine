@@ -187,6 +187,20 @@ func (c *VisitContext) InterfacesWith(id string) []IResult {
 	return res
 }
 
+func (c *VisitContext) InterfaceWithType(id string, typ Type) IResult {
+	ifs := c.InterfacesWith(id)
+	res := []IResult{}
+	for _, i := range ifs {
+		if types.UnifiesWith(i.Interf.InterfaceType, typ, i.Ctx) {
+			res = append(res, i)
+		}
+	}
+	if len(res) > 1 {
+		panic("conflicting interfaces")
+	}
+	return res[0]
+}
+
 func (c *VisitContext) IsActiveAssignment(e Expression) bool {
 	d := c.Definitions()
 	a := c.assignment
@@ -203,7 +217,15 @@ func (c VisitContext) StructuralTypeFor(name string, typ types.Type) types.Type 
 	}
 	for _, in := range ifs {
 		if types.UnifiesWith(in.Interf.InterfaceType, typ, c) {
-			return NewFunction(in.Interf.InterfaceType, in.Interf.Definitions.Assignments[name].Type())
+			assign := in.Interf.Definitions.Assignments[name]
+			var typ Type
+			if p, ok := assign.(*PrimitiveOp); ok {
+				typ = NewFunction(p.Right.Type(), p.ReturnType)
+			} else {
+				typ = assign.Type()
+			}
+
+			return NewFunction(in.Interf.InterfaceType, typ)
 		}
 	}
 	return nil

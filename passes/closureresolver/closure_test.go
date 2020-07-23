@@ -1,7 +1,6 @@
 package closureresolver
 
 import (
-	"go/types"
 	"testing"
 
 	. "github.com/jvmakine/shine/ast"
@@ -60,11 +59,11 @@ func TestResolveFunctionDef(tes *testing.T) {
 		want: map[string]map[string]Type{
 			"a%%1%%(int)=>(int)=>(int)=>int": map[string]Type{},
 			"<anon1>%%1%%(int)=>(int)=>int": map[string]Type{
-				"x": types.Int,
+				"x": Int,
 			},
 			"<anon2>%%1%%(int)=>int": map[string]Type{
-				"x": types.Int,
-				"y": types.Int,
+				"x": Int,
+				"y": Int,
 			},
 		},
 	}, /*{

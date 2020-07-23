@@ -27,8 +27,34 @@ func compileExp(from ast.Expression, ctx *context, funcRoot bool) cresult {
 		panic("non resolved struct at compilation")
 	} else if a, ok := from.(*ast.FieldAccessor); ok {
 		return compileFAccess(a, ctx)
+	} else if p, ok := from.(*ast.PrimitiveOp); ok {
+		return compilePrimitiveOp(p, ctx)
 	}
 	panic("invalid empty expression")
+}
+
+func compilePrimitiveOp(from *ast.PrimitiveOp, ctx *context) cresult {
+	left := compileExp(from.Left, ctx, false)
+	right := compileExp(from.Right, ctx, false)
+
+	var res cresult
+	switch from.ID {
+	case "int_+":
+		res = makeCR(from, ctx.Block.NewAdd(left.value, right.value))
+	case "int_*":
+		res = makeCR(from, ctx.Block.NewMul(left.value, right.value))
+	case "int_-":
+		res = makeCR(from, ctx.Block.NewSub(left.value, right.value))
+	case "int_%":
+		res = makeCR(from, ctx.Block.NewURem(left.value, right.value))
+	case "int_/":
+		res = makeCR(from, ctx.Block.NewUDiv(left.value, right.value))
+	default:
+		panic("unknown primary op " + from.ID)
+	}
+	ctx.freeIfUnboundRef(left)
+	ctx.freeIfUnboundRef(right)
+	return res
 }
 
 func getStructFieldIndex(s Structure, name string) int {
