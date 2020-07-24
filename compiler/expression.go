@@ -69,54 +69,32 @@ func compilePrimitiveOp(from *ast.PrimitiveOp, ctx *context) cresult {
 		res = makeCR(from, ctx.Block.NewFSub(left.value, right.value))
 	case "real_/":
 		res = makeCR(from, ctx.Block.NewFDiv(left.value, right.value))
+	case "real_>":
+		res = makeCR(from, ctx.Block.NewFCmp(enum.FPredOGT, left.value, right.value))
+	case "real_<":
+		res = makeCR(from, ctx.Block.NewFCmp(enum.FPredOLT, left.value, right.value))
+	case "real_>=":
+		res = makeCR(from, ctx.Block.NewFCmp(enum.FPredOGE, left.value, right.value))
+	case "real_<=":
+		res = makeCR(from, ctx.Block.NewFCmp(enum.FPredOLE, left.value, right.value))
 	case "string_+":
 		res = makeCR(from, ctx.Block.NewCall(ctx.global.utils.PVCombine16, left.value, right.value))
+	case "string_==":
+		v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, left.value, right.value)
+		r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
+		res = makeCR(from, r)
+	case "bool_==":
+		res = makeCR(from, ctx.Block.NewICmp(enum.IPredEQ, left.value, right.value))
+	case "bool_||":
+		res = makeCR(from, ctx.Block.NewOr(left.value, right.value))
+	case "bool_&&":
+		res = makeCR(from, ctx.Block.NewAnd(left.value, right.value))
 	default:
 		panic("unknown primary op " + from.ID)
 	}
 	ctx.freeIfUnboundRef(left)
 	ctx.freeIfUnboundRef(right)
 	return res
-}
-
-func compileBinOp(from *ast.FCall, exp ast.Expression, op string, params []cresult, ctx *context) cresult {
-	switch op {
-	case ">":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGT, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGT, params[0].value, params[1].value))
-	case "<":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLT, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLT, params[0].value, params[1].value))
-	case ">=":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOGE, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSGE, params[0].value, params[1].value))
-	case "<=":
-		if from.Params[0].Type() == Real {
-			return makeCR(exp, ctx.Block.NewFCmp(enum.FPredOLE, params[0].value, params[1].value))
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredSLE, params[0].value, params[1].value))
-	case "==":
-		if from.Params[0].Type() == String {
-			v := ctx.Block.NewCall(ctx.global.utils.PVEqual16, params[0].value, params[1].value)
-			r := ctx.Block.NewICmp(enum.IPredEQ, v, constant.NewInt(types.I8, int64(1)))
-			return makeCR(exp, r)
-		}
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredEQ, params[0].value, params[1].value))
-	case "!=":
-		return makeCR(exp, ctx.Block.NewICmp(enum.IPredNE, params[0].value, params[1].value))
-	case "||":
-		return makeCR(exp, ctx.Block.NewOr(params[0].value, params[1].value))
-	case "&&":
-		return makeCR(exp, ctx.Block.NewAnd(params[0].value, params[1].value))
-	default:
-		panic("unknown op " + op)
-	}
 }
 
 func getStructFieldIndex(s Structure, name string) int {
@@ -246,65 +224,48 @@ func compileIf(c ast.Expression, t ast.Expression, f ast.Expression, ctx *contex
 }
 
 func compileCall(from *ast.FCall, ctx *context, funcRoot bool) cresult {
-	if op, ok := from.Function.(*ast.Op); ok {
-		var params []cresult
-		name := op.Name
-		if name == "if" { // Need to evaluate if parameters lazily
-			return compileIf(from.Params[0], from.Params[1], from.Params[2], ctx, funcRoot)
-		}
-		for _, p := range from.Params {
-			v := compileExp(p, ctx, false)
-			params = append(params, v)
-		}
-		result := compileBinOp(from, from, name, params, ctx)
-		for _, p := range params {
-			ctx.freeIfUnboundRef(p)
-		}
-		return result
-	} else {
-		params := []cresult{}
-		for _, p := range from.Params {
-			v := compileExp(p, ctx, false)
-			params = append(params, v)
-		}
+	params := []cresult{}
+	for _, p := range from.Params {
+		v := compileExp(p, ctx, false)
+		params = append(params, v)
+	}
 
-		vparams := make([]value.Value, len(params))
-		for i, p := range params {
-			vparams[i] = p.value
-		}
+	vparams := make([]value.Value, len(params))
+	for i, p := range params {
+		vparams[i] = p.value
+	}
 
-		if id, ok := from.Function.(*ast.Id); ok {
-			name := id.Name
-			if ctx.global.functions[name].Fun != nil {
-				f := ctx.global.functions[name]
-				vps := make([]value.Value, len(params))
-				for i, p := range params {
-					vps[i] = p.value
-				}
-				res := ctx.Block.NewCall(f.Call, append(vps, constant.NewNull(ClosurePType))...)
-				for _, p := range params {
-					ctx.freeIfUnboundRef(p)
-				}
-				return makeCR(from, res)
+	if id, ok := from.Function.(*ast.Id); ok {
+		name := id.Name
+		if ctx.global.functions[name].Fun != nil {
+			f := ctx.global.functions[name]
+			vps := make([]value.Value, len(params))
+			for i, p := range params {
+				vps[i] = p.value
 			}
-			id, err := ctx.resolveId(name)
-			if err != nil {
-				panic(err)
-			}
-			res := ctx.call(id, from.Function.Type(), vparams)
+			res := ctx.Block.NewCall(f.Call, append(vps, constant.NewNull(ClosurePType))...)
 			for _, p := range params {
 				ctx.freeIfUnboundRef(p)
 			}
 			return makeCR(from, res)
 		}
-		fval := compileExp(from.Function, ctx, false)
-		res := ctx.call(fval.value, from.Function.Type(), vparams)
+		id, err := ctx.resolveId(name)
+		if err != nil {
+			panic(err)
+		}
+		res := ctx.call(id, from.Function.Type(), vparams)
 		for _, p := range params {
 			ctx.freeIfUnboundRef(p)
 		}
-		ctx.freeIfUnboundRef(fval)
 		return makeCR(from, res)
 	}
+	fval := compileExp(from.Function, ctx, false)
+	res := ctx.call(fval.value, from.Function.Type(), vparams)
+	for _, p := range params {
+		ctx.freeIfUnboundRef(p)
+	}
+	ctx.freeIfUnboundRef(fval)
+	return makeCR(from, res)
 }
 
 func compileBlock(from *ast.Block, ctx *context, funcRoot bool) cresult {
