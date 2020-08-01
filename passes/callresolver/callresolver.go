@@ -46,6 +46,18 @@ func ResolveFunctions(exp Expression) {
 	anonCount := 0
 	exp.Visit(NullFun, NullFun, true, func(v Ast, ctx *VisitContext) Ast {
 		switch e := v.(type) {
+		case *Op:
+			typ := e.Left.Type()
+			contextual, ok := typ.(Contextual)
+			if !ok {
+				panic("no context available")
+			}
+			ic := contextual.GetContext().(*VisitContext)
+			if ic == nil {
+				panic("nil context")
+			}
+			inter := ic.InterfaceWithType(e.Name, typ)
+			return inter.Interf.ReplaceOp(e)
 		case *FCall:
 			resolveCall(e, ctx)
 		case *Id:

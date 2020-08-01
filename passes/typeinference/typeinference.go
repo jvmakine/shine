@@ -16,35 +16,34 @@ func typeConstant(constant *Const, unifier Substitutions, ctx UnificationCtx) er
 		return unifier.Add(constant.ConstType, Real, ctx)
 	} else if constant.String != nil {
 		return unifier.Add(constant.ConstType, String, ctx)
-	} else {
-		panic("invalid const")
 	}
-	return nil
+	panic("invalid const")
 }
 
 func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	name := id.Name
 	defin := ctx.DefinitionOf(name)
 	if ctx.Path()[name] {
-		id.IdType = NewVariable()
+		return nil
 	} else if defin != nil && ctx.DefinitionOf(name).Assignments[name] != nil {
 		ref := ctx.DefinitionOf(name).Assignments[name]
+		rtyp := ref.Type()
 		if _, ok := ref.(*FDef); ok {
-			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
+			return unifier.Add(rtyp.Copy(NewTypeCopyCtx()), id.IdType, ctx)
 		} else if _, ok := ref.(*Struct); ok {
-			id.IdType = ref.Type().Copy(NewTypeCopyCtx())
+			return unifier.Add(rtyp.Copy(NewTypeCopyCtx()), id.IdType, ctx)
 		} else {
-			id.IdType = ref.Type()
+			return unifier.Add(rtyp, id.IdType, ctx)
 		}
 	} else if p := ctx.ParamOf(name); p != nil {
-		id.IdType = p.ParamType
+		return unifier.Add(p.ParamType, id.IdType, ctx)
 	} else {
 		if name == "$" {
 			inter := ctx.Interface()
 			if inter == nil {
 				panic("$ id outside of an interface")
 			}
-			id.IdType = inter.InterfaceType
+			return unifier.Add(inter.InterfaceType, id.IdType, ctx)
 		} else {
 			return errors.New("undefined id " + name)
 		}
@@ -54,7 +53,9 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 
 func initialiseVariables(exp Expression) error {
 	return VisitBefore(exp, func(v Ast, ctx *VisitContext) error {
-		if c, ok := v.(*Const); ok {
+		if id, ok := v.(*Id); ok {
+			id.IdType = NewVariable()
+		} else if c, ok := v.(*Const); ok {
 			c.ConstType = NewVariable()
 		} else if d, ok := v.(*FDef); ok {
 			for _, p := range d.Params {

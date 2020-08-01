@@ -233,6 +233,70 @@ func TestType_UnifyStructures(tt *testing.T) {
 	}
 }
 
+func TestType_UnifyComplexFunctions(tt *testing.T) {
+	ctx := MockUnificationCtx{"a": NewFunction(Int, Int)}
+
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", var1))
+	var3 := NewVariable()
+
+	fun1 := NewFunction(var2, var2, NewFunction(var2, var3), var3)
+	fun3 := NewFunction(NewVariable(), Real)
+	fun4 := NewFunction(Int, Real)
+	fun2 := NewFunction(NewVariable(), NewVariable(), fun3, NewVariable())
+
+	res := MakeSubstitutions()
+	if err := res.Add(var1, Int, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Add(fun2, fun1, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Add(fun3, fun4, ctx); err != nil {
+		tt.Error(err)
+	}
+
+	signt := Signature(res.Apply(fun1))
+	singexp := Signature(NewFunction(Int, Int, NewFunction(Int, Real), Real))
+	if signt != singexp {
+		tt.Errorf("Type.Unify() got = %s, expected %s", signt, singexp)
+	}
+}
+
+func TestType_UnifyAllTypes(tt *testing.T) {
+	ctx := MockUnificationCtx{"a": NewFunction(Real, Int)}
+
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", Int))
+	var3 := NewVariable()
+
+	res := MakeSubstitutions()
+	if err := res.Add(var3, Real, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Add(var1, var2, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Add(var2, var3, ctx); err != nil {
+		tt.Error(err)
+	}
+
+	singexp := Signature(Real)
+
+	signt := Signature(res.Apply(var2))
+	if signt != singexp {
+		tt.Errorf("Type.Unify() got = %s", signt)
+	}
+	signt = Signature(res.Apply(var1))
+	if signt != singexp {
+		tt.Errorf("Type.Unify() got = %s", signt)
+	}
+	signt = Signature(res.Apply(var3))
+	if signt != singexp {
+		tt.Errorf("Type.Unify() got = %s", signt)
+	}
+}
+
 type MockUnificationCtx map[string]Type
 
 func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {

@@ -9,7 +9,6 @@ import (
 	"github.com/jvmakine/shine/grammar"
 	"github.com/jvmakine/shine/passes/callresolver"
 	"github.com/jvmakine/shine/passes/closureresolver"
-	"github.com/jvmakine/shine/passes/interfaceresolver"
 	"github.com/jvmakine/shine/passes/optimisation"
 	"github.com/jvmakine/shine/passes/typeinference"
 	"github.com/llir/llvm/ir"
@@ -39,7 +38,6 @@ func Compile(text string) (*ir.Module, error) {
 		return nil, err
 	}
 
-	interfaceresolver.Resolve(ast)
 	optimisation.SequentialFunctionPass(ast)
 	callresolver.ResolveFunctions(ast)
 	closureresolver.CollectClosures(ast)

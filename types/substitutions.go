@@ -45,7 +45,8 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		return nil
 	}
 
-	result, _ := to.convert(s, sctx)
+	result, changed := to.convert(s, sctx)
+
 	// deal with recursive variables
 	if v, ok := result.(Variable); ok {
 		if sctx.visited[from] == nil {
@@ -56,7 +57,25 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		}
 		sctx.visited[from][v.ID] = true
 	}
+
+	// If we have changed the target variable because of existing subsitutions,
+	// Add that substitution so that future references to the variable
+	// unify to the same result
+	if v, ok := to.(Variable); ok && changed {
+		err := s.update(v.ID, result, ctx, sctx)
+		if err != nil {
+			return err
+		}
+	}
+
 	if p := (*s.substitutions)[from]; p != nil {
+		pv, pok := p.(Variable)
+		rv, rok := result.(Variable)
+
+		if pok && rok && pv.ID == rv.ID {
+			return nil
+		}
+
 		uni, err := Unifier(result, p, ctx)
 		if err != nil {
 			return err
@@ -66,6 +85,10 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 			return err
 		}
 		result = s.Apply(result)
+	}
+
+	if v, ok := result.(Variable); ok && v.ID == from {
+		return nil
 	}
 
 	(*s.substitutions)[from] = result
@@ -134,9 +157,10 @@ func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substi
 	*s.contexts = *attempt.contexts
 	return nil
 }
+
 func (s Substitutions) AddContext(v VariableID, ctx UnificationCtx) {
 	if (*s.contexts)[v] != nil {
-		panic("context already set")
+		return
 	}
 	(*s.contexts)[v] = ctx
 }

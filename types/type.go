@@ -460,17 +460,20 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 	if r := (*s.substitutions)[t.ID]; r != nil {
 		if v, ok := r.(Variable); ok {
+			if v.ID == t.ID {
+				return v, false
+			}
+			if ctx.visited[t.ID] != nil {
+				return r, true
+			}
 			if ctx.visited[t.ID] == nil {
 				ctx.visited[t.ID] = map[VariableID]bool{}
-			}
-			if ctx.visited[t.ID][v.ID] {
-				return r, true
 			}
 			ctx.visited[t.ID][v.ID] = true
 		}
 		// Deals with recursive variables
 		c, _ := r.convert(s, ctx)
-		if con, ok := c.(Contextual); ok && (*s.contexts)[t.ID] != nil {
+		if con, ok := c.(Contextual); ok && (*s.contexts)[t.ID] != nil && con.GetContext() == nil {
 			c = con.WithContext((*s.contexts)[t.ID]).(Type)
 		}
 		return c, true
