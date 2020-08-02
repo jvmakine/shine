@@ -320,6 +320,34 @@ func TestType_UnifyAllTypes(tt *testing.T) {
 	}
 }
 
+func TestType_PropagateContextsOnCombine(tt *testing.T) {
+	ctx := MockUnificationCtx{"a": NewFunction(Int, Int)}
+
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", Int))
+	var3 := NewVariable()
+
+	res := MakeSubstitutions()
+	res2 := MakeSubstitutions()
+	if err := res2.Add(var3, var1, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res2.Add(var1, var2, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Add(var3, Int, ctx); err != nil {
+		tt.Error(err)
+	}
+	if err := res.Combine(res2, ctx); err != nil {
+		tt.Error(err)
+	}
+
+	typ, _ := var3.convert(res, newSubstCtx())
+	if typ.(Contextual).GetContext() == nil {
+		tt.Error("nil context")
+	}
+}
+
 type MockUnificationCtx map[string]Type
 
 func (ctx MockUnificationCtx) StructuralTypeFor(name string, typ Type) Type {

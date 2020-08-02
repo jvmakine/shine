@@ -307,3 +307,19 @@ func TestComplexInferencesAreStable(t *testing.T) {
 		return nil
 	})
 }
+
+func TestContextsAreSet(t *testing.T) {
+	a := NewBlock(NewFCall(NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y"), NewConst(1), NewConst(2)))
+	err := Infer(a)
+	if err != nil {
+		t.Error(err)
+	}
+	ast.VisitAfter(a.Value, func(v ast.Ast, ctx *ast.VisitContext) error {
+		if e, ok := v.(*ast.Op); ok {
+			if e.Left.Type().(types.Contextual).GetContext() == nil {
+				t.Error("no context in Op left")
+			}
+		}
+		return nil
+	})
+}

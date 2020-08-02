@@ -52,10 +52,10 @@ func ResolveFunctions(exp Expression) {
 			if !ok {
 				panic("no context available")
 			}
-			ic := contextual.GetContext().(*VisitContext)
-			if ic == nil {
+			if contextual.GetContext() == nil {
 				panic("nil context")
 			}
+			ic := contextual.GetContext().(*VisitContext)
 			inter := ic.InterfaceWithType(e.Name, typ)
 			return inter.Interf.ReplaceOp(e)
 		case *FCall:

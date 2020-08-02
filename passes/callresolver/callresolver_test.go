@@ -42,7 +42,7 @@ func TestResolveFunctions(t *testing.T) {
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("b%%1%%(int,int)=>int", NewFDef(NewPrimitiveOp("int_+", Int, NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
-	}, /*{
+	}, {
 		name: "resolves anonymous functions",
 		before: NewBlock(NewFCall(NewId("a"), NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
@@ -52,7 +52,7 @@ func TestResolveFunctions(t *testing.T) {
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
-	},*/ /* {
+	}, /* {
 		name: "resolves simple structures",
 		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
 			WithAssignment("a", NewStruct(ast.StructField{"x", Int})).
