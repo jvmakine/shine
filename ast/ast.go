@@ -450,15 +450,15 @@ func (e *FCall) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rew
 	if err != nil {
 		return err
 	}
+	e.Function = rewrite(e.Function, ctx).(Expression)
+	for i, p := range e.Params {
+		e.Params[i] = rewrite(p, ctx).(Expression)
+	}
 	for _, p := range e.Params {
 		err := p.Visit(before, after, crawl, rewrite, ctx)
 		if err != nil {
 			return err
 		}
-	}
-	e.Function = rewrite(e.Function, ctx).(Expression)
-	for i, p := range e.Params {
-		e.Params[i] = rewrite(p, ctx).(Expression)
 	}
 	err = e.Function.Visit(before, after, crawl, rewrite, ctx)
 
