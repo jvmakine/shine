@@ -96,7 +96,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		}
 	}
 
-	for _, fv := range result.freeVars(newSubstCtx()) {
+	for _, fv := range result.freeVars() {
 		if (*s.references)[fv.ID] == nil {
 			(*s.references)[fv.ID] = map[VariableID]bool{}
 		}
@@ -112,7 +112,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 				substit := (*s.substitutions)[k]
 				c, _ := substit.convert(subs, sctx)
 				(*s.substitutions)[k] = c
-				for _, fv := range (*s.substitutions)[k].freeVars(newSubstCtx()) {
+				for _, fv := range (*s.substitutions)[k].freeVars() {
 					if (*s.references)[fv.ID] == nil {
 						(*s.references)[fv.ID] = map[VariableID]bool{}
 					}
