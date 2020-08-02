@@ -170,7 +170,7 @@ func TestInfer(tes *testing.T) {
 		name: "fails when function return type contradicts explicit type",
 		exp: NewBlock(NewFCall(NewFCall(NewId("a"), NewConst(1)), NewConst(2))).
 			WithAssignment("a", NewFDef(NewTypeDecl(types.Bool, NewOp("+", NewId("x"), NewId("x"))), "x")),
-		err: errors.New("can not unify V1{+:(V2{+:(V3{+:(V4{+:(V5{+:(V6)=>bool})=>bool})=>bool})=>bool})=>bool} with int"),
+		err: errors.New("can not unify V1{+:(V2{+:(V3)=>V4})=>bool} with int"),
 	}, {
 		name: "fail to unify two different named types",
 		exp: NewBlock(NewBranch(NewConst(true), NewId("ai"), NewId("bi"))).
@@ -289,25 +289,21 @@ func TestComplexInferencesAreStable(t *testing.T) {
 
 		operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
 	`)
-	i := 0
-	for i < 1 {
-		i++
-		a := p.ToAst()
-		err := Infer(a)
-		if err != nil {
-			t.Error(err)
-		}
-		sign := types.Signature(a.Type())
-		if sign != "int" {
-			t.Error("got " + sign + ", expected int")
-		}
-		ast.VisitAfter(a.(*Block).Value, func(v ast.Ast, ctx *ast.VisitContext) error {
-			if e, ok := v.(ast.Expression); ok {
-				if types.HasFreeVars(e.Type()) {
-					t.Error("free variables in the root expression: " + ast.Stringify(e))
-				}
-			}
-			return nil
-		})
+	a := p.ToAst()
+	err := Infer(a)
+	if err != nil {
+		t.Error(err)
 	}
+	sign := types.Signature(a.Type())
+	if sign != "int" {
+		t.Error("got " + sign + ", expected int")
+	}
+	ast.VisitAfter(a.(*Block).Value, func(v ast.Ast, ctx *ast.VisitContext) error {
+		if e, ok := v.(ast.Expression); ok {
+			if types.HasFreeVars(e.Type()) {
+				t.Error("free variables in the root expression: " + ast.Stringify(e))
+			}
+		}
+		return nil
+	})
 }

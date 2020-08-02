@@ -21,11 +21,12 @@ func MakeSubstitutions() Substitutions {
 
 // internal context used to deal with recursive structural variables
 type substitutionCtx struct {
-	visited map[VariableID]map[VariableID]bool
+	updated   map[VariableID]bool
+	converted map[VariableID]bool
 }
 
 func newSubstCtx() *substitutionCtx {
-	return &substitutionCtx{map[VariableID]map[VariableID]bool{}}
+	return &substitutionCtx{map[VariableID]bool{}, map[VariableID]bool{}}
 }
 
 func (s Substitutions) Apply(t Type) Type {
@@ -48,14 +49,11 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 	result, changed := to.convert(s, sctx)
 
 	// deal with recursive variables
-	if v, ok := result.(Variable); ok {
-		if sctx.visited[from] == nil {
-			sctx.visited[from] = map[VariableID]bool{}
-		}
-		if sctx.visited[from][v.ID] {
+	if _, ok := result.(Variable); ok {
+		if sctx.updated[from] {
 			return nil
 		}
-		sctx.visited[from][v.ID] = true
+		sctx.updated[from] = true
 	}
 
 	// If we have changed the target variable because of existing subsitutions,
@@ -98,7 +96,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		}
 	}
 
-	for _, fv := range result.freeVars() {
+	for _, fv := range result.freeVars(newSubstCtx()) {
 		if (*s.references)[fv.ID] == nil {
 			(*s.references)[fv.ID] = map[VariableID]bool{}
 		}
@@ -114,7 +112,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 				substit := (*s.substitutions)[k]
 				c, _ := substit.convert(subs, sctx)
 				(*s.substitutions)[k] = c
-				for _, fv := range (*s.substitutions)[k].freeVars() {
+				for _, fv := range (*s.substitutions)[k].freeVars(newSubstCtx()) {
 					if (*s.references)[fv.ID] == nil {
 						(*s.references)[fv.ID] = map[VariableID]bool{}
 					}

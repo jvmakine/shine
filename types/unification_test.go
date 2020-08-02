@@ -182,10 +182,33 @@ func TestType_RecursiveUnify(t *testing.T) {
 		t.Errorf("Type.Update() error = %v", err)
 		return
 	}
-	typ, _ := var1.convert(result, newSubstCtx())
+	typ, _ := var2.convert(result, newSubstCtx())
 	p, isP := typ.(Primitive)
 	if !isP || p.ID != "int" {
 		t.Errorf("result is not an int")
+		return
+	}
+}
+
+func TestType_RecursiveFunctionUnify(t *testing.T) {
+	var1 := NewVariable()
+	var2 := NewVariable(NewNamed("a", var1))
+	fun1 := NewFunction(var1, var2)
+	ctx := MockUnificationCtx{"a": NewFunction(Int, Int)}
+
+	result, err := Unifier(var1, var2, ctx)
+	if err != nil {
+		t.Errorf("Type.Unifier() error = %v", err)
+		return
+	}
+	err = result.Add(fun1, NewFunction(Int, NewVariable()), ctx)
+	if err != nil {
+		t.Errorf("Type.Update() error = %v", err)
+		return
+	}
+	typ, _ := fun1.convert(result, newSubstCtx())
+	if Signature(typ) != "(int)=>int" {
+		t.Errorf("result is not an (int)=>int")
 		return
 	}
 }
