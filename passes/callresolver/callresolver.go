@@ -50,10 +50,10 @@ func ResolveFunctions(exp Expression) {
 			typ := e.Left.Type()
 			contextual, ok := typ.(Contextual)
 			if !ok {
-				panic("no context available")
+				panic("no context available for type " + Signature(typ))
 			}
 			if contextual.GetContext() == nil {
-				panic("nil context")
+				panic("nil context for type " + Signature(typ))
 			}
 			ic := contextual.GetContext().(*VisitContext)
 			inter := ic.InterfaceWithType(e.Name, typ)

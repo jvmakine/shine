@@ -29,8 +29,10 @@ func compileExp(from ast.Expression, ctx *context, funcRoot bool) cresult {
 		return compileFAccess(a, ctx)
 	} else if p, ok := from.(*ast.PrimitiveOp); ok {
 		return compilePrimitiveOp(p, ctx)
+	} else if b, ok := from.(*ast.Branch); ok {
+		return compileIf(b.Condition, b.True, b.False, ctx, funcRoot)
 	}
-	panic("invalid empty expression")
+	panic("invalid expression: " + ast.Stringify(from))
 }
 
 func compilePrimitiveOp(from *ast.PrimitiveOp, ctx *context) cresult {

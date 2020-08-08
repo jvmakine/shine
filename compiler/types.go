@@ -73,21 +73,21 @@ func getType(typ t.Type) types.Type {
 	if typ == nil && !isVar {
 		panic("trying to use undefined type at compilation")
 	}
-	_, isPrim := typ.(Primitive)
+	primitive, isPrim := typ.(Primitive)
 	_, isNamed := typ.(Named)
 	if isPrim {
 		var rtype types.Type = nil
-		switch typ {
-		case t.Int:
+		switch primitive.ID {
+		case "int":
 			rtype = IntType
-		case t.Bool:
+		case "bool":
 			rtype = BoolType
-		case t.Real:
+		case "real":
 			rtype = RealType
-		case t.String:
+		case "string":
 			rtype = StringPType
 		default:
-			panic("unsupported type at compilation")
+			panic("unsupported type at compilation: " + Signature(typ))
 		}
 		return rtype
 	} else if IsFunction(typ) {
