@@ -39,6 +39,8 @@ var global = []*Interface{
 	&Interface{InterfaceType: Bool, Definitions: &Definitions{Assignments: map[string]Expression{
 		"==": NewPrimitiveOp("bool_==", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
 		"!=": NewPrimitiveOp("bool_!=", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+		"||": NewPrimitiveOp("bool_||", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
+		"&&": NewPrimitiveOp("bool_&&", Bool, NewId("$").WithType(Bool), NewId("$2").WithType(Bool)),
 	}}},
 }
 
