@@ -50,15 +50,18 @@ func Compile(prg ast.Expression, fcat *callresolver.FCat) *ir.Module {
 
 	v := compileExp(prg, &ctx, false)
 	typ := prg.Type()
+	prim, isPrim := typ.(t.Primitive)
 
-	if typ == t.Int {
-		ctx.Block.NewCall(utils.printInt, v.value)
-	} else if typ == t.Real {
-		ctx.Block.NewCall(utils.printReal, v.value)
-	} else if typ == t.Bool {
-		ctx.Block.NewCall(utils.printBool, v.value)
-	} else if typ == t.String {
-		ctx.Block.NewCall(utils.printString, v.value)
+	if isPrim {
+		if prim.ID == "int" {
+			ctx.Block.NewCall(utils.printInt, v.value)
+		} else if prim.ID == "real" {
+			ctx.Block.NewCall(utils.printReal, v.value)
+		} else if prim.ID == "bool" {
+			ctx.Block.NewCall(utils.printBool, v.value)
+		} else if prim.ID == "string" {
+			ctx.Block.NewCall(utils.printString, v.value)
+		}
 	}
 	ctx.Block.NewRet(constant.NewInt(types.I32, 0))
 	return module
