@@ -470,8 +470,11 @@ func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 		ctx.converted[t.ID] = true
 		// Deals with recursive variables
 		c, _ := r.convert(s, ctx)
-		if con, ok := c.(Contextual); ok && (*s.contexts)[t.ID] != nil && con.GetContext() == nil {
-			c = con.WithContext((*s.contexts)[t.ID]).(Type)
+		if con, ok := c.(Contextual); ok {
+			context := s.GetContext(t.ID)
+			if context != nil && con.GetContext() == nil {
+				c = con.WithContext(context).(Type)
+			}
 		}
 		return c, true
 	}

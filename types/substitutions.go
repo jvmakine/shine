@@ -9,6 +9,7 @@ type Substitutions struct {
 	substitutions *map[VariableID]Type
 	references    *map[VariableID]map[VariableID]bool
 	contexts      *map[VariableID]UnificationCtx
+	equalities    *map[VariableID]map[VariableID]bool
 }
 
 func MakeSubstitutions() Substitutions {
@@ -16,6 +17,7 @@ func MakeSubstitutions() Substitutions {
 		substitutions: &map[VariableID]Type{},
 		references:    &map[VariableID]map[VariableID]bool{},
 		contexts:      &map[VariableID]UnificationCtx{},
+		equalities:    &map[VariableID]map[VariableID]bool{},
 	}
 }
 
@@ -42,8 +44,11 @@ func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) erro
 }
 
 func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx *substitutionCtx) error {
-	if v, ok := to.(Variable); ok && v.ID == from {
-		return nil
+	if v, ok := to.(Variable); ok {
+		if v.ID == from {
+			return nil
+		}
+		s.addEquality(from, v.ID)
 	}
 
 	result, changed := to.convert(s, sctx)
@@ -154,6 +159,7 @@ func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substi
 	*s.references = *attempt.references
 	*s.substitutions = *attempt.substitutions
 	*s.contexts = *attempt.contexts
+	*s.equalities = *attempt.equalities
 	return nil
 }
 
@@ -168,6 +174,7 @@ func (s Substitutions) Copy() Substitutions {
 	newRef := map[VariableID]map[VariableID]bool{}
 	newSub := map[VariableID]Type{}
 	newCon := map[VariableID]UnificationCtx{}
+	newEq := map[VariableID]map[VariableID]bool{}
 
 	for k, m := range *s.references {
 		newRef[k] = map[VariableID]bool{}
@@ -184,11 +191,51 @@ func (s Substitutions) Copy() Substitutions {
 		newCon[k] = v
 	}
 
+	for k, v := range *s.equalities {
+		eqar := map[VariableID]bool{}
+		for i, x := range v {
+			eqar[i] = x
+		}
+		newEq[k] = eqar
+	}
+
 	return Substitutions{
 		references:    &newRef,
 		substitutions: &newSub,
 		contexts:      &newCon,
+		equalities:    &newEq,
 	}
+}
+
+func (s Substitutions) addEquality(from VariableID, to VariableID) {
+	if (*s.equalities)[from] == nil {
+		(*s.equalities)[from] = map[VariableID]bool{}
+	}
+	(*s.equalities)[from][to] = true
+
+	if (*s.equalities)[to] == nil {
+		(*s.equalities)[to] = map[VariableID]bool{}
+	}
+	(*s.equalities)[to][from] = true
+}
+
+func (s Substitutions) GetContext(from VariableID) UnificationCtx {
+	visited := map[VariableID]bool{}
+	todo := []VariableID{from}
+	for len(todo) > 0 {
+		v, nt := todo[0], todo[1:]
+		todo = nt
+		if !visited[v] {
+			visited[v] = true
+			if c := (*s.contexts)[v]; c != nil {
+				return c
+			}
+			for n := range (*s.equalities)[v] {
+				todo = append(todo, n)
+			}
+		}
+	}
+	return nil
 }
 
 func (s Substitutions) String() string {
