@@ -40,6 +40,13 @@ func CollectClosures(exp Expression) {
 				closureAt[v] = combine(closureAt[v], closureAt[p])
 			}
 			closureAt[v] = combine(closureAt[v], closureAt[a.Function])
+		case *PrimitiveOp:
+			combined := combine(closureAt[a.Right], closureAt[a.Left])
+			closureAt[v] = combined
+		case *Branch:
+			combined := combine(closureAt[a.Condition], closureAt[a.True])
+			combined = combine(combined, closureAt[a.False])
+			closureAt[v] = combined
 		case *Const:
 			closureAt[v] = map[string]Type{}
 		case *Block:
