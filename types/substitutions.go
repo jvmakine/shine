@@ -97,7 +97,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 	}
 
 	if rs := (*s.references)[from]; rs != nil {
-		(*s.references)[from] = nil
+		delete(*s.references, from)
 		subs := MakeSubstitutions()
 		subs.update(from, result, ctx, newSubstCtx())
 		for k := range rs {
@@ -109,7 +109,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 					if (*s.references)[fv.ID] == nil {
 						(*s.references)[fv.ID] = map[VariableID]bool{}
 					}
-					(*s.references)[fv.ID][from] = true
+					(*s.references)[fv.ID][k] = true
 				}
 			}
 		}
