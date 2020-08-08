@@ -69,7 +69,7 @@ func TestResolveFunctions(t *testing.T) {
 		after: NewBlock(NewFCall(NewId("a%%1%%((int,int)=>int)=>int"), NewId("<anon1>%%1%%(int,int)=>int"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
-			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewOp("+", NewId("x"), NewId("y")), "x", "y")).
+			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewPrimitiveOp("int_+", Int, NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
 	}, /* {
 		name: "resolves simple structures",
