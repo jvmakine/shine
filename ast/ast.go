@@ -224,6 +224,9 @@ func (e *Id) Visit(before VisitFunc, after VisitFunc, crawl bool, rewrite Rewrit
 		if r, c := ctx.Resolve(e.Name); r != nil {
 			if !ctx.global.visited[r] {
 				ctx.global.visited[r] = true
+				c.Definitions().Assignments[e.Name] = rewrite(r, ctx).(Expression)
+				r = c.Definitions().Assignments[e.Name]
+
 				if err := r.Visit(before, after, crawl, rewrite, c.WithAssignment(e.Name)); err != nil {
 					return err
 				}

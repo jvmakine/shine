@@ -31,6 +31,25 @@ func TestResolveFunctions(t *testing.T) {
 			WithAssignment("a%%1%%(bool,bool,bool)=>bool", NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")).
 			WithAssignment("a%%1%%(bool,int,int)=>int", NewFDef(NewBranch(NewId("b"), NewId("y"), NewId("x")), "b", "y", "x")),
 	}, {
+		name: "resolves operations in assignments",
+		before: NewBlock(NewFCall(NewId("a"), NewConst(6), NewConst(7))).
+			WithID(1).WithAssignment("a",
+			NewFDef(
+				NewBlock(NewId("added")).WithAssignment("added", NewOp("+", NewId("x"), NewId("y"))),
+				"y", "x",
+			),
+		),
+		after: NewBlock(NewFCall(NewId("a%%1%%(int,int)=>int"), NewConst(6), NewConst(7))).
+			WithID(1).WithAssignment("a%%1%%(int,int)=>int",
+			NewFDef(
+				NewBlock(NewId("added")).WithAssignment("added", NewPrimitiveOp("int_+", Int, NewId("x"), NewId("y"))),
+				"y", "x",
+			)).WithAssignment("a",
+			NewFDef(
+				NewBlock(NewId("added")).WithAssignment("added", NewOp("+", NewId("x"), NewId("y"))),
+				"y", "x",
+			)),
+	}, {
 		name: "resolves functions as arguments",
 		before: NewBlock(NewFCall(NewId("a"), NewId("b"))).
 			WithAssignment("a", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
