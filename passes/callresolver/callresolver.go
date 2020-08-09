@@ -138,6 +138,9 @@ func resolveIdFunct(v *Id, ctx *VisitContext) {
 					if HasFreeVars(cop.Type()) {
 						panic("could not unify " + fsig)
 					}
+					/*if varsAfter > 0 {
+						panic("hidden variables after resolution for " + fsig)
+					}*/
 					defin.Assignments[fsig] = cop
 				} else {
 					f := defin.Assignments[v.Name]

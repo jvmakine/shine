@@ -71,6 +71,47 @@ func TestResolveFunctions(t *testing.T) {
 			WithAssignment("a%%1%%((int,int)=>int)=>int", NewFDef(NewFCall(NewId("f"), NewConst(1), NewConst(2)), "f")).
 			WithAssignment("<anon1>%%1%%(int,int)=>int", NewFDef(NewPrimitiveOp("int_+", Int, NewId("x"), NewId("y")), "x", "y")).
 			WithID(1),
+	}, {
+		name: "resolve branching recursive functions",
+		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).
+			WithAssignment("a",
+				NewFDef(
+					NewBranch(
+						NewOp(">", NewId("n"), NewConst(1)),
+						NewOp(
+							"+",
+							NewFCall(NewId("a"), NewOp("-", NewId("n"), NewConst(1))),
+							NewFCall(NewId("a"), NewOp("-", NewId("n"), NewConst(2))),
+						),
+						NewConst(1),
+					), "n"),
+			).WithID(1),
+		after: NewBlock(NewFCall(NewId("a%%1%%(int)=>int"), NewConst(1))).
+			WithAssignment("a",
+				NewFDef(
+					NewBranch(
+						NewOp(">", NewId("n"), NewConst(1)),
+						NewOp(
+							"+",
+							NewFCall(NewId("a"), NewOp("-", NewId("n"), NewConst(1))),
+							NewFCall(NewId("a"), NewOp("-", NewId("n"), NewConst(2))),
+						),
+						NewConst(1),
+					), "n"),
+			).
+			WithAssignment("a%%1%%(int)=>int",
+				NewFDef(
+					NewBranch(
+						NewPrimitiveOp("int_>", Bool, NewId("n"), NewConst(1)),
+						NewPrimitiveOp(
+							"int_+",
+							Int,
+							NewFCall(NewId("a%%1%%(int)=>int"), NewPrimitiveOp("int_-", Int, NewId("n"), NewConst(1))),
+							NewFCall(NewId("a%%1%%(int)=>int"), NewPrimitiveOp("int_-", Int, NewId("n"), NewConst(2))),
+						),
+						NewConst(1),
+					), "n"),
+			).WithID(1),
 	}, /* {
 		name: "resolves simple structures",
 		before: NewBlock(NewFCall(NewId("a"), NewConst(1))).

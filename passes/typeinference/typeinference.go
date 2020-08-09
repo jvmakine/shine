@@ -24,6 +24,9 @@ func typeId(id *Id, ctx *VisitContext, unifier Substitutions) error {
 	name := id.Name
 	defin := ctx.DefinitionOf(name)
 	if ctx.Path()[name] {
+		ref := ctx.DefinitionOf(name).Assignments[name]
+		rtyp := ref.Type()
+		id.IdType = rtyp
 		return nil
 	} else if defin != nil && ctx.DefinitionOf(name).Assignments[name] != nil {
 		ref := ctx.DefinitionOf(name).Assignments[name]
