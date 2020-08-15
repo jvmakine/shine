@@ -26,6 +26,7 @@ type substitutionCtx struct {
 	updated   map[VariableID]bool
 	converted map[VariableID]bool
 	unifying  map[VariableID]map[VariableID]bool
+	resolved  map[VariableID]map[string]bool
 }
 
 func newSubstCtx() substitutionCtx {
@@ -33,6 +34,7 @@ func newSubstCtx() substitutionCtx {
 		map[VariableID]bool{},
 		map[VariableID]bool{},
 		map[VariableID]map[VariableID]bool{},
+		map[VariableID]map[string]bool{},
 	}
 }
 
@@ -146,11 +148,15 @@ func (s Substitutions) Combine(o Substitutions, ctx UnificationCtx) error {
 }
 
 func (s Substitutions) Add(from Type, to Type, ctx UnificationCtx) error {
-	sub, err := Unifier(from, to, ctx)
+	return s.add(from, to, ctx, newSubstCtx())
+}
+
+func (s Substitutions) add(from Type, to Type, ctx UnificationCtx, sctx substitutionCtx) error {
+	sub, err := unifier(from, to, ctx, sctx)
 	if err != nil {
 		return err
 	}
-	return s.combine(sub, ctx, newSubstCtx())
+	return s.combine(sub, ctx, sctx)
 }
 
 func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx substitutionCtx) error {

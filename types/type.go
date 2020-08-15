@@ -449,14 +449,20 @@ func (t Variable) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Sub
 	}
 	result := MakeSubstitutions()
 	for name, typ := range t.Fields {
-		in := ctx.StructuralTypeFor(name, o)
-		if in == nil {
-			return MakeSubstitutions(), UnificationError(t, o)
-		}
-		in = in.Copy(NewTypeCopyCtx())
-		ftyp := NewFunction(o, typ)
-		if err := result.Add(in, ftyp, ctx); err != nil {
-			return MakeSubstitutions(), err
+		if !sctx.resolved[t.ID][name] {
+			if sctx.resolved[t.ID] == nil {
+				sctx.resolved[t.ID] = map[string]bool{}
+			}
+			sctx.resolved[t.ID][name] = true
+			in := ctx.StructuralTypeFor(name, o)
+			if in == nil {
+				return MakeSubstitutions(), UnificationError(t, o)
+			}
+			in = in.Copy(NewTypeCopyCtx())
+			ftyp := NewFunction(o, typ)
+			if err := result.add(in, ftyp, ctx, sctx); err != nil {
+				return MakeSubstitutions(), err
+			}
 		}
 	}
 	result.AddContext(t.ID, ctx)
