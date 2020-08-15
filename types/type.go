@@ -40,9 +40,9 @@ var (
 type Type interface {
 	Copy(ctx *TypeCopyCtx) Type
 
-	convert(s Substitutions, ctx *substitutionCtx) (Type, bool)
-	freeVars() []Variable
-	unifier(o Type, ctx UnificationCtx) (Substitutions, error)
+	convert(s Substitutions, sctx substitutionCtx) (Type, bool)
+	freeVars(ctx freeVarsCtx) []Variable
+	unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error)
 	signature(ctx *signatureContext) string
 }
 
@@ -65,7 +65,7 @@ func (t Primitive) Copy(ctx *TypeCopyCtx) Type {
 	return t
 }
 
-func (t Primitive) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+func (t Primitive) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
 	if p, ok := o.(Primitive); ok && p.ID == t.ID {
 		return MakeSubstitutions(), nil
 	} else {
@@ -73,11 +73,11 @@ func (t Primitive) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	}
 }
 
-func (t Primitive) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
+func (t Primitive) convert(s Substitutions, sctx substitutionCtx) (Type, bool) {
 	return t, false
 }
 
-func (t Primitive) freeVars() []Variable {
+func (t Primitive) freeVars(ctx freeVarsCtx) []Variable {
 	return []Variable{}
 }
 
@@ -115,11 +115,11 @@ func (t Function) Copy(ctx *TypeCopyCtx) Type {
 	return nf
 }
 
-func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+func (t Function) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
 	if fun, ok := o.(Function); ok && len(fun.Fields) == len(t.Fields) {
 		result := MakeSubstitutions()
 		for i, f := range t.Fields {
-			s, err := Unifier(f, fun.Fields[i], ctx)
+			s, err := unifier(f, fun.Fields[i], ctx, sctx)
 			if err != nil {
 				return MakeSubstitutions(), err
 			}
@@ -133,21 +133,21 @@ func (t Function) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	return MakeSubstitutions(), UnificationError(t, o)
 }
 
-func (t Function) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
+func (t Function) convert(s Substitutions, sctx substitutionCtx) (Type, bool) {
 	changed := false
 	ts := make([]Type, len(t.Fields))
 	for i, f := range t.Fields {
-		nt, c := f.convert(s, ctx)
+		nt, c := f.convert(s, sctx)
 		ts[i] = nt
 		changed = changed || c
 	}
 	return NewFunction(ts...), changed
 }
 
-func (t Function) freeVars() []Variable {
+func (t Function) freeVars(ctx freeVarsCtx) []Variable {
 	res := []Variable{}
 	for _, f := range t.Fields {
-		res = append(res, f.freeVars()...)
+		res = append(res, f.freeVars(ctx)...)
 	}
 	return res
 }
@@ -211,23 +211,23 @@ func (t Named) Copy(ctx *TypeCopyCtx) Type {
 	}
 }
 
-func (t Named) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+func (t Named) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
 	if n, ok := o.(Named); ok && n.Name != t.Name {
 		return MakeSubstitutions(), UnificationError(t, o)
 	}
-	return Unifier(t.Type, o, ctx)
+	return unifier(t.Type, o, ctx, sctx)
 }
 
-func (t Named) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
-	nt, changed := t.Type.convert(s, ctx)
+func (t Named) convert(s Substitutions, sctx substitutionCtx) (Type, bool) {
+	nt, changed := t.Type.convert(s, sctx)
 	return Named{
 		Name: t.Name,
 		Type: nt,
 	}, changed
 }
 
-func (t Named) freeVars() []Variable {
-	return t.Type.freeVars()
+func (t Named) freeVars(ctx freeVarsCtx) []Variable {
+	return t.Type.freeVars(ctx)
 }
 
 func (t Named) signature(ctx *signatureContext) string {
@@ -266,7 +266,7 @@ func (t Structure) Copy(ctx *TypeCopyCtx) Type {
 	return ns
 }
 
-func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+func (t Structure) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
 	if s, ok := o.(Structure); ok && len(s.Fields) == len(t.Fields) {
 		resmap := map[string]Type{}
 		for _, f := range t.Fields {
@@ -275,7 +275,7 @@ func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		for _, f := range s.Fields {
 			p := resmap[f.Name]
 			if p != nil {
-				_, err := Unifier(f.Type, p, ctx)
+				_, err := unifier(f.Type, p, ctx, sctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -288,21 +288,21 @@ func (t Structure) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	return MakeSubstitutions(), UnificationError(t, o)
 }
 
-func (t Structure) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
+func (t Structure) convert(s Substitutions, sctx substitutionCtx) (Type, bool) {
 	ts := make([]Named, len(t.Fields))
 	changed := false
 	for i, f := range t.Fields {
-		n, c := f.Type.convert(s, ctx)
+		n, c := f.Type.convert(s, sctx)
 		ts[i] = NewNamed(f.Name, n)
 		changed = changed || c
 	}
 	return NewStructure(ts...), changed
 }
 
-func (t Structure) freeVars() []Variable {
+func (t Structure) freeVars(ctx freeVarsCtx) []Variable {
 	res := []Variable{}
 	for _, f := range t.Fields {
-		res = append(res, f.Type.freeVars()...)
+		res = append(res, f.Type.freeVars(ctx)...)
 	}
 	return res
 }
@@ -371,7 +371,7 @@ func (t Variable) Copy(ctx *TypeCopyCtx) Type {
 	return copy
 }
 
-func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
+func (t Variable) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
 	if len(t.Fields) == 0 {
 		result := MakeSubstitutions()
 		if err := result.Update(t.ID, o, ctx); err != nil {
@@ -383,11 +383,18 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		if len(v.Fields) == 0 {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
+		if sctx.unifying[t.ID][v.ID] {
+			return MakeSubstitutions(), nil
+		}
+		if sctx.unifying[t.ID] == nil {
+			sctx.unifying[t.ID] = map[VariableID]bool{}
+		}
+		sctx.unifying[t.ID][v.ID] = true
 		result := MakeSubstitutions()
 		sum := map[string]Type{}
 		for n, f := range t.Fields {
 			if of := v.Fields[n]; of != nil {
-				u, err := Unifier(f, of, ctx)
+				u, err := unifier(f, of, ctx, sctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -424,7 +431,7 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		}
 		for n, f := range t.Fields {
 			if p := sFields[n]; p != nil {
-				_, err := Unifier(p, f, ctx)
+				_, err := unifier(p, f, ctx, sctx)
 				if err != nil {
 					return MakeSubstitutions(), err
 				}
@@ -436,9 +443,9 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 		result.Update(t.ID, v, ctx)
 		return result, nil
 	}
-	if f, ok := o.(Function); ok && len(f.freeVars()) > 0 {
+	if f, ok := o.(Function); ok && len(f.freeVars(newFreeVarsCtx())) > 0 {
 		stru := NewVariable(NewNamed("%call", f))
-		return Unifier(stru, t, ctx)
+		return unifier(stru, t, ctx, sctx)
 	}
 	result := MakeSubstitutions()
 	for name, typ := range t.Fields {
@@ -457,19 +464,19 @@ func (t Variable) unifier(o Type, ctx UnificationCtx) (Substitutions, error) {
 	return result, nil
 }
 
-func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
+func (t Variable) convert(s Substitutions, sctx substitutionCtx) (Type, bool) {
 	if r := (*s.substitutions)[t.ID]; r != nil {
 		if v, ok := r.(Variable); ok {
 			if v.ID == t.ID {
 				return v, false
 			}
 		}
-		if ctx.converted[t.ID] {
+		if sctx.converted[t.ID] {
 			return r, true
 		}
-		ctx.converted[t.ID] = true
+		sctx.converted[t.ID] = true
 		// Deals with recursive variables
-		c, _ := r.convert(s, ctx)
+		c, _ := r.convert(s, sctx)
 		if con, ok := c.(Contextual); ok {
 			context := s.GetContext(t.ID)
 			if context != nil && con.GetContext() == nil {
@@ -483,10 +490,10 @@ func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 	}
 	changed := false
 	res := map[string]Type{}
-	if !ctx.converted[t.ID] {
-		ctx.converted[t.ID] = true
+	if !sctx.converted[t.ID] {
+		sctx.converted[t.ID] = true
 		for n, f := range t.Fields {
-			nv, c := f.convert(s, ctx)
+			nv, c := f.convert(s, sctx)
 			res[n] = nv
 			changed = changed || c
 		}
@@ -501,10 +508,14 @@ func (t Variable) convert(s Substitutions, ctx *substitutionCtx) (Type, bool) {
 	return rest, true
 }
 
-func (t Variable) freeVars() []Variable {
+func (t Variable) freeVars(ctx freeVarsCtx) []Variable {
+	if ctx[t.ID] {
+		return []Variable{}
+	}
+	ctx[t.ID] = true
 	res := []Variable{t}
 	for _, f := range t.Fields {
-		res = append(res, f.freeVars()...)
+		res = append(res, f.freeVars(ctx)...)
 	}
 	return res
 }
@@ -524,27 +535,28 @@ func (t Variable) signature(ctx *signatureContext) string {
 		str := "V" + strconv.Itoa(ctx.variableCount)
 		sb.WriteString(str)
 		ctx.variables[t.ID] = str
-	}
-	if len(t.Fields) > 0 {
-		sb.WriteString("{")
-		i := 0
-		for _, n := range keys {
-			f := t.Fields[n]
-			sb.WriteString(n)
-			sb.WriteString(":")
-			sb.WriteString(f.signature(ctx))
-			if i < len(t.Fields)-1 {
-				sb.WriteString(",")
+		// Print out the fields only on the first occurrence of the variable
+		if len(t.Fields) > 0 {
+			sb.WriteString("{")
+			i := 0
+			for _, n := range keys {
+				f := t.Fields[n]
+				sb.WriteString(n)
+				sb.WriteString(":")
+				sb.WriteString(f.signature(ctx))
+				if i < len(t.Fields)-1 {
+					sb.WriteString(",")
+				}
+				i++
 			}
-			i++
+			sb.WriteString("}")
 		}
-		sb.WriteString("}")
 	}
 	return sb.String()
 }
 
 func HasFreeVars(t Type) bool {
-	return len(t.freeVars()) > 0
+	return len(t.freeVars(newFreeVarsCtx())) > 0
 }
 
 func IsFunction(t Type) bool {

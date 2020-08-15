@@ -24,9 +24,13 @@ func Unify(t Type, o Type, ctx UnificationCtx) (Type, error) {
 }
 
 func Unifier(t Type, o Type, ctx UnificationCtx) (Substitutions, error) {
-	sub, err := t.unifier(o, ctx)
+	return unifier(t, o, ctx, newSubstCtx())
+}
+
+func unifier(t Type, o Type, ctx UnificationCtx, sctx substitutionCtx) (Substitutions, error) {
+	sub, err := t.unifier(o, ctx, sctx)
 	if err != nil {
-		sub, err = o.unifier(t, ctx)
+		sub, err = o.unifier(t, ctx, sctx)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}

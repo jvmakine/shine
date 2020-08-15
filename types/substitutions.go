@@ -25,10 +25,21 @@ func MakeSubstitutions() Substitutions {
 type substitutionCtx struct {
 	updated   map[VariableID]bool
 	converted map[VariableID]bool
+	unifying  map[VariableID]map[VariableID]bool
 }
 
-func newSubstCtx() *substitutionCtx {
-	return &substitutionCtx{map[VariableID]bool{}, map[VariableID]bool{}}
+func newSubstCtx() substitutionCtx {
+	return substitutionCtx{
+		map[VariableID]bool{},
+		map[VariableID]bool{},
+		map[VariableID]map[VariableID]bool{},
+	}
+}
+
+type freeVarsCtx = map[VariableID]bool
+
+func newFreeVarsCtx() freeVarsCtx {
+	return freeVarsCtx{}
 }
 
 func (s Substitutions) Apply(t Type) Type {
@@ -43,7 +54,7 @@ func (s Substitutions) Update(from VariableID, to Type, ctx UnificationCtx) erro
 	return s.update(from, to, ctx, newSubstCtx())
 }
 
-func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx *substitutionCtx) error {
+func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx substitutionCtx) error {
 	if v, ok := to.(Variable); ok {
 		if v.ID == from {
 			return nil
@@ -110,7 +121,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 				substit := (*s.substitutions)[k]
 				c, _ := substit.convert(subs, sctx)
 				(*s.substitutions)[k] = c
-				for _, fv := range (*s.substitutions)[k].freeVars() {
+				for _, fv := range (*s.substitutions)[k].freeVars(newFreeVarsCtx()) {
 					if (*s.references)[fv.ID] == nil {
 						(*s.references)[fv.ID] = map[VariableID]bool{}
 					}
@@ -120,7 +131,7 @@ func (s Substitutions) update(from VariableID, to Type, ctx UnificationCtx, sctx
 		}
 	}
 
-	for _, fv := range result.freeVars() {
+	for _, fv := range result.freeVars(newFreeVarsCtx()) {
 		if (*s.references)[fv.ID] == nil {
 			(*s.references)[fv.ID] = map[VariableID]bool{}
 		}
@@ -142,7 +153,7 @@ func (s Substitutions) Add(from Type, to Type, ctx UnificationCtx) error {
 	return s.combine(sub, ctx, newSubstCtx())
 }
 
-func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx *substitutionCtx) error {
+func (s Substitutions) combine(o Substitutions, ctx UnificationCtx, sctx substitutionCtx) error {
 	// do not modify s if the combination fails
 	attempt := s.Copy()
 	for k, v := range *o.contexts {
