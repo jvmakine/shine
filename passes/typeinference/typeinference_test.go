@@ -94,6 +94,12 @@ func TestInfer(tes *testing.T) {
 			WithAssignment("b", NewId("a")),
 		err: errors.New("recursive value: a -> b -> a"),
 	}, {
+		name: "infer abstract function parameters",
+		exp: NewBlock(NewFDef(NewBlock(NewFCall(NewId("f2"), NewId("a"), NewId("b"))).
+			WithAssignment("f2", NewFDef(NewFCall(NewId("f"), NewId("a2"), NewId("b2")), "a2", "b2")),
+			"f", "a", "b")),
+		typ: "((V1,V2)=>V3,V1,V2)=>V3",
+	}, {
 		name: "work on non-recursive values",
 		exp: NewBlock(NewId("a")).
 			WithAssignment("a", NewOp("+", NewId("b"), NewId("c"))).
