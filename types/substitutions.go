@@ -25,7 +25,7 @@ func MakeSubstitutions() Substitutions {
 type substitutionCtx struct {
 	updated   map[VariableID]bool
 	converted map[VariableID]bool
-	unifying  map[VariableID]map[VariableID]bool
+	unifying  map[VariableID]bool
 	resolved  map[VariableID]map[string]bool
 }
 
@@ -33,7 +33,7 @@ func newSubstCtx() substitutionCtx {
 	return substitutionCtx{
 		map[VariableID]bool{},
 		map[VariableID]bool{},
-		map[VariableID]map[VariableID]bool{},
+		map[VariableID]bool{},
 		map[VariableID]map[string]bool{},
 	}
 }

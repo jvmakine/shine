@@ -216,6 +216,32 @@ func TestType_RecursiveVariableUnify(t *testing.T) {
 	}
 }
 
+func TestType_RecursiveVariableFunctionUnify(t *testing.T) {
+	var1 := NewVariable()
+	var1.Fields["a"] = NewFunction(var1, var1)
+
+	var2 := NewVariable()
+	var2.Fields["a"] = NewFunction(var2, var2)
+
+	ctx := MockUnificationCtx{"a": NewFunction(Int, NewFunction(Int, Int))}
+
+	result, err := Unifier(var1, var2, ctx)
+	if err != nil {
+		t.Errorf("Type.Unifier() error = %v", err)
+		return
+	}
+	err = result.Add(var1, Int, ctx)
+	if err != nil {
+		t.Errorf("Type.Update() error = %v", err)
+		return
+	}
+	typ, _ := var2.convert(result, newSubstCtx())
+	if Signature(typ) != "int" {
+		t.Errorf("result is not an int")
+		return
+	}
+}
+
 func TestType_ChainUnify(tt *testing.T) {
 	ctx := MockUnificationCtx{}
 	vars := make([]Variable, 10)

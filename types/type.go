@@ -383,13 +383,10 @@ func (t Variable) unifier(o Type, ctx UnificationCtx, sctx substitutionCtx) (Sub
 		if len(v.Fields) == 0 {
 			return MakeSubstitutions(), UnificationError(t, o)
 		}
-		if sctx.unifying[t.ID][v.ID] {
+		if sctx.unifying[t.ID] {
 			return MakeSubstitutions(), nil
 		}
-		if sctx.unifying[t.ID] == nil {
-			sctx.unifying[t.ID] = map[VariableID]bool{}
-		}
-		sctx.unifying[t.ID][v.ID] = true
+		sctx.unifying[t.ID] = true
 		result := MakeSubstitutions()
 		sum := map[string]Type{}
 		for n, f := range t.Fields {
