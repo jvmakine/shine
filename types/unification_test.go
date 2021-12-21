@@ -2,10 +2,9 @@ package types
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 
-	"github.com/roamz/deepdiff"
+	"github.com/stretchr/testify/require"
 )
 
 func TestType_Unify(t *testing.T) {
@@ -202,19 +201,13 @@ func TestType_Unify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.a.Unify(tt.b)
 			if tt.err != nil {
-				if !reflect.DeepEqual(err, tt.err) {
-					t.Errorf("Type.Unify() error = %v, wantErr %v", err, tt.err)
-					return
-				}
+				require.Equal(t, tt.err, err)
 			} else {
 				if err != nil {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				ok, err := deepdiff.DeepDiff(got, tt.want)
-				if !ok {
-					t.Error(err)
-				}
+				require.Equal(t, tt.want, got)
 			}
 		})
 	}

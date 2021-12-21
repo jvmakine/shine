@@ -7,7 +7,7 @@ import (
 	"github.com/jvmakine/shine/passes/typeinference"
 	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
-	"github.com/roamz/deepdiff"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResolveFunctions(t *testing.T) {
@@ -105,10 +105,7 @@ func TestResolveFunctions(t *testing.T) {
 			ResolveFunctions(tt.before)
 			eraseType(tt.after)
 			eraseType(tt.before)
-			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
-			if !ok {
-				t.Error(err)
-			}
+			require.Equal(t, tt.before, tt.after)
 		})
 	}
 }

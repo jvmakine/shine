@@ -7,7 +7,7 @@ import (
 	"github.com/jvmakine/shine/passes/typeinference"
 	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
-	"github.com/roamz/deepdiff"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSeqFN(t *testing.T) {
@@ -36,10 +36,7 @@ func TestSeqFN(t *testing.T) {
 
 			eraseType(tt.after)
 			eraseType(tt.before)
-			ok, err := deepdiff.DeepDiff(tt.before, tt.after)
-			if !ok {
-				t.Error(err)
-			}
+			require.Equal(t, tt.before, tt.after)
 		})
 	}
 }

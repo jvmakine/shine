@@ -7,7 +7,7 @@ import (
 	a "github.com/jvmakine/shine/ast"
 	t "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
-	"github.com/roamz/deepdiff"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExpressionParsing(tes *testing.T) {
@@ -278,10 +278,7 @@ func TestExpressionParsing(tes *testing.T) {
 				return
 			}
 			got := prog.ToAst()
-			ok, err := deepdiff.DeepDiff(got, tt.want)
-			if !ok {
-				t.Error(err)
-			}
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
