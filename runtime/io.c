@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdint.h>
-#include "strings.h"
 #include "pvector.h"
 
 void print_int(long i) {
