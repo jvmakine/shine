@@ -1,8 +1,8 @@
 package grammar
 
 type Expression struct {
-	Exp  *UTExpression `@@`
-	Type *TypeDef      `(":" @@)?`
+	Exp  *UTExpression    `@@`
+	Type *TypeDeclaration `(":" @@)?`
 }
 
 type UTExpression struct {
@@ -63,8 +63,22 @@ type Accessor struct {
 }
 
 type Block struct {
-	Assignments []*Assignment `@@*`
-	Value       *Expression   `@@ Newline*`
+	Elements []*BlockElement `Newline* @@*`
+	Value    *Expression     `@@ Newline*`
+}
+
+type BlockElement struct {
+	TypeDef    *TypeDefinition `@@`
+	Assignment *Assignment     `| @@`
+}
+
+type TypeDefinition struct {
+	Name   *string            `@Ident`
+	Struct *StructDescription `TypeDef @@ Newline+`
+}
+
+type StructDescription struct {
+	Params []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
 }
 
 type CallParams struct {
@@ -87,33 +101,33 @@ type PValue struct {
 }
 
 type Assignment struct {
-	Name  *string     `Newline* @Ident`
-	Type  *TypeDef    `(":" @@)?`
-	Value *Expression `"=" @@ Newline+`
+	Name  *string          `@Ident`
+	Type  *TypeDeclaration `(":" @@)?`
+	Value *Expression      `"=" @@ Newline+`
 }
 
 type TypeFunc struct {
-	Params []*TypeDef `"(" (@@ ("," @@)*)? ")" "=>"`
-	Return *TypeDef   `@@`
+	Params []*TypeDeclaration `"(" (@@ ("," @@)*)? ")" "=>"`
+	Return *TypeDeclaration   `@@`
 }
 
-type TypeDef struct {
+type TypeDeclaration struct {
 	Primitive string    `@PrimitiveType`
 	Function  *TypeFunc `| @@`
 	Named     string    `| @Ident`
 }
 
 type FunParam struct {
-	Name *string  `@Ident`
-	Type *TypeDef `(":" @@)?`
+	Name *string          `@Ident`
+	Type *TypeDeclaration `(":" @@)?`
 }
 
 type Definition struct {
 	Params []*FunParam  `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
-	Funct  *FunctionDef `(Newline* @@)?`
+	Funct  *FunctionDef `Newline* @@`
 }
 
 type FunctionDef struct {
-	ReturnType *TypeDef    `(":" @@)?`
-	Body       *Expression `"=>" Newline* @@`
+	ReturnType *TypeDeclaration `(":" @@)?`
+	Body       *Expression      `"=>" Newline* @@`
 }

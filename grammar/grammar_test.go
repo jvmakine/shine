@@ -221,7 +221,7 @@ func TestExpressionParsing(tes *testing.T) {
 	}, {
 		name: "parse structure definitions",
 		input: `
-			a = (x:int, c)
+			a :: (x:int, c)
 			a(1, true)
 		`,
 		want: t.Block(

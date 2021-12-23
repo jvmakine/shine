@@ -95,10 +95,10 @@ prints out 3
 
 #### Structures
 
-Structures are used to combine several valuesinto a single value. These values can then be accessed with the dot operator. The structure is declared as a function parameter list without a body.
+Structures are used to combine several valuesinto a single value. These values can then be accessed with the dot operator. The structure is declared with type declaration operator "::" and consists of ordered list of fields.
 
 ```
-Person = (age: int, height, weight)
+Person :: (age: int, height, weight)
 p = Person(38, 1.73, 60.0)
 p.weight
 ```
@@ -111,8 +111,8 @@ getAge = (p: Person) => p.age
 ```
 If explicit structure is not defined, functions can take any structure as in input with required fields.
 ```
-Person = (age, height)
-Animal = (age, weight)
+Person :: (age, height)
+Animal :: (age, weight)
 
 getAge = (x) => x.age
 

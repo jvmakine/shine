@@ -25,6 +25,7 @@ func Parse(str string) (*Program, error) {
 		Brackets = "(" | ")" | "{" | "}" .
 		COp = ">=" | "<=" .
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
+		TypeDef = "::" .
 		Typ = ":" .
 		PrimitiveType = "int" | "real" | "bool" | "string" .
 		Eq = "=" .
@@ -60,11 +61,30 @@ func (prg *Program) ToAst() *ast.Exp {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
-	for _, a := range from.Assignments {
-		assigns[*a.Name] = convExp(a.Value)
-		if a.Type != nil {
-			t := convTypeDef(a.Type)
-			assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+	for _, e := range from.Elements {
+		if e.Assignment != nil {
+			a := e.Assignment
+			assigns[*a.Name] = convExp(a.Value)
+			if a.Type != nil {
+				t := convTypeDecl(a.Type)
+				assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+			}
+		} else if e.TypeDef != nil {
+			from := e.TypeDef
+			fields := make([]*ast.StructField, len(from.Struct.Params))
+			for i, p := range from.Struct.Params {
+				td := types.Type{}
+				if p.Type != nil {
+					td = convTypeDecl(p.Type)
+				}
+				fields[i] = &ast.StructField{
+					Name: *p.Name,
+					Type: td,
+				}
+			}
+			assigns[*from.Name] = &ast.Exp{
+				Struct: &ast.Struct{Fields: fields},
+			}
 		}
 	}
 	return &ast.Block{
@@ -76,7 +96,7 @@ func convBlock(from *Block) *ast.Block {
 func convExp(from *Expression) *ast.Exp {
 	ut := convUTExp(from.Exp)
 	if from.Type != nil {
-		return &ast.Exp{TDecl: &ast.TypeDecl{Exp: ut, Type: convTypeDef(from.Type)}}
+		return &ast.Exp{TDecl: &ast.TypeDecl{Exp: ut, Type: convTypeDecl(from.Type)}}
 	}
 	return ut
 }
@@ -102,42 +122,24 @@ func convIf(from *IfExpression) *ast.Exp {
 }
 
 func convDef(from *Definition) *ast.Exp {
-	if fd := from.Funct; fd != nil {
-		params := make([]*ast.FParam, len(from.Params))
-		for i, p := range from.Params {
-			params[i] = convFParam(p)
-		}
-		body := convExp(fd.Body)
-		if fd.ReturnType != nil {
-			body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDef(fd.ReturnType)}}
-		}
-		return &ast.Exp{
-			Def: &ast.FDef{
-				Params: params,
-				Body:   body,
-			},
-		}
-	} else {
-		fields := make([]*ast.StructField, len(from.Params))
-		for i, p := range from.Params {
-			td := types.Type{}
-			if p.Type != nil {
-				td = convTypeDef(p.Type)
-			}
-			fields[i] = &ast.StructField{
-				Name: *p.Name,
-				Type: td,
-			}
-		}
-		return &ast.Exp{
-			Struct: &ast.Struct{
-				Fields: fields,
-			},
-		}
+	fd := from.Funct
+	params := make([]*ast.FParam, len(from.Params))
+	for i, p := range from.Params {
+		params[i] = convFParam(p)
+	}
+	body := convExp(fd.Body)
+	if fd.ReturnType != nil {
+		body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDecl(fd.ReturnType)}}
+	}
+	return &ast.Exp{
+		Def: &ast.FDef{
+			Params: params,
+			Body:   body,
+		},
 	}
 }
 
-func convTypeDef(t *TypeDef) types.Type {
+func convTypeDecl(t *TypeDeclaration) types.Type {
 	if t.Primitive != "" {
 		switch t.Primitive {
 		case "int":
@@ -154,9 +156,9 @@ func convTypeDef(t *TypeDef) types.Type {
 	} else if t.Function != nil {
 		ps := make([]types.Type, len(t.Function.Params)+1)
 		for i, p := range t.Function.Params {
-			ps[i] = convTypeDef(p)
+			ps[i] = convTypeDecl(p)
 		}
-		ps[len(t.Function.Params)] = convTypeDef(t.Function.Return)
+		ps[len(t.Function.Params)] = convTypeDecl(t.Function.Return)
 		return types.MakeFunction(ps...)
 	} else if t.Named != "" {
 		return types.MakeNamed(t.Named)
@@ -167,7 +169,7 @@ func convTypeDef(t *TypeDef) types.Type {
 func convFParam(from *FunParam) *ast.FParam {
 	typ := types.Type{}
 	if from.Type != nil {
-		typ = convTypeDef(from.Type)
+		typ = convTypeDecl(from.Type)
 	}
 	return &ast.FParam{
 		Name: *from.Name,
