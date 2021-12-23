@@ -1,16 +1,15 @@
 package main
 
 import (
-	"errors"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompile(t *testing.T) {
 	tests := []struct {
 		name    string
 		program string
-		err     error
 	}{{
 		name: "compiles functions as variables program without errors",
 		program: `
@@ -21,7 +20,6 @@ func TestCompile(t *testing.T) {
 
 							operate(3, 1, pick(true)) + operate(5, 1, pick(false)) + operate(1, 1, (x, y) => { x + y })
 						`,
-		err: nil,
 	}, {
 		name: "compile euler2 without errors",
 		program: `
@@ -34,7 +32,6 @@ func TestCompile(t *testing.T) {
 							}
 							agg(1, 1, 100, 0)
 						`,
-		err: nil,
 	}, {
 		name: "compile nested function args without errors",
 		program: `
@@ -55,14 +52,12 @@ func TestCompile(t *testing.T) {
 
 							findLargestProd(10, 99, (x) => x % 2 == 0)
 						`,
-		err: nil,
 	}, {
 		name: "compile sequential functions",
 		program: `
 							a = (x) => (y) => (z) => x + y + z
 							a(1)(2)(3)
 						`,
-		err: nil,
 	}, {
 		name: "cwork with unused values",
 		program: `
@@ -70,7 +65,6 @@ func TestCompile(t *testing.T) {
 							b = 3
 							3
 						`,
-		err: nil,
 	}, {
 		name: "compile values in right order",
 		program: `
@@ -82,21 +76,12 @@ func TestCompile(t *testing.T) {
 							d = c + two
 							d + one
 						`,
-		err: nil,
 	}, {
 		name: "compiles closures with lambdas",
 		program: `
 						a = (f) => (z) => f(2, z)
 						a((x, y) => {x + y})(1)
 					`,
-		err: nil,
-	}, {
-		name: "uses predefined types variable",
-		program: `
-						a = (x:int, y) => x + y
-						a(1.0, 2.0)
-					`,
-		err: errors.New("can not unify int with real"),
 	}, {
 		name: "compile structure programs",
 		program: `
@@ -105,20 +90,11 @@ func TestCompile(t *testing.T) {
 			person = Person(38, 1.73, 60.0)
 			bmi(person)
 		`,
-		err: nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := Compile(tt.program)
-			if err != nil {
-				if reflect.DeepEqual(err, tt.err) {
-					return
-				}
-				t.Errorf("Compile() error = %v, wantErr %v", err, tt.err)
-				return
-			} else if tt.err != nil {
-				t.Errorf("Compile() error = %v, wantErr %v", err, tt.err)
-			}
+			_, err := compileModule(tt.program)
+			require.NoError(t, err)
 		})
 	}
 }
