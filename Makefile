@@ -5,7 +5,6 @@ LLS = memory.ll io.ll pvector.ll structure.ll
 
 .PHONY: runtime
 runtime:
-	clang -shared -o lib/runtime.so $(SRC)
 	clang -S -emit-llvm $(SRC)
 	llvm-link -S $(LLS) > lib/runtime.ll
 	rm *.ll
