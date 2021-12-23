@@ -23,7 +23,8 @@ import (
 var runtime string
 
 type Build struct {
-	File string `arg:"" name:"file" help:"Source code file"`
+	File   string `arg:"" name:"file" help:"Source code file"`
+	Output string `name:"output" short:"o" optional:"" help:"Output executable name"`
 }
 
 type Compile struct {
@@ -64,47 +65,21 @@ func (cmd *Compile) Run() error {
 }
 
 func (cmd *Run) Run() error {
-	_, err := exec.LookPath("lli")
-	if err != nil {
-		return errors.New("lli could not be found. Is LLVM installed?")
-	}
-	_, err = exec.LookPath("llvm-link")
-	if err != nil {
-		return errors.New("llvm-link could not be found. Is LLVM installed?")
-	}
-	text, err := ioutil.ReadFile(cmd.File)
-	if err != nil {
+	if err := verifyLLVMBinaries("lli", "llvm-link"); err != nil {
 		return err
 	}
-	module, err := compileModule(string(text))
-	if err != nil {
-		return err
-	}
-
 	dir, err := ioutil.TempDir(".", "run")
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(dir)
-	input := filepath.Join(dir, "input.ll")
-	rt := filepath.Join(dir, "runtime.ll")
-	all := filepath.Join(dir, "all.ll")
 
-	if err := ioutil.WriteFile(input, []byte(module.String()), 0600); err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(rt, []byte(runtime), 0600); err != nil {
-		return err
-	}
-	combined, err := exec.Command("llvm-link", "-S", input, rt).Output()
+	all, err := compileIRTo(cmd.File, dir)
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(all, combined, 0600); err != nil {
-		return err
-	}
 
-	c := exec.Command("lli", all, rt)
+	c := exec.Command("lli", all)
 	c.Stderr = os.Stderr
 	c.Stdout = os.Stdout
 	err = c.Run()
@@ -112,6 +87,75 @@ func (cmd *Run) Run() error {
 		return err
 	}
 
+	return nil
+}
+
+func (cmd *Build) Run() error {
+	if err := verifyLLVMBinaries("llvm-link", "clang"); err != nil {
+		return err
+	}
+	dir, err := ioutil.TempDir(".", "run")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	all, err := compileIRTo(cmd.File, dir)
+	if err != nil {
+		return err
+	}
+
+	c := exec.Command("clang", all)
+	c.Stderr = os.Stderr
+	c.Stdout = os.Stdout
+	if cmd.Output != "" {
+		c.Args = append(c.Args, "-o", cmd.Output)
+	}
+	err = c.Run()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func compileIRTo(file, dir string) (string, error) {
+	text, err := ioutil.ReadFile(file)
+	if err != nil {
+		return "", err
+	}
+	module, err := compileModule(string(text))
+	if err != nil {
+		return "", err
+	}
+
+	input := filepath.Join(dir, "input.ll")
+	rt := filepath.Join(dir, "runtime.ll")
+	all := filepath.Join(dir, "all.ll")
+
+	if err := ioutil.WriteFile(input, []byte(module.String()), 0600); err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(rt, []byte(runtime), 0600); err != nil {
+		return "", err
+	}
+	combined, err := exec.Command("llvm-link", "-S", input, rt).Output()
+	if err != nil {
+		return "", err
+	}
+	if err := ioutil.WriteFile(all, combined, 0600); err != nil {
+		return "", err
+	}
+	return all, nil
+}
+
+func verifyLLVMBinaries(bins ...string) error {
+	for _, b := range bins {
+		_, err := exec.LookPath(b)
+		if err != nil {
+			return errors.New(b + " could not be found. Is LLVM installed?")
+		}
+	}
 	return nil
 }
 
