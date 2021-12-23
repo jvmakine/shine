@@ -1,5 +1,5 @@
 Person :: (age, height, weight)
-Animal :: (height, weight)
+Animal[R] :: (height: R, weight: R)
 bmi = (p) => p.weight / (p.height * p.height)
 
 bmi(Person(38, 1.73, 60.0)) + bmi(Animal(1.73, 60.0))

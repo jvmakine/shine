@@ -88,7 +88,13 @@ type Block struct {
 // Types
 
 type TypeDefinition struct {
-	Struct *Struct
+	FreeVariables []string
+	Struct        *Struct
+}
+
+func (t *TypeDefinition) WithFreeVars(vars ...string) *TypeDefinition {
+	t.FreeVariables = vars
+	return t
 }
 
 type StructField struct {

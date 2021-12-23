@@ -1,6 +1,8 @@
 package ast
 
-import "github.com/jvmakine/shine/types"
+import (
+	"github.com/jvmakine/shine/types"
+)
 
 type VisitContext struct {
 	parent     *VisitContext
@@ -47,6 +49,17 @@ func (c *VisitContext) BlockOf(id string) *Block {
 		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
+	}
+	return nil
+}
+
+func (c *VisitContext) TypeDef(id string) *TypeDefinition {
+	if c.block == nil {
+		return nil
+	} else if c.block.TypeDefs[id] != nil {
+		return c.block.TypeDefs[id]
+	} else if c.parent != nil {
+		return c.parent.TypeDef(id)
 	}
 	return nil
 }

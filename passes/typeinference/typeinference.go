@@ -125,19 +125,36 @@ func initialiseVariables(exp *ast.Exp) error {
 				return err
 			}
 			for name, value := range v.Block.TypeDefs {
+				free := map[string]Type{}
+				for _, n := range value.FreeVariables {
+					free[n] = MakeVariable()
+				}
+
 				if value.Struct != nil {
 					ts := make([]types.Type, len(value.Struct.Fields)+1)
 					sf := make([]types.SField, len(value.Struct.Fields))
-					for i, v := range value.Struct.Fields {
-						typ := v.Type
+					for i, f := range value.Struct.Fields {
+						typ := f.Type
 						if !typ.IsDefined() {
 							typ = MakeVariable()
 						}
-						v.Type = typ
+						if typ.Named != nil {
+							if fv, ok := free[*typ.Named]; ok {
+								d := ctx.TypeDef(*typ.Named)
+								if d == nil {
+									d = v.Block.TypeDefs[*typ.Named]
+								}
+								if d != nil {
+									return errors.New("redefinition of " + *typ.Named)
+								}
+								typ = fv
+							}
+						}
+						f.Type = typ
 
 						ts[i] = typ
 						sf[i] = SField{
-							Name: v.Name,
+							Name: f.Name,
 							Type: typ,
 						}
 					}
@@ -154,16 +171,15 @@ func initialiseVariables(exp *ast.Exp) error {
 }
 
 func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
-	block := ctx.BlockOf(name)
-	if block == nil {
+	tdef := ctx.TypeDef(name)
+	if tdef == nil {
 		return Type{}, errors.New("type " + name + " is undefined")
 	}
-	exp := block.TypeDefs[name]
-	if exp == nil || exp.Struct == nil {
-		return Type{}, errors.New(name + " is not a type")
+	if tdef.Struct == nil {
+		return Type{}, errors.New(name + " is not a correct type")
 	}
-	fs := make([]types.SField, len(exp.Struct.Fields))
-	for i, f := range exp.Struct.Fields {
+	fs := make([]types.SField, len(tdef.Struct.Fields))
+	for i, f := range tdef.Struct.Fields {
 		if !f.Type.IsDefined() {
 			fs[i] = types.SField{
 				Name: f.Name,

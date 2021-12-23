@@ -22,7 +22,7 @@ func Parse(str string) (*Program, error) {
 		Reserved = "if" | "else" | "true" | "false" .
 		Comma = "," .
 		Dot = "." .
-		Brackets = "(" | ")" | "{" | "}" .
+		Brackets = "(" | ")" | "{" | "}" | "[" | "]" .
 		COp = ">=" | "<=" .
 		Op = "+" | "-" | "*" | "/" | "%" |  ">" | "<" | "==" | "!=" | "||" | "&&" .
 		TypeDef = "::" .
@@ -84,7 +84,8 @@ func convBlock(from *Block) *ast.Block {
 				}
 			}
 			typedefs[*from.Name] = &ast.TypeDefinition{
-				Struct: &ast.Struct{Fields: fields},
+				FreeVariables: from.FreeVars,
+				Struct:        &ast.Struct{Fields: fields},
 			}
 		}
 	}

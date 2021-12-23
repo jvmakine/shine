@@ -281,6 +281,25 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Typedefs{},
 			t.Id("a"),
 		),
+	}, {
+		name: "parse type variables",
+		input: `A[X] :: (l:X, r:X) 
+				A(1,2)
+			`,
+		want: t.Block(
+			t.Assgs{},
+			t.Typedefs{"A": &a.TypeDefinition{
+				FreeVariables: []string{"X"},
+				Struct: &a.Struct{Fields: []*a.StructField{{
+					Name: "l",
+					Type: types.MakeNamed("X"),
+				}, {
+					Name: "r",
+					Type: types.MakeNamed("X"),
+				}}},
+			}},
+			t.Fcall(t.Id("A"), t.IConst(1), t.IConst(2)),
+		),
 	},
 	}
 	for _, tt := range tests {

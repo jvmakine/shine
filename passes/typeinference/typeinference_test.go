@@ -305,6 +305,28 @@ func TestInfer(tes *testing.T) {
 		),
 		typ: "(V1{a:int})=>int",
 		err: nil,
+	}, {
+		name: "fail to unify free variable twice",
+		exp: Block(
+			Assgs{},
+			Typedefs{"A": Struct(
+				ast.StructField{"a1", types.MakeNamed("X")},
+				ast.StructField{"a2", types.MakeNamed("X")},
+			).WithFreeVars("X")},
+			Fcall(Id("A"), IConst(1), RConst(2.0)),
+		),
+		err: errors.New("can not unify int with real"),
+	}, {
+		name: "fail on reusing defined type as free variable",
+		exp: Block(
+			Assgs{},
+			Typedefs{
+				"X": Struct(ast.StructField{"a1", types.IntP}),
+				"A": Struct(ast.StructField{"a1", types.MakeNamed("X")}).WithFreeVars("X"),
+			},
+			Fcall(Id("A"), IConst(1)),
+		),
+		err: errors.New("redefinition of X"),
 	},
 	}
 	for _, tt := range tests {

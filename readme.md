@@ -105,6 +105,11 @@ p.weight
 
 prints out 60.0
 
+To specify free types to be used multiple times in the structure, a type variables can be used
+```
+Pair[A] :: (left: A, right: A)
+```
+
 Explicitly specifying that an expression is of a specific structure, the structure name can be used.
 ```
 getAge = (p: Person) => p.age
