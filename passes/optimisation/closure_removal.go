@@ -25,7 +25,7 @@ func ClosureRemoval(exp *ast.Exp) {
 		} else if v.Call != nil && v.Call.Function.Id != nil {
 			id := v.Call.Function.Id.Name
 			block := ctx.BlockOf(id)
-			if block != nil && block.Assignments[id].Def != nil {
+			if block != nil && block.Assignments[id] != nil && block.Assignments[id].Def != nil {
 				f := block.Assignments[id]
 				if f.Def.HasClosure() {
 					newid := id + "%flat"

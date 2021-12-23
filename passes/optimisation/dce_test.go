@@ -26,6 +26,7 @@ func TestDCE(t *testing.T) {
 				"y": IConst(5),
 				"z": IConst(4),
 			},
+			Typedefs{},
 			Fcall(Id("a"), IConst(1)),
 		),
 		after: Block(
@@ -33,6 +34,7 @@ func TestDCE(t *testing.T) {
 				"a": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x"),
 				"y": IConst(5),
 			},
+			Typedefs{},
 			Fcall(Id("a"), IConst(1)),
 		),
 	}}

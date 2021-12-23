@@ -21,6 +21,7 @@ func TestResolveFunctions(t *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
+			Typedefs{},
 			Fcall(Op("if"),
 				Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a"), BConst(true), IConst(5), IConst(6)),
@@ -32,6 +33,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
+			Typedefs{},
 			Fcall(Op("if"),
 				Fcall(Id("a%%1%%(bool,bool,bool)=>bool"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a%%1%%(bool,int,int)=>int"), BConst(true), IConst(5), IConst(6)),
@@ -44,6 +46,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"b": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
+			Typedefs{},
 			Fcall(Id("a"), Id("b")),
 		),
 		after: Block(
@@ -53,6 +56,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"b%%1%%(int,int)=>int":        Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
+			Typedefs{},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
 		),
 	}, {
@@ -61,6 +65,7 @@ func TestResolveFunctions(t *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 			},
+			Typedefs{},
 			Fcall(Id("a"), Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y")),
 		),
 		after: Block(
@@ -69,16 +74,19 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
+			Typedefs{},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
 	}, {
 		name: "resolves simple structures",
 		before: Block(
-			Assgs{"a": Struct(ast.StructField{"x", types.IntP})},
+			Assgs{},
+			Typedefs{"a": Struct(ast.StructField{"x", types.IntP})},
 			Fcall(Id("a"), IConst(1)),
 		),
 		after: Block(
-			Assgs{
+			Assgs{},
+			Typedefs{
 				"a":                     Struct(ast.StructField{"x", types.IntP}),
 				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
 			},
@@ -87,11 +95,13 @@ func TestResolveFunctions(t *testing.T) {
 	}, {
 		name: "resolves multitype structures",
 		before: Block(
-			Assgs{"a": Struct(ast.StructField{"x", types.MakeVariable()})},
+			Assgs{},
+			Typedefs{"a": Struct(ast.StructField{"x", types.MakeVariable()})},
 			Fcall(Id("a"), Fcall(Id("a"), IConst(1))),
 		),
 		after: Block(
-			Assgs{
+			Assgs{},
+			Typedefs{
 				"a":                     Struct(ast.StructField{"x", types.MakeVariable()}),
 				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
 				"a%%1%%(a{x:int})=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
@@ -117,6 +127,14 @@ func eraseType(e *ast.Exp) {
 	e.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Block != nil {
 			v.Block.ID = 0
+			for _, t := range v.Block.TypeDefs {
+				if t.Struct != nil {
+					t.Struct.Type = types.IntP
+					for _, f := range t.Struct.Fields {
+						f.Type = types.IntP
+					}
+				}
+			}
 		}
 		return nil
 	})

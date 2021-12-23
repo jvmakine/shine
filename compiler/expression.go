@@ -23,8 +23,6 @@ func compileExp(from *ast.Exp, ctx *context, funcRoot bool) cresult {
 		return compileBlock(from.Block, ctx, funcRoot)
 	} else if from.TDecl != nil {
 		return compileExp(from.TDecl.Exp, ctx, funcRoot)
-	} else if from.Struct != nil {
-		panic("non resolved struct at compilation")
 	} else if from.FAccess != nil {
 		return compileFAccess(from, ctx)
 	}

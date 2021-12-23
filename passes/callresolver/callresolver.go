@@ -29,6 +29,8 @@ func Collect(exp *ast.Exp) FCat {
 					result[n] = FEntry{Def: a.Def}
 					delete(v.Block.Assignments, n)
 				}
+			}
+			for n, a := range v.Block.TypeDefs {
 				if a.Struct != nil {
 					result[n] = FEntry{Struct: a.Struct}
 					delete(v.Block.Assignments, n)
@@ -71,7 +73,11 @@ func resolveCall(v *ast.FCall) {
 
 func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 	name := v.Id.Name
-	if block := ctx.BlockOf(name); block != nil && (block.Assignments[name].Def != nil || block.Assignments[name].Struct != nil) {
+	block := ctx.BlockOf(name)
+	if block == nil {
+		return
+	}
+	if block.Assignments[name] != nil && block.Assignments[name].Def != nil {
 		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
 		if block.Assignments[fsig] == nil {
 			f := block.Assignments[v.Id.Name]
@@ -87,6 +93,29 @@ func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 			block.Assignments[fsig] = cop
 		} else {
 			f := block.Assignments[v.Id.Name]
+			cop := f.Copy()
+			_, err := cop.Type().Unifier(v.Type())
+			if err != nil {
+				panic(err)
+			}
+		}
+		v.Id.Name = fsig
+	} else if block.TypeDefs[name] != nil && block.TypeDefs[name].Struct != nil {
+		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
+		if block.TypeDefs[fsig] == nil {
+			f := block.TypeDefs[v.Id.Name]
+			cop := f.Copy()
+			subs, err := cop.Type().Unifier(v.Type())
+			if err != nil {
+				panic(err)
+			}
+			cop.Convert(subs)
+			if cop.Type().HasFreeVars() {
+				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
+			}
+			block.TypeDefs[fsig] = cop
+		} else {
+			f := block.TypeDefs[v.Id.Name]
 			cop := f.Copy()
 			_, err := cop.Type().Unifier(v.Type())
 			if err != nil {

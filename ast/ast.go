@@ -19,7 +19,6 @@ type Exp struct {
 	Def     *FDef          // Definition of a function
 	TDecl   *TypeDecl      // Manually defined type for an expression
 	FAccess *FieldAccessor // Accessing a field / method of a structure
-	Struct  *Struct        // Definition of a structure
 }
 
 type Op struct {
@@ -80,12 +79,17 @@ type FDef struct {
 
 type Block struct {
 	Assignments map[string]*Exp
+	TypeDefs    map[string]*TypeDefinition
 	Value       *Exp
 
 	ID int
 }
 
 // Types
+
+type TypeDefinition struct {
+	Struct *Struct
+}
 
 type StructField struct {
 	Name string
@@ -207,14 +211,28 @@ func (exp *Exp) Type() types.Type {
 		return exp.TDecl.Type
 	} else if exp.FAccess != nil {
 		return exp.FAccess.Type
-	} else if exp.Struct != nil {
-		return exp.Struct.Type
 	}
 	panic("invalid exp")
+}
+
+func (t *TypeDefinition) Type() types.Type {
+	if t.Struct != nil {
+		return t.Struct.Type
+	}
+	panic("invalid type def")
 }
 
 func (exp *Exp) Convert(s types.Substitutions) {
 	exp.RewriteTypes(func(t types.Type, ctx *VisitContext) (types.Type, error) {
 		return s.Apply(t), nil
 	})
+}
+
+func (t *TypeDefinition) Convert(s types.Substitutions) {
+	if t.Struct != nil {
+		t.Struct.Type = s.Apply(t.Struct.Type)
+		for _, f := range t.Struct.Fields {
+			f.Type = s.Apply(f.Type)
+		}
+	}
 }

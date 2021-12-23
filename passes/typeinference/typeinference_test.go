@@ -28,22 +28,22 @@ func TestInfer(tes *testing.T) {
 		err:  nil,
 	}, {
 		name: "infer assigments in blocks",
-		exp:  Block(Assgs{"a": IConst(5)}, Id("a")),
+		exp:  Block(Assgs{"a": IConst(5)}, Typedefs{}, Id("a")),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "infer integer comparisons as boolean",
-		exp:  Block(Assgs{}, Fcall(Op(">"), IConst(1), IConst(2))),
+		exp:  Block(Assgs{}, Typedefs{}, Fcall(Op(">"), IConst(1), IConst(2))),
 		typ:  "bool",
 		err:  nil,
 	}, {
 		name: "infer if expressions",
-		exp:  Block(Assgs{}, Fcall(Op("if"), BConst(true), IConst(1), IConst(2))),
+		exp:  Block(Assgs{}, Typedefs{}, Fcall(Op("if"), BConst(true), IConst(1), IConst(2))),
 		typ:  "int",
 		err:  nil,
 	}, {
 		name: "fail on mismatching if expression branches",
-		exp:  Block(Assgs{}, Fcall(Op("if"), BConst(true), IConst(1), BConst(false))),
+		exp:  Block(Assgs{}, Typedefs{}, Fcall(Op("if"), BConst(true), IConst(1), BConst(false))),
 		typ:  "",
 		err:  errors.New("can not unify bool with int"),
 	}, {
@@ -56,9 +56,11 @@ func TestInfer(tes *testing.T) {
 		exp: Block(
 			Assgs{"a": Fdef(Block(
 				Assgs{},
+				Typedefs{},
 				Fcall(Op("if"), BConst(false), Id("x"), Fcall(Id("a"), BConst(true)))),
 				"x",
 			)},
+			Typedefs{},
 			Fcall(Id("a"), BConst(false)),
 		),
 		typ: "bool",
@@ -68,9 +70,11 @@ func TestInfer(tes *testing.T) {
 		exp: Block(
 			Assgs{"a": Fdef(Block(
 				Assgs{"b": Fdef(Fcall(Id("a"), Id("y")), "y")},
+				Typedefs{},
 				Fcall(Op("if"), BConst(false), Id("x"), Fcall(Id("b"), BConst(true)))),
 				"x",
 			)},
+			Typedefs{},
 			Fcall(Id("a"), BConst(false)),
 		),
 		typ: "bool",
@@ -78,7 +82,8 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "infer function calls",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Op("+"), IConst(1), Id("x"))), "x")},
+			Assgs{"a": Fdef(Block(Assgs{}, Typedefs{}, Fcall(Op("+"), IConst(1), Id("x"))), "x")},
+			Typedefs{},
 			Fcall(Id("a"), IConst(1)),
 		),
 		typ: "int",
@@ -86,7 +91,8 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "infer function parameters",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Op("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Assgs{"a": Fdef(Block(Assgs{}, Typedefs{}, Fcall(Op("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Typedefs{},
 			Fcall(Id("a"), IConst(1), BConst(true)),
 		),
 		typ: "int",
@@ -94,19 +100,20 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "fail on inferred function parameter mismatch",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Op("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Assgs{"a": Fdef(Block(Assgs{}, Typedefs{}, Fcall(Op("if"), Id("b"), Id("x"), IConst(0))), "x", "b")},
+			Typedefs{},
 			Fcall(Id("a"), BConst(true), BConst(true)),
 		),
 		typ: "",
 		err: errors.New("can not unify bool with int"),
 	}, {
 		name: "unify function return values",
-		exp:  Fdef(Block(Assgs{}, Fcall(Op("if"), BConst(true), Id("x"), Id("x"))), "x"),
+		exp:  Fdef(Block(Assgs{}, Typedefs{}, Fcall(Op("if"), BConst(true), Id("x"), Id("x"))), "x"),
 		typ:  "(V1)=>V1",
 		err:  nil,
 	}, {
 		name: "fail on recursive values",
-		exp:  Block(Assgs{"a": Id("b"), "b": Id("a")}, Id("a")),
+		exp:  Block(Assgs{"a": Id("b"), "b": Id("a")}, Typedefs{}, Id("a")),
 		typ:  "",
 		err:  errors.New("recursive value: a -> b -> a"),
 	}, {
@@ -117,6 +124,7 @@ func TestInfer(tes *testing.T) {
 				"b": Fcall(Op("+"), Id("c"), Id("c")),
 				"c": Fcall(Op("+"), IConst(1), IConst(2)),
 			},
+			Typedefs{},
 			Id("a"),
 		),
 		typ: "int",
@@ -124,7 +132,8 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "unify one function multiple ways",
 		exp: Block(
-			Assgs{"a": Fdef(Block(Assgs{}, Fcall(Op("if"), BConst(true), Id("x"), Id("x"))), "x")},
+			Assgs{"a": Fdef(Block(Assgs{}, Typedefs{}, Fcall(Op("if"), BConst(true), Id("x"), Id("x"))), "x")},
+			Typedefs{},
 			Fcall(Op("if"), Fcall(Id("a"), BConst(true)), Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "int",
@@ -133,7 +142,8 @@ func TestInfer(tes *testing.T) {
 		name: "infer parameters in block values",
 		exp: Block(
 			Assgs{},
-			Fdef(Fcall(Op("if"), BConst(true), Block(Assgs{}, Id("x")), IConst(2)), "x"),
+			Typedefs{},
+			Fdef(Fcall(Op("if"), BConst(true), Block(Assgs{}, Typedefs{}, Id("x")), IConst(2)), "x"),
 		),
 		typ: "(int)=>int",
 		err: nil,
@@ -141,6 +151,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer functions as arguments",
 		exp: Block(
 			Assgs{},
+			Typedefs{},
 			Fdef(Fcall(Op("+"), Fcall(Id("x"), BConst(true), IConst(2)), IConst(1)), "x"),
 		),
 		typ: "((bool,int)=>int)=>int",
@@ -152,6 +163,7 @@ func TestInfer(tes *testing.T) {
 				"a": Fdef(Fcall(Id("x"), IConst(2), IConst(2)), "x"),
 				"b": Fdef(Id("x"), "x"),
 			},
+			Typedefs{},
 			Fcall(Id("a"), Id("b")),
 		),
 		typ: "",
@@ -164,6 +176,7 @@ func TestInfer(tes *testing.T) {
 				"b":  Fdef(Fcall(Op("-"), Id("x"), Id("y")), "x", "y"),
 				"op": Fdef(Fcall(Id("x"), IConst(1), IConst(2)), "x"),
 			},
+			Typedefs{},
 			Fcall(Op("+"), Fcall(Id("op"), Id("a")), Fcall(Id("op"), Id("b"))),
 		),
 		typ: "int",
@@ -177,6 +190,7 @@ func TestInfer(tes *testing.T) {
 				"sw": Fdef(Fcall(Op("if"), Id("x"), Id("a"), Id("b")), "x"),
 				"r":  Fdef(Fcall(Id("f"), RConst(1.0), RConst(2.0)), "f"),
 			},
+			Typedefs{},
 			Fcall(Id("r"), Fcall(Id("sw"), BConst(true))),
 		),
 		typ: "real",
@@ -187,9 +201,11 @@ func TestInfer(tes *testing.T) {
 			Assgs{
 				"a": Fdef(Block(
 					Assgs{"b": Fdef(Fcall(Op("if"), Id("bo"), Id("x"), IConst(2)), "bo")},
+					Typedefs{},
 					Fcall(Id("b"), BConst(true)),
 				), "x"),
 			},
+			Typedefs{},
 			Fcall(Id("a"), IConst(1)),
 		),
 		typ: "int",
@@ -201,6 +217,7 @@ func TestInfer(tes *testing.T) {
 				"a": Fdef(Fcall(Op("if"), BConst(true), Id("x"), IConst(2)), "x"),
 				"b": Fdef(Fcall(Op("if"), Id("bo"), RConst(1.0), IConst(2)), "bo"),
 			},
+			Typedefs{},
 			Fcall(Id("a"), IConst(3)),
 		),
 		typ: "",
@@ -209,6 +226,7 @@ func TestInfer(tes *testing.T) {
 		name: "leave free variables to functions",
 		exp: Block(
 			Assgs{"a": Fdef(Fcall(Op("+"), Id("x"), Id("x")), "x")},
+			Typedefs{},
 			Fcall(Op("if"), Fcall(Op("<"), Fcall(Id("a"), RConst(1.0)), RConst(2.0)), Fcall(Id("a"), IConst(1)), IConst(3)),
 		),
 		typ: "int",
@@ -217,6 +235,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer sequential function definitions",
 		exp: Block(
 			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
+			Typedefs{},
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "int",
@@ -225,6 +244,7 @@ func TestInfer(tes *testing.T) {
 		name: "fail on parameter redefinitions",
 		exp: Block(
 			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("x")), "x"), "x")},
+			Typedefs{},
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "",
@@ -233,6 +253,7 @@ func TestInfer(tes *testing.T) {
 		name: "fails when function return type contradicts explicit type",
 		exp: Block(
 			Assgs{"a": Fdef(TDecl(Fcall(Op("+"), Id("x"), Id("x")), types.BoolP), "x")},
+			Typedefs{},
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		typ: "",
@@ -241,10 +262,12 @@ func TestInfer(tes *testing.T) {
 		name: "fail to unify two different named types",
 		exp: Block(
 			Assgs{
-				"a":  Struct(ast.StructField{"a1", types.IntP}),
-				"b":  Struct(ast.StructField{"a1", types.IntP}),
 				"ai": Fcall(Id("a"), IConst(1)),
 				"bi": Fcall(Id("b"), IConst(1)),
+			},
+			Typedefs{
+				"a": Struct(ast.StructField{"a1", types.IntP}),
+				"b": Struct(ast.StructField{"a1", types.IntP}),
 			},
 			Fcall(Op("if"), BConst(true), Id("ai"), Id("bi")),
 		),
@@ -252,13 +275,14 @@ func TestInfer(tes *testing.T) {
 		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
 	}, {
 		name: "fail on unknown named type",
-		exp:  Block(Assgs{}, TDecl(Id("a"), types.MakeNamed("t"))),
+		exp:  Block(Assgs{}, Typedefs{}, TDecl(Id("a"), types.MakeNamed("t"))),
 		typ:  "",
 		err:  errors.New("type t is undefined"),
 	}, {
 		name: "work on known named type",
 		exp: Block(
-			Assgs{"t": Struct(ast.StructField{"x", types.IntP})},
+			Assgs{},
+			Typedefs{"t": Struct(ast.StructField{"x", types.IntP})},
 			TDecl(Id("a"), types.MakeNamed("t")),
 		),
 		typ: "t{x:int}",
@@ -266,9 +290,8 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "unify recursive types",
 		exp: Block(
-			Assgs{
-				"a": Struct(ast.StructField{"a1", types.Type{}}),
-			},
+			Assgs{},
+			Typedefs{"a": Struct(ast.StructField{"a1", types.Type{}})},
 			Fcall(Id("a"), Fcall(Id("a"), IConst(0))),
 		),
 		typ: "a{a1:a}",
@@ -277,6 +300,7 @@ func TestInfer(tes *testing.T) {
 		name: "infer function types from structure fields",
 		exp: Block(
 			Assgs{},
+			Typedefs{},
 			Fdef(Fcall(Op("+"), Faccess(Id("x"), "a"), IConst(1)), "x"),
 		),
 		typ: "(V1{a:int})=>int",

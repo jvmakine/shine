@@ -60,8 +60,21 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 	if ctx.Path()[id.Name] {
 		id.Type = MakeVariable()
 	} else if block != nil {
-		ref := ctx.BlockOf(id.Name).Assignments[id.Name]
-		id.Type = ref.Type().Copy(NewTypeCopyCtx())
+		b := ctx.BlockOf(id.Name)
+		ref := b.Assignments[id.Name]
+		if ref != nil {
+			id.Type = ref.Type().Copy(NewTypeCopyCtx())
+			return nil
+		}
+		tdef := b.TypeDefs[id.Name]
+		if tdef == nil {
+			panic("no id found: " + id.Name)
+		}
+		if tdef.Struct != nil {
+			id.Type = tdef.Type().Copy(NewTypeCopyCtx())
+		} else {
+			return errors.New("invalid type def")
+		}
 	} else if p := ctx.ParamOf(id.Name); p != nil {
 		id.Type = p.Type
 	} else {
@@ -111,7 +124,7 @@ func initialiseVariables(exp *ast.Exp) error {
 			if err != nil {
 				return err
 			}
-			for name, value := range v.Block.Assignments {
+			for name, value := range v.Block.TypeDefs {
 				if value.Struct != nil {
 					ts := make([]types.Type, len(value.Struct.Fields)+1)
 					sf := make([]types.SField, len(value.Struct.Fields))
@@ -145,8 +158,8 @@ func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
 	if block == nil {
 		return Type{}, errors.New("type " + name + " is undefined")
 	}
-	exp := block.Assignments[name]
-	if exp.Struct == nil {
+	exp := block.TypeDefs[name]
+	if exp == nil || exp.Struct == nil {
 		return Type{}, errors.New(name + " is not a type")
 	}
 	fs := make([]types.SField, len(exp.Struct.Fields))

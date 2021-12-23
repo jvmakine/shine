@@ -43,7 +43,7 @@ func (c *VisitContext) ParamOf(id string) *FParam {
 func (c *VisitContext) BlockOf(id string) *Block {
 	if c.block == nil {
 		return nil
-	} else if c.block.Assignments[id] != nil {
+	} else if c.block.Assignments[id] != nil || c.block.TypeDefs[id] != nil {
 		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
@@ -224,19 +224,6 @@ func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, 
 			v.Call.Type = t
 		} else if v.Def != nil {
 			for _, p := range v.Def.Params {
-				t, err := f(p.Type, ctx)
-				if err != nil {
-					return err
-				}
-				p.Type = t
-			}
-		} else if v.Struct != nil {
-			t, err := f(v.Struct.Type, ctx)
-			if err != nil {
-				return err
-			}
-			v.Struct.Type = t
-			for _, p := range v.Struct.Fields {
 				t, err := f(p.Type, ctx)
 				if err != nil {
 					return err

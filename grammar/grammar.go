@@ -61,6 +61,7 @@ func (prg *Program) ToAst() *ast.Exp {
 
 func convBlock(from *Block) *ast.Block {
 	assigns := map[string]*ast.Exp{}
+	typedefs := map[string]*ast.TypeDefinition{}
 	for _, e := range from.Elements {
 		if e.Assignment != nil {
 			a := e.Assignment
@@ -82,13 +83,14 @@ func convBlock(from *Block) *ast.Block {
 					Type: td,
 				}
 			}
-			assigns[*from.Name] = &ast.Exp{
+			typedefs[*from.Name] = &ast.TypeDefinition{
 				Struct: &ast.Struct{Fields: fields},
 			}
 		}
 	}
 	return &ast.Block{
 		Assignments: assigns,
+		TypeDefs:    typedefs,
 		Value:       convExp(from.Value),
 	}
 }

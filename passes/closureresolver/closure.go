@@ -22,7 +22,7 @@ func CollectClosures(exp *ast.Exp) {
 		closureAt[v] = map[string]Type{}
 		if v.Id != nil {
 			closureAt[v] = map[string]Type{v.Id.Name: v.Id.Type}
-			if b := ctx.BlockOf(v.Id.Name); b != nil {
+			if b := ctx.BlockOf(v.Id.Name); b != nil && b.Assignments[v.Id.Name] != nil {
 				if b.Assignments[v.Id.Name].Type().IsFunction() &&
 					b.Assignments[v.Id.Name].Def != nil &&
 					b.Assignments[v.Id.Name].Def.Closure != nil {

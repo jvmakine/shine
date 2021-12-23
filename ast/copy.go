@@ -19,7 +19,6 @@ func (a *Exp) CopyWithCtx(ctx *types.TypeCopyCtx) *Exp {
 		Def:     a.Def.copy(ctx),
 		TDecl:   a.TDecl.copy(ctx),
 		FAccess: a.FAccess.copy(ctx),
-		Struct:  a.Struct.copy(ctx),
 	}
 }
 
@@ -133,5 +132,18 @@ func (a *TypeDecl) copy(ctx *types.TypeCopyCtx) *TypeDecl {
 	return &TypeDecl{
 		Exp:  a.Exp.CopyWithCtx(ctx),
 		Type: a.Type.Copy(ctx),
+	}
+}
+
+func (t *TypeDefinition) Copy() *TypeDefinition {
+	return t.CopyWithCtx(types.NewTypeCopyCtx())
+}
+
+func (t *TypeDefinition) CopyWithCtx(ctx *types.TypeCopyCtx) *TypeDefinition {
+	if t == nil {
+		return nil
+	}
+	return &TypeDefinition{
+		Struct: t.Struct.copy(ctx),
 	}
 }
