@@ -317,7 +317,7 @@ func TestInfer(tes *testing.T) {
 		),
 		err: errors.New("can not unify int with real"),
 	}, {
-		name: "fail on reusing defined type as free variable",
+		name: "fail on reusing defined type as free type",
 		exp: Block(
 			Assgs{},
 			Typedefs{
@@ -327,6 +327,14 @@ func TestInfer(tes *testing.T) {
 			Fcall(Id("A"), IConst(1)),
 		),
 		err: errors.New("redefinition of X"),
+	}, {
+		name: "fail on unused free types",
+		exp: Block(
+			Assgs{},
+			Typedefs{"A": Struct(ast.StructField{"a1", types.MakeNamed("X")}).WithFreeVars("X", "Y")},
+			Fcall(Id("A"), IConst(1)),
+		),
+		err: errors.New("unused free type Y"),
 	},
 	}
 	for _, tt := range tests {

@@ -126,8 +126,10 @@ func initialiseVariables(exp *ast.Exp) error {
 			}
 			for name, value := range v.Block.TypeDefs {
 				free := map[string]Type{}
+				used := map[string]bool{}
 				for _, n := range value.FreeVariables {
 					free[n] = MakeVariable()
+					used[n] = false
 				}
 
 				if value.Struct != nil {
@@ -143,6 +145,7 @@ func initialiseVariables(exp *ast.Exp) error {
 								d := ctx.TypeDef(*typ.Named)
 								if d == nil {
 									d = v.Block.TypeDefs[*typ.Named]
+									used[*typ.Named] = true
 								}
 								if d != nil {
 									return errors.New("redefinition of " + *typ.Named)
@@ -156,6 +159,12 @@ func initialiseVariables(exp *ast.Exp) error {
 						sf[i] = SField{
 							Name: f.Name,
 							Type: typ,
+						}
+					}
+
+					for n, b := range used {
+						if !b {
+							return errors.New("unused free type " + n)
 						}
 					}
 
