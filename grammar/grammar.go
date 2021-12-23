@@ -163,8 +163,12 @@ func convTypeDecl(t *TypeDeclaration) types.Type {
 		}
 		ps[len(t.Function.Params)] = convTypeDecl(t.Function.Return)
 		return types.MakeFunction(ps...)
-	} else if t.Named != "" {
-		return types.MakeNamed(t.Named)
+	} else if t.Named != nil {
+		vars := make([]types.Type, len(t.Named.Vars))
+		for i, v := range t.Named.Vars {
+			vars[i] = convTypeDecl(v)
+		}
+		return types.MakeNamed(t.Named.Name, vars...)
 	}
 	panic("invalid type")
 }

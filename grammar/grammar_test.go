@@ -272,6 +272,17 @@ func TestExpressionParsing(tes *testing.T) {
 			t.Fcall(t.Id("a"), t.Id("b")),
 		),
 	}, {
+		name: "parse type parameters in functions",
+		input: `
+			a = (x: A[int]) => x
+			a(b)
+		`,
+		want: t.Block(
+			t.Assgs{"a": t.Fdef(t.Id("x"), t.Param("x", types.MakeNamed("A", types.IntP)))},
+			t.Typedefs{},
+			t.Fcall(t.Id("a"), t.Id("b")),
+		),
+	}, {
 		name: "parse typed constants",
 		input: `a:int = 5
 				a

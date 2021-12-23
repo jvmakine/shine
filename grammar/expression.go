@@ -113,9 +113,14 @@ type TypeFunc struct {
 }
 
 type TypeDeclaration struct {
-	Primitive string    `@PrimitiveType`
-	Function  *TypeFunc `| @@`
-	Named     string    `| @Ident`
+	Primitive string     `@PrimitiveType`
+	Function  *TypeFunc  `| @@`
+	Named     *TypeNamed `| @@`
+}
+
+type TypeNamed struct {
+	Name string             `@Ident`
+	Vars []*TypeDeclaration `("[" (@@ ("," @@)*)? "]")?`
 }
 
 type FunParam struct {

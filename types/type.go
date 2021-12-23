@@ -2,8 +2,6 @@ package types
 
 type Primitive = string
 
-type Named = string
-
 const (
 	Int    Primitive = "int"
 	Bool   Primitive = "bool"
@@ -19,6 +17,11 @@ var (
 )
 
 type Function []Type
+
+type Named struct {
+	Name          string
+	TypeArguments []Type
+}
 
 type SField struct {
 	Name string
@@ -63,8 +66,12 @@ func MakePrimitive(p string) Type {
 	return Type{Primitive: &p}
 }
 
-func MakeNamed(name string) Type {
-	return Type{Named: &name}
+func MakeNamed(name string, types ...Type) Type {
+	t := types
+	if t == nil {
+		t = []Type{}
+	}
+	return Type{Named: &Named{Name: name, TypeArguments: t}}
 }
 
 func MakeFunction(ts ...Type) Type {

@@ -141,14 +141,14 @@ func initialiseVariables(exp *ast.Exp) error {
 							typ = MakeVariable()
 						}
 						if typ.Named != nil {
-							if fv, ok := free[*typ.Named]; ok {
-								d := ctx.TypeDef(*typ.Named)
+							if fv, ok := free[typ.Named.Name]; ok {
+								d := ctx.TypeDef(typ.Named.Name)
 								if d == nil {
-									d = v.Block.TypeDefs[*typ.Named]
-									used[*typ.Named] = true
+									d = v.Block.TypeDefs[typ.Named.Name]
+									used[typ.Named.Name] = true
 								}
 								if d != nil {
-									return errors.New("redefinition of " + *typ.Named)
+									return errors.New("redefinition of " + typ.Named.Name)
 								}
 								typ = fv
 							}
@@ -179,13 +179,13 @@ func initialiseVariables(exp *ast.Exp) error {
 	})
 }
 
-func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
+func resolveNamed(name string, ctx *ast.VisitContext) (Type, []string, error) {
 	tdef := ctx.TypeDef(name)
 	if tdef == nil {
-		return Type{}, errors.New("type " + name + " is undefined")
+		return Type{}, nil, errors.New("type " + name + " is undefined")
 	}
 	if tdef.Struct == nil {
-		return Type{}, errors.New(name + " is not a correct type")
+		return Type{}, nil, errors.New(name + " is not a correct type")
 	}
 	fs := make([]types.SField, len(tdef.Struct.Fields))
 	for i, f := range tdef.Struct.Fields {
@@ -201,16 +201,32 @@ func resolveNamed(name string, ctx *ast.VisitContext) (Type, error) {
 			}
 		}
 	}
-	return types.MakeStructure(name, fs...), nil
+	return types.MakeStructure(name, fs...), tdef.FreeVariables, nil
+}
+
+func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
+	if t.IsNamed() {
+		resolved, vars, err := resolveNamed(t.Named.Name, ctx)
+		if err != nil {
+			return Type{}, err
+		}
+		if len(vars) != len(t.Named.TypeArguments) {
+			return Type{}, errors.New("wrong number of type arguments")
+		}
+		for i, ta := range t.Named.TypeArguments {
+			nt, err := rewriter(ta, ctx)
+			if err != nil {
+				return Type{}, err
+			}
+			t.Named.TypeArguments[i] = nt
+		}
+		return resolved, nil
+	}
+	return t, nil
 }
 
 func rewriteNamed(exp *ast.Exp) error {
-	return exp.RewriteTypes(func(t Type, ctx *ast.VisitContext) (Type, error) {
-		if t.IsNamed() {
-			return resolveNamed(*t.Named, ctx)
-		}
-		return t, nil
-	})
+	return exp.RewriteTypes(rewriter)
 }
 
 func Infer(exp *ast.Exp) error {

@@ -271,13 +271,19 @@ func TestInfer(tes *testing.T) {
 			},
 			Fcall(Op("if"), BConst(true), Id("ai"), Id("bi")),
 		),
-		typ: "",
 		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
 	}, {
 		name: "fail on unknown named type",
 		exp:  Block(Assgs{}, Typedefs{}, TDecl(Id("a"), types.MakeNamed("t"))),
-		typ:  "",
 		err:  errors.New("type t is undefined"),
+	}, {
+		name: "fail on unknown named type argument",
+		exp: Block(
+			Assgs{},
+			Typedefs{"A": Struct(ast.StructField{Name: "x", Type: types.MakeNamed("X")}).WithFreeVars("X")},
+			TDecl(Id("a"), types.MakeNamed("A", types.MakeNamed("Z"))),
+		),
+		err: errors.New("type Z is undefined"),
 	}, {
 		name: "work on known named type",
 		exp: Block(
@@ -286,7 +292,6 @@ func TestInfer(tes *testing.T) {
 			TDecl(Id("a"), types.MakeNamed("t")),
 		),
 		typ: "t{x:int}",
-		err: nil,
 	}, {
 		name: "unify recursive types",
 		exp: Block(
@@ -306,7 +311,7 @@ func TestInfer(tes *testing.T) {
 		typ: "(V1{a:int})=>int",
 		err: nil,
 	}, {
-		name: "fail to unify free variable twice",
+		name: "fail to unify free type to two different types",
 		exp: Block(
 			Assgs{},
 			Typedefs{"A": Struct(

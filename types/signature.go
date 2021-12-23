@@ -99,7 +99,15 @@ func sign(t Type, ctx *signctx, level int) string {
 		return t.Structure.sign(ctx, level)
 	}
 	if t.IsNamed() {
-		return *t.Named
+		post := ""
+		if len(t.Named.TypeArguments) > 0 {
+			strs := make([]string, len(t.Named.TypeArguments))
+			for i, a := range t.Named.TypeArguments {
+				strs[i] = sign(a, ctx, level)
+			}
+			post = "[" + strings.Join(strs, ",") + "]"
+		}
+		return t.Named.Name + post
 	}
 	if !t.IsDefined() {
 		return "<undefined>"
