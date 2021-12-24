@@ -1,6 +1,7 @@
 package grammar
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
@@ -15,6 +16,7 @@ func TestExpressionParsing(tes *testing.T) {
 		name  string
 		input string
 		want  *a.Exp
+		err   error
 	}{{
 		name:  "parse an int const",
 		input: "42",
@@ -311,6 +313,13 @@ func TestExpressionParsing(tes *testing.T) {
 			}},
 			t.Fcall(t.Id("A"), t.IConst(1), t.IConst(2)),
 		),
+	}, {
+		name: "fails on duplicate definitions",
+		input: `a = 1 
+				a = 2
+				a
+			`,
+		err: errors.New("redefinition of a"),
 	},
 	}
 	for _, tt := range tests {
@@ -320,7 +329,8 @@ func TestExpressionParsing(tes *testing.T) {
 				t.Errorf("Parse() error = %v", err)
 				return
 			}
-			got := prog.ToAst()
+			got, err := prog.ToAst()
+			require.Equal(t, tt.err, err)
 			require.Equal(t, tt.want, got)
 		})
 	}

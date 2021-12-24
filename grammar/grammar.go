@@ -1,6 +1,8 @@
 package grammar
 
 import (
+	"errors"
+
 	"github.com/jvmakine/shine/types"
 
 	"github.com/alecthomas/participle"
@@ -53,25 +55,41 @@ func Parse(str string) (*Program, error) {
 	return ast, nil
 }
 
-func (prg *Program) ToAst() *ast.Exp {
-	return &ast.Exp{
-		Block: convBlock(prg.Body),
+func (prg *Program) ToAst() (*ast.Exp, error) {
+	b, err := convBlock(prg.Body)
+	if err != nil {
+		return nil, err
 	}
+	return &ast.Exp{
+		Block: b,
+	}, nil
 }
 
-func convBlock(from *Block) *ast.Block {
+func convBlock(from *Block) (*ast.Block, error) {
 	assigns := map[string]*ast.Exp{}
 	typedefs := map[string]*ast.TypeDefinition{}
 	for _, e := range from.Elements {
 		if e.Assignment != nil {
 			a := e.Assignment
-			assigns[*a.Name] = convExp(a.Value)
+			name := *a.Name
+			if assigns[name] != nil || typedefs[name] != nil {
+				return nil, errors.New("redefinition of " + name)
+			}
+			exp, err := convExp(a.Value)
+			if err != nil {
+				return nil, err
+			}
+			assigns[name] = exp
 			if a.Type != nil {
 				t := convTypeDecl(a.Type)
-				assigns[*a.Name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[*a.Name], Type: t}}
+				assigns[name] = &ast.Exp{TDecl: &ast.TypeDecl{Exp: assigns[name], Type: t}}
 			}
 		} else if e.TypeDef != nil {
 			from := e.TypeDef
+			name := *from.Name
+			if assigns[name] != nil || typedefs[name] != nil {
+				return nil, errors.New("redefinition of " + name)
+			}
 			fields := make([]*ast.StructField, len(from.Struct.Params))
 			for i, p := range from.Struct.Params {
 				td := types.Type{}
@@ -83,54 +101,80 @@ func convBlock(from *Block) *ast.Block {
 					Type: td,
 				}
 			}
-			typedefs[*from.Name] = &ast.TypeDefinition{
+			typedefs[name] = &ast.TypeDefinition{
 				FreeVariables: from.FreeVars,
 				Struct:        &ast.Struct{Fields: fields},
 			}
 		}
 	}
+	exp, err := convExp(from.Value)
+	if err != nil {
+		return nil, err
+	}
 	return &ast.Block{
 		Assignments: assigns,
 		TypeDefs:    typedefs,
-		Value:       convExp(from.Value),
-	}
+		Value:       exp,
+	}, nil
 }
 
-func convExp(from *Expression) *ast.Exp {
-	ut := convUTExp(from.Exp)
+func convExp(from *Expression) (*ast.Exp, error) {
+	ut, err := convUTExp(from.Exp)
+	if err != nil {
+		return nil, err
+	}
 	if from.Type != nil {
-		return &ast.Exp{TDecl: &ast.TypeDecl{Exp: ut, Type: convTypeDecl(from.Type)}}
+		return &ast.Exp{TDecl: &ast.TypeDecl{Exp: ut, Type: convTypeDecl(from.Type)}}, nil
 	}
-	return ut
+	return ut, nil
 }
 
-func convUTExp(from *UTExpression) *ast.Exp {
+func convUTExp(from *UTExpression) (*ast.Exp, error) {
 	if from.Def != nil {
 		return convDef(from.Def)
 	} else if from.If != nil {
 		return convIf(from.If)
 	} else if from.Comp != nil {
-		return convOpComp(convComp(from.Comp.Left), from.Comp.Right)
+		comp, err := convComp(from.Comp.Left)
+		if err != nil {
+			return nil, err
+		}
+		return convOpComp(comp, from.Comp.Right)
 	}
 	panic("invalid expression")
 }
 
-func convIf(from *IfExpression) *ast.Exp {
+func convIf(from *IfExpression) (*ast.Exp, error) {
+	c, err := convExp(from.Cond)
+	if err != nil {
+		return nil, err
+	}
+	t, err := convExp(from.True)
+	if err != nil {
+		return nil, err
+	}
+	f, err := convExp(from.False)
+	if err != nil {
+		return nil, err
+	}
 	return &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Op: &ast.Op{Name: "if"}},
-			Params:   []*ast.Exp{convExp(from.Cond), convExp(from.True), convExp(from.False)},
+			Params:   []*ast.Exp{c, t, f},
 		},
-	}
+	}, nil
 }
 
-func convDef(from *Definition) *ast.Exp {
+func convDef(from *Definition) (*ast.Exp, error) {
 	fd := from.Funct
 	params := make([]*ast.FParam, len(from.Params))
 	for i, p := range from.Params {
 		params[i] = convFParam(p)
 	}
-	body := convExp(fd.Body)
+	body, err := convExp(fd.Body)
+	if err != nil {
+		return nil, err
+	}
 	if fd.ReturnType != nil {
 		body = &ast.Exp{TDecl: &ast.TypeDecl{Exp: body, Type: convTypeDecl(fd.ReturnType)}}
 	}
@@ -139,7 +183,7 @@ func convDef(from *Definition) *ast.Exp {
 			Params: params,
 			Body:   body,
 		},
-	}
+	}, nil
 }
 
 func convTypeDecl(t *TypeDeclaration) types.Type {
@@ -184,43 +228,62 @@ func convFParam(from *FunParam) *ast.FParam {
 	}
 }
 
-func convOpComp(left *ast.Exp, right []*OpComp) *ast.Exp {
+func convOpComp(left *ast.Exp, right []*OpComp) (*ast.Exp, error) {
 	if right == nil || len(right) == 0 {
-		return left
+		return left, nil
+	}
+	c, err := convComp(right[0].Right)
+	if err != nil {
+		return nil, err
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
-			Params:   []*ast.Exp{left, convComp(right[0].Right)},
+			Params:   []*ast.Exp{left, c},
 		},
 	}
 	return convOpComp(res, right[1:])
 }
 
-func convComp(from *Comp) *ast.Exp {
-	return convOpTerm(convTerm(from.Left), from.Right)
+func convComp(from *Comp) (*ast.Exp, error) {
+	term, err := convTerm(from.Left)
+	if err != nil {
+		return nil, err
+	}
+	return convOpTerm(term, from.Right)
 }
 
-func convOpTerm(left *ast.Exp, right []*OpTerm) *ast.Exp {
+func convOpTerm(left *ast.Exp, right []*OpTerm) (*ast.Exp, error) {
 	if right == nil || len(right) == 0 {
-		return left
+		return left, nil
+	}
+	term, err := convTerm(right[0].Right)
+	if err != nil {
+		return nil, err
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
-			Params:   []*ast.Exp{left, convTerm(right[0].Right)},
+			Params:   []*ast.Exp{left, term},
 		},
 	}
 	return convOpTerm(res, right[1:])
 }
 
-func convTerm(from *Term) *ast.Exp {
-	return convOpFact(convAccessor(from.Left), from.Right)
+func convTerm(from *Term) (*ast.Exp, error) {
+	acc, err := convAccessor(from.Left)
+	if err != nil {
+		return nil, err
+	}
+	return convOpFact(acc, from.Right)
 }
 
-func convAccessor(from *Accessor) *ast.Exp {
+func convAccessor(from *Accessor) (*ast.Exp, error) {
 	acc := from.Right
-	res := convFVal(from.Left)
+	res, err := convFVal(from.Left)
+	if err != nil {
+		return nil, err
+	}
 	for len(acc) > 0 {
 		res = &ast.Exp{
 			FAccess: &ast.FieldAccessor{
@@ -234,7 +297,11 @@ func convAccessor(from *Accessor) *ast.Exp {
 			calls = calls[1:]
 			params := make([]*ast.Exp, len(call.Params))
 			for i, p := range call.Params {
-				params[i] = convExp(p)
+				e, err := convExp(p)
+				if err != nil {
+					return nil, err
+				}
+				params[i] = e
 			}
 			res = &ast.Exp{
 				Call: &ast.FCall{
@@ -244,29 +311,40 @@ func convAccessor(from *Accessor) *ast.Exp {
 		}
 		acc = acc[1:]
 	}
-	return res
+	return res, nil
 }
 
-func convOpFact(left *ast.Exp, right []*OpFactor) *ast.Exp {
+func convOpFact(left *ast.Exp, right []*OpFactor) (*ast.Exp, error) {
 	if right == nil || len(right) == 0 {
-		return left
+		return left, nil
+	}
+	acc, err := convAccessor(right[0].Right)
+	if err != nil {
+		return nil, err
 	}
 	res := &ast.Exp{
 		Call: &ast.FCall{
 			Function: &ast.Exp{Op: &ast.Op{Name: *right[0].Operation}},
-			Params:   []*ast.Exp{left, convAccessor(right[0].Right)},
+			Params:   []*ast.Exp{left, acc},
 		},
 	}
 	return convOpFact(res, right[1:])
 }
 
-func convFVal(from *FValue) *ast.Exp {
-	pval := convPVal(from.Value)
+func convFVal(from *FValue) (*ast.Exp, error) {
+	pval, err := convPVal(from.Value)
+	if err != nil {
+		return nil, err
+	}
 	if len(from.Calls) > 0 {
 		call, calls := from.Calls[0], from.Calls[1:]
 		params := make([]*ast.Exp, len(call.Params))
 		for i, p := range call.Params {
-			params[i] = convExp(p)
+			e, err := convExp(p)
+			if err != nil {
+				return nil, err
+			}
+			params[i] = e
 		}
 		res := &ast.FCall{
 			Function: pval,
@@ -276,7 +354,11 @@ func convFVal(from *FValue) *ast.Exp {
 			call, calls = calls[0], calls[1:]
 			params := make([]*ast.Exp, len(call.Params))
 			for i, p := range call.Params {
-				params[i] = convExp(p)
+				e, err := convExp(p)
+				if err != nil {
+					return nil, err
+				}
+				params[i] = e
 			}
 			res = &ast.FCall{
 				Function: &ast.Exp{Call: res},
@@ -285,24 +367,28 @@ func convFVal(from *FValue) *ast.Exp {
 		}
 		return &ast.Exp{
 			Call: res,
-		}
+		}, nil
 	}
-	return pval
+	return pval, nil
 }
 
-func convPVal(from *PValue) *ast.Exp {
+func convPVal(from *PValue) (*ast.Exp, error) {
 	if from.Block != nil {
-		return &ast.Exp{
-			Block: convBlock(from.Block),
+		b, err := convBlock(from.Block)
+		if err != nil {
+			return nil, err
 		}
+		return &ast.Exp{
+			Block: b,
+		}, nil
 	} else if from.Int != nil {
 		return &ast.Exp{
 			Const: &ast.Const{Int: from.Int},
-		}
+		}, nil
 	} else if from.Real != nil {
 		return &ast.Exp{
 			Const: &ast.Const{Real: from.Real},
-		}
+		}, nil
 	} else if from.Bool != nil {
 		value := false
 		if *from.Bool == "true" {
@@ -310,19 +396,19 @@ func convPVal(from *PValue) *ast.Exp {
 		}
 		return &ast.Exp{
 			Const: &ast.Const{Bool: &value},
-		}
+		}, nil
 	} else if from.String != nil {
 		str := *from.String
 		str = str[1:(len(str) - 1)]
 		return &ast.Exp{
 			Const: &ast.Const{String: &str},
-		}
+		}, nil
 	} else if from.Sub != nil {
 		return convExp(from.Sub)
 	} else if from.Id != nil {
 		return &ast.Exp{
 			Id: &ast.Id{Name: *from.Id},
-		}
+		}, nil
 	}
-	return nil
+	return nil, nil
 }

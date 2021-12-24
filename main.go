@@ -164,7 +164,10 @@ func compileModule(text string) (*ir.Module, error) {
 	if err != nil {
 		return nil, err
 	}
-	ast := parsed.ToAst()
+	ast, err := parsed.ToAst()
+	if err != nil {
+		return nil, err
+	}
 
 	err = typeinference.Infer(ast)
 	if err != nil {
