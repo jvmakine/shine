@@ -85,7 +85,7 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile structure programs",
 		program: `
-			Person :: (age, height, weight)
+			Person :: (age: int, height: real, weight: real)
 			bmi = (p) => p.weight / (p.height * p.height)
 			person = Person(38, 1.73, 60.0)
 			bmi(person)

@@ -1,4 +1,4 @@
-Person :: (age, height, weight)
+Person :: (age: int, height: real, weight: real)
 Animal[R] :: (height: R, weight: R)
 bmi = (p) => p.weight / (p.height * p.height)
 

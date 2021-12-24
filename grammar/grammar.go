@@ -90,14 +90,11 @@ func convBlock(from *Block) (*ast.Block, error) {
 			if assigns[name] != nil || typedefs[name] != nil {
 				return nil, errors.New("redefinition of " + name)
 			}
-			fields := make([]*ast.StructField, len(from.Struct.Params))
-			for i, p := range from.Struct.Params {
-				td := types.Type{}
-				if p.Type != nil {
-					td = convTypeDecl(p.Type)
-				}
+			fields := make([]*ast.StructField, len(from.Struct.Fields))
+			for i, p := range from.Struct.Fields {
+				td := convTypeDecl(p.Type)
 				fields[i] = &ast.StructField{
-					Name: *p.Name,
+					Name: p.Name,
 					Type: td,
 				}
 			}

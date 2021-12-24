@@ -79,7 +79,12 @@ type TypeDefinition struct {
 }
 
 type StructDescription struct {
-	Params []*FunParam `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
+	Fields []*StructFiels `"(" Newline* (@@ Newline* ("," Newline* @@)*)? ")"`
+}
+
+type StructFiels struct {
+	Name string           `@Ident`
+	Type *TypeDeclaration `":" @@`
 }
 
 type CallParams struct {

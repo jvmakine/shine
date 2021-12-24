@@ -95,17 +95,17 @@ prints out 3
 
 #### Structures
 
-Structures are used to combine several valuesinto a single value. These values can then be accessed with the dot operator. The structure is declared with type declaration operator "::" and consists of ordered list of fields.
+Structures are used to combine several valuesinto a single value. These values can then be accessed with the dot operator. The structure is declared with type declaration operator "::" and consists of ordered list of fields and their types.
 
 ```
-Person :: (age: int, height, weight)
+Person :: (age: int, height: real, weight: real)
 p = Person(38, 1.73, 60.0)
 p.weight
 ```
 
 prints out 60.0
 
-To specify free types to be used multiple times in the structure, a type variables can be used
+To specify free types to be used in the structure, a type variables can be used
 ```
 Pair[A] :: (left: A, right: A)
 ```
@@ -116,8 +116,8 @@ getAge = (p: Person) => p.age
 ```
 If explicit structure is not defined, functions can take any structure as in input with required fields.
 ```
-Person :: (age, height)
-Animal :: (age, weight)
+Person :: (age: int, height: real)
+Animal :: (age: int, weight: real)
 
 getAge = (x) => x.age
 

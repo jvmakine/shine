@@ -230,12 +230,12 @@ func TestExpressionParsing(tes *testing.T) {
 	}, {
 		name: "parse structure definitions",
 		input: `
-			a :: (x:int, c)
+			a :: (x:int, c: bool)
 			a(1, true)
 		`,
 		want: t.Block(
 			t.Assgs{},
-			t.Typedefs{"a": t.Struct(ast.StructField{"x", types.IntP}, ast.StructField{"c", types.Type{}})},
+			t.Typedefs{"a": t.Struct(ast.StructField{"x", types.IntP}, ast.StructField{"c", types.BoolP})},
 			t.Fcall(t.Id("a"), t.IConst(1), t.BConst(true)),
 		),
 	}, {
