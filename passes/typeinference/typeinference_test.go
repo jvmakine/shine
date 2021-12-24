@@ -340,6 +340,14 @@ func TestInfer(tes *testing.T) {
 			Fcall(Id("A"), IConst(1)),
 		),
 		err: errors.New("unused free type Y"),
+	}, {
+		name: "fail on incorrect type variable",
+		exp: Block(
+			Assgs{"f": Fdef(Faccess(Id("a"), "x"), &ast.FParam{Name: "a", Type: types.MakeNamed("A", types.RealP)})},
+			Typedefs{"A": Struct(ast.StructField{"x", types.MakeNamed("X")}).WithFreeVars("X")},
+			Fcall(Id("f"), Fcall(Id("A"), IConst(1))),
+		),
+		err: errors.New("can not unify int with real"),
 	},
 	}
 	for _, tt := range tests {

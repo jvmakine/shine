@@ -160,6 +160,7 @@ func initialiseVariables(exp *ast.Exp) error {
 							Name: f.Name,
 							Type: typ,
 						}
+						value.VaribleMap = free
 					}
 
 					for n, b := range used {
@@ -179,14 +180,51 @@ func initialiseVariables(exp *ast.Exp) error {
 	})
 }
 
-func resolveNamed(name string, ctx *ast.VisitContext) (Type, []string, error) {
+func resolveNamed(name string, ctx *ast.VisitContext) (*ast.TypeDefinition, error) {
 	tdef := ctx.TypeDef(name)
 	if tdef == nil {
-		return Type{}, nil, errors.New("type " + name + " is undefined")
+		return nil, errors.New("type " + name + " is undefined")
 	}
 	if tdef.Struct == nil {
-		return Type{}, nil, errors.New(name + " is not a correct type")
+		return nil, errors.New(name + " is not a correct type")
 	}
+	return tdef, nil
+}
+
+func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
+	if t.IsNamed() {
+		tdef, err := resolveNamed(t.Named.Name, ctx)
+		if err != nil {
+			return Type{}, err
+		}
+		if len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
+			return Type{}, errors.New("wrong number of type arguments")
+		}
+		resolved := createStructType(t.Named.Name, tdef)
+		unifier := MakeSubstitutions()
+		for i, ta := range t.Named.TypeArguments {
+			nt, err := rewriter(ta, ctx)
+			if err != nil {
+				return Type{}, err
+			}
+			v := tdef.VaribleMap[tdef.FreeVariables[i]]
+			nt, err = nt.Unify(v)
+			if err != nil {
+				return Type{}, err
+			}
+			err = unifier.Update(v.Variable, nt)
+			if err != nil {
+				return Type{}, err
+			}
+			t.Named.TypeArguments[i] = nt
+		}
+
+		return unifier.Apply(resolved), nil
+	}
+	return t, nil
+}
+
+func createStructType(name string, tdef *ast.TypeDefinition) Type {
 	fs := make([]types.SField, len(tdef.Struct.Fields))
 	for i, f := range tdef.Struct.Fields {
 		if !f.Type.IsDefined() {
@@ -201,28 +239,7 @@ func resolveNamed(name string, ctx *ast.VisitContext) (Type, []string, error) {
 			}
 		}
 	}
-	return types.MakeStructure(name, fs...), tdef.FreeVariables, nil
-}
-
-func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
-	if t.IsNamed() {
-		resolved, vars, err := resolveNamed(t.Named.Name, ctx)
-		if err != nil {
-			return Type{}, err
-		}
-		if len(vars) != len(t.Named.TypeArguments) {
-			return Type{}, errors.New("wrong number of type arguments")
-		}
-		for i, ta := range t.Named.TypeArguments {
-			nt, err := rewriter(ta, ctx)
-			if err != nil {
-				return Type{}, err
-			}
-			t.Named.TypeArguments[i] = nt
-		}
-		return resolved, nil
-	}
-	return t, nil
+	return types.MakeStructure(name, fs...)
 }
 
 func rewriteNamed(exp *ast.Exp) error {

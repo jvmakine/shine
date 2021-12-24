@@ -89,6 +89,7 @@ type Block struct {
 
 type TypeDefinition struct {
 	FreeVariables []string
+	VaribleMap    map[string]types.Type
 	Struct        *Struct
 }
 

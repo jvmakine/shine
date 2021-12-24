@@ -2,4 +2,8 @@ Person :: (age, height, weight)
 Animal[R] :: (height: R, weight: R)
 bmi = (p) => p.weight / (p.height * p.height)
 
-bmi(Person(38, 1.73, 60.0)) + bmi(Animal(1.73, 60.0))
+addToAnimal = (a: Animal[real], weight: real): Animal[real] => {
+    Animal(a.height, a.weight + weight)
+}
+
+bmi(Person(38, 1.73, 60.0)) + bmi(addToAnimal(Animal(1.73, 50.0), 10.0))
