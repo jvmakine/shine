@@ -4,6 +4,7 @@ package ast
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/jvmakine/shine/types"
 )
@@ -141,6 +142,10 @@ func (b *Block) CheckValueCycles() error {
 		names[k] = a
 		todo = append(todo, ToDo{id: k, path: []string{}})
 	}
+
+	sort.Slice(todo[:], func(i, j int) bool {
+		return todo[i].id < todo[j].id
+	})
 
 	for len(todo) > 0 {
 		i := todo[0]

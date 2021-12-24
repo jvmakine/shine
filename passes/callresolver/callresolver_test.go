@@ -128,6 +128,7 @@ func eraseType(e *ast.Exp) {
 		if v.Block != nil {
 			v.Block.ID = 0
 			for _, t := range v.Block.TypeDefs {
+				t.VaribleMap = nil
 				if t.Struct != nil {
 					t.Struct.Type = types.IntP
 					for _, f := range t.Struct.Fields {
