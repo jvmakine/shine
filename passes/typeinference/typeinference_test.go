@@ -348,6 +348,16 @@ func TestInfer(tes *testing.T) {
 			Fcall(Id("f"), Fcall(Id("A"), IConst(1))),
 		),
 		err: errors.New("can not unify int with real"),
+	}, {
+		name: "fail on redefinitions",
+		exp: Block(
+			Assgs{"a": IConst(1)}, Typedefs{},
+			Block(
+				Assgs{"a": IConst(1)}, Typedefs{},
+				Id("a"),
+			),
+		),
+		err: errors.New("redefinition of a"),
 	},
 	}
 	for _, tt := range tests {

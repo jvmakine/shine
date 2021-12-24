@@ -261,6 +261,16 @@ func Infer(exp *ast.Exp) error {
 		} else if v.Block != nil {
 			blockCount++
 			v.Block.ID = blockCount
+			for name := range v.Block.Assignments {
+				if ctx.BlockOf(name) != nil {
+					return errors.New("redefinition of " + name)
+				}
+			}
+			for name := range v.Block.TypeDefs {
+				if ctx.BlockOf(name) != nil {
+					return errors.New("redefinition of " + name)
+				}
+			}
 		} else if v.Id != nil {
 			if err := typeId(v.Id, ctx); err != nil {
 				return err
