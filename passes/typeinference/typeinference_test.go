@@ -358,6 +358,14 @@ func TestInfer(tes *testing.T) {
 			),
 		),
 		err: errors.New("redefinition of a"),
+	}, {
+		name: "infers type parameters in functions",
+		exp: Block(
+			Assgs{},
+			Typedefs{"S": Struct(ast.StructField{Name: "a", Type: types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A"))}).WithFreeVars("A")},
+			Fcall(Id("S"), Fdef(RConst(1.0), &ast.FParam{Name: "x", Type: types.IntP})),
+		),
+		err: errors.New("can not unify int with real"),
 	},
 	}
 	for _, tt := range tests {

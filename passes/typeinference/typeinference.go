@@ -130,6 +130,10 @@ func initialiseVariables(exp *ast.Exp) error {
 				for _, n := range value.FreeVariables {
 					free[n] = MakeVariable()
 					used[n] = false
+					d := ctx.BlockOf(n)
+					if d != nil || v.Block.Assignments[n] != nil || v.Block.TypeDefs[n] != nil {
+						return errors.New("redefinition of " + n)
+					}
 				}
 
 				if value.Struct != nil {
@@ -139,22 +143,13 @@ func initialiseVariables(exp *ast.Exp) error {
 						typ := f.Type
 						if !typ.IsDefined() {
 							typ = MakeVariable()
-						}
-						if typ.Named != nil {
-							if fv, ok := free[typ.Named.Name]; ok {
-								d := ctx.TypeDef(typ.Named.Name)
-								if d == nil {
-									d = v.Block.TypeDefs[typ.Named.Name]
-									used[typ.Named.Name] = true
-								}
-								if d != nil {
-									return errors.New("redefinition of " + typ.Named.Name)
-								}
-								typ = fv
+						} else {
+							typ, err = resolveTypeVariables(typ, free, used)
+							if err != nil {
+								return err
 							}
 						}
 						f.Type = typ
-
 						ts[i] = typ
 						sf[i] = SField{
 							Name: f.Name,
@@ -178,6 +173,27 @@ func initialiseVariables(exp *ast.Exp) error {
 		}
 		return nil
 	})
+}
+
+func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]bool) (types.Type, error) {
+	result := typ
+	if typ.Named != nil {
+		if fv, ok := free[typ.Named.Name]; ok {
+			used[typ.Named.Name] = true
+			result = fv
+		}
+	} else if typ.Function != nil {
+		args := make([]types.Type, len(*typ.Function))
+		for i, a := range *typ.Function {
+			na, err := resolveTypeVariables(a, free, used)
+			if err != nil {
+				return types.Type{}, err
+			}
+			args[i] = na
+		}
+		result = MakeFunction(args...)
+	}
+	return result, nil
 }
 
 func resolveNamed(name string, ctx *ast.VisitContext) (*ast.TypeDefinition, error) {
