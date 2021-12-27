@@ -155,19 +155,24 @@ func initialiseVariables(exp *ast.Exp) error {
 							Name: f.Name,
 							Type: typ,
 						}
-						value.VaribleMap = free
-					}
-
-					for n, b := range used {
-						if !b {
-							return errors.New("unused free type " + n)
-						}
 					}
 
 					stru := types.MakeStructure(name, sf...)
 					ts[len(value.Struct.Fields)] = stru
 
 					value.Struct.Type = types.MakeFunction(ts...)
+				} else {
+					typ, err := resolveTypeVariables(value.TypeDecl, free, used)
+					if err != nil {
+						return err
+					}
+					value.TypeDecl = typ
+				}
+				value.VaribleMap = free
+				for n, b := range used {
+					if !b {
+						return errors.New("unused free type " + n)
+					}
 				}
 			}
 		}
@@ -201,9 +206,6 @@ func resolveNamed(name string, ctx *ast.VisitContext) (*ast.TypeDefinition, erro
 	if tdef == nil {
 		return nil, errors.New("type " + name + " is undefined")
 	}
-	if tdef.Struct == nil {
-		return nil, errors.New(name + " is not a correct type")
-	}
 	return tdef, nil
 }
 
@@ -214,9 +216,14 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 			return Type{}, err
 		}
 		if len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
-			return Type{}, errors.New("wrong number of type arguments")
+			return Type{}, errors.New("wrong number of type arguments for " + t.Named.Name)
 		}
-		resolved := createStructType(t.Named.Name, tdef)
+		var resolved types.Type
+		if tdef.Struct != nil {
+			resolved = createStructType(t.Named.Name, tdef)
+		} else {
+			resolved = tdef.Type()
+		}
 		unifier := MakeSubstitutions()
 		for i, ta := range t.Named.TypeArguments {
 			nt, err := rewriter(ta, ctx)
@@ -307,6 +314,7 @@ func Infer(exp *ast.Exp) error {
 				return err
 			}
 			unifier.Combine(uni)
+			v.TDecl.Exp.Convert(unifier)
 		} else if v.FAccess != nil {
 			vari := MakeVariable()
 			typ := MakeStructuralVar(map[string]Type{v.FAccess.Field: vari})

@@ -90,6 +90,13 @@ func TestCompile(t *testing.T) {
 			person = Person(38, 1.73, 60.0)
 			bmi(person)
 		`,
+	}, {
+		name: "compile named types with arguments",
+		program: `
+			Func[A,B] :: (A) => B
+			f: Func[int,int] = (x) => x
+			f(1)
+		`,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

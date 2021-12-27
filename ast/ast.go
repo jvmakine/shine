@@ -92,6 +92,7 @@ type TypeDefinition struct {
 	FreeVariables []string
 	VaribleMap    map[string]types.Type
 	Struct        *Struct
+	TypeDecl      types.Type
 }
 
 func (t *TypeDefinition) WithFreeVars(vars ...string) *TypeDefinition {
@@ -231,7 +232,7 @@ func (t *TypeDefinition) Type() types.Type {
 	if t.Struct != nil {
 		return t.Struct.Type
 	}
-	panic("invalid type def")
+	return t.TypeDecl
 }
 
 func (exp *Exp) Convert(s types.Substitutions) {

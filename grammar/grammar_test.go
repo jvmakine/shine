@@ -320,6 +320,22 @@ func TestExpressionParsing(tes *testing.T) {
 				a
 			`,
 		err: errors.New("redefinition of a"),
+	}, {
+		name: "parses named function types",
+		input: `F[A] :: (A) => A
+				f: F[int] = (x) => x
+				f
+			`,
+		want: t.Block(
+			t.Assgs{
+				"f": t.TDecl(t.Fdef(t.Id("x"), "x"), types.MakeNamed("F", types.IntP)),
+			},
+			t.Typedefs{"F": &a.TypeDefinition{
+				FreeVariables: []string{"A"},
+				TypeDecl:      types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A")),
+			}},
+			t.Id("f"),
+		),
 	},
 	}
 	for _, tt := range tests {

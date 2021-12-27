@@ -74,8 +74,9 @@ type BlockElement struct {
 
 type TypeDefinition struct {
 	Name     *string            `@Ident`
-	FreeVars []string           `("[" (@Ident ("," @Ident)*)? "]")?`
-	Struct   *StructDescription `TypeDef @@ Newline+`
+	FreeVars []string           `("[" (@Ident ("," @Ident)*)? "]")? TypeDef`
+	Struct   *StructDescription `(@@ Newline+`
+	Type     *TypeDeclaration   ` | @@ Newline+)`
 }
 
 type StructDescription struct {

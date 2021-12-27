@@ -366,6 +366,17 @@ func TestInfer(tes *testing.T) {
 			Fcall(Id("S"), Fdef(RConst(1.0), &ast.FParam{Name: "x", Type: types.IntP})),
 		),
 		err: errors.New("can not unify int with real"),
+	}, {
+		name: "infer types based on functions with type arguments",
+		exp: Block(
+			Assgs{"f": TDecl(Fdef(Id("x"), "x"), types.MakeNamed("F", types.IntP))},
+			Typedefs{"F": &ast.TypeDefinition{
+				FreeVariables: []string{"A"},
+				TypeDecl:      types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A")),
+			}},
+			Id("f"),
+		),
+		typ: "(int)=>int",
 	},
 	}
 	for _, tt := range tests {

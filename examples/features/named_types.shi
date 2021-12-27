@@ -1,0 +1,5 @@
+Func[A,B] :: (A) => B
+Add[A] :: (A,A) => A
+
+f: Func[int,Add[int]] = (x) => (a,b) => a + b + x
+f(1)(2,3)
