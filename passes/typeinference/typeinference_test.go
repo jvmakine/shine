@@ -377,6 +377,17 @@ func TestInfer(tes *testing.T) {
 			Id("f"),
 		),
 		typ: "(int)=>int",
+	}, {
+		name: "infer type variables as arguments",
+		exp: Block(
+			Assgs{"f": TDecl(Fdef(Id("x"), "x"), types.MakeNamed("G", types.IntP))},
+			Typedefs{
+				"F": &ast.TypeDefinition{FreeVariables: []string{"A"}, TypeDecl: types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A"))},
+				"G": &ast.TypeDefinition{FreeVariables: []string{"X"}, TypeDecl: types.MakeNamed("F", types.MakeNamed("X"))},
+			},
+			Id("f"),
+		),
+		typ: "(int)=>int",
 	},
 	}
 	for _, tt := range tests {

@@ -188,6 +188,75 @@ func (t Type) AsPrimitive() Primitive {
 	return *t.Primitive
 }
 
+func (t Type) NamedTypes() map[string]bool {
+	if t.IsNamed() {
+		res := map[string]bool{t.Named.Name: true}
+		for _, f := range t.Named.TypeArguments {
+			v := f.NamedTypes()
+			for n := range v {
+				res[n] = true
+			}
+		}
+		return res
+	}
+	if t.IsFunction() {
+		res := map[string]bool{}
+		for _, f := range *t.Function {
+			v := f.NamedTypes()
+			for n := range v {
+				res[n] = true
+			}
+		}
+		return res
+	}
+	if t.IsStructure() {
+		res := map[string]bool{}
+		for _, f := range t.Structure.Fields {
+			v := f.Type.NamedTypes()
+			for n := range v {
+				res[n] = true
+			}
+		}
+		return res
+	}
+	return map[string]bool{}
+}
+
+func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
+	if t.IsFunction() {
+		fn := make([]Type, len(*t.Function))
+		for i, a := range *t.Function {
+			b, err := a.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			fn[i] = b
+		}
+		return f(MakeFunction(fn...))
+	} else if t.IsNamed() {
+		fn := make([]Type, len(t.Named.TypeArguments))
+		for i, a := range t.Named.TypeArguments {
+			b, err := a.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			fn[i] = b
+		}
+		return f(MakeNamed(t.Named.Name, fn...))
+	} else if t.IsStructure() {
+		nf := make([]SField, len(t.Structure.Fields))
+		for i, a := range t.Structure.Fields {
+			b, err := a.Type.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			nf[i] = SField{Name: a.Name, Type: b}
+		}
+		return f(MakeStructure(t.Structure.Name, nf...))
+	}
+	return f(t)
+}
+
 func (t *Type) AssignFrom(o Type) {
 	t.Variable = o.Variable
 	t.Function = o.Function

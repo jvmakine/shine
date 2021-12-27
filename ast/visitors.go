@@ -11,6 +11,10 @@ type VisitContext struct {
 	assignment string
 }
 
+func (ctx *VisitContext) SubBlock(b *Block) *VisitContext {
+	return &VisitContext{parent: ctx, block: b, def: ctx.def}
+}
+
 func (c *VisitContext) Path() map[string]bool {
 	p := map[string]bool{}
 	if c.parent != nil {

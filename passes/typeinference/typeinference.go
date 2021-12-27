@@ -107,6 +107,119 @@ func typeCall(call *ast.FCall, unifier Substitutions) error {
 	return nil
 }
 
+func namedVariables(t *ast.TypeDefinition) map[string]bool {
+	res := map[string]bool{}
+	if t.Struct != nil {
+		for _, f := range t.Struct.Fields {
+			u := f.Type.NamedTypes()
+			for n := range u {
+				res[n] = true
+			}
+		}
+	} else {
+		res = t.TypeDecl.NamedTypes()
+	}
+	return res
+}
+
+func topologicalSort(defs map[string]*ast.TypeDefinition) ([]string, error) {
+	result := []string{}
+	todo := map[string]*ast.TypeDefinition{}
+	for n, t := range defs {
+		todo[n] = t
+	}
+	for len(todo) > 0 {
+		prevLen := len(todo)
+		for n, t := range todo {
+			used := namedVariables(t)
+			hit := false
+			for u := range used {
+				if todo[u] != nil {
+					hit = true
+					break
+				}
+			}
+			if !hit {
+				result = append(result, n)
+				delete(todo, n)
+			}
+		}
+		if len(todo) == prevLen {
+			return nil, errors.New("recursive type declaration")
+		}
+	}
+	return result, nil
+}
+
+func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitContext) error {
+	if def.Struct != nil {
+		for _, f := range def.Struct.Fields {
+			nt, err := rewriteNamedType(f.Type, ctx)
+			if err != nil {
+				return err
+			}
+			f.Type = nt
+		}
+		ts := make([]types.Type, len(def.Struct.Fields)+1)
+		sf := make([]types.SField, len(def.Struct.Fields))
+		for i, f := range def.Struct.Fields {
+			typ := f.Type
+			if !typ.IsDefined() {
+				typ = MakeVariable()
+			}
+			f.Type = typ
+			ts[i] = typ
+			sf[i] = SField{
+				Name: f.Name,
+				Type: typ,
+			}
+		}
+
+		stru := types.MakeStructure(name, sf...)
+		ts[len(def.Struct.Fields)] = stru
+
+		nt, err := rewriteNamedType(types.MakeFunction(ts...), ctx)
+		if err != nil {
+			return err
+		}
+
+		def.Struct.Type = nt
+	} else {
+		nt, err := rewriteNamedType(def.TypeDecl, ctx)
+		if err != nil {
+			return err
+		}
+		def.TypeDecl = nt
+	}
+	return nil
+}
+
+func rewriteNamedType(from Type, ctx *ast.VisitContext) (Type, error) {
+	return from.Rewrite(func(t Type) (Type, error) {
+		if t.IsNamed() {
+			td := ctx.TypeDef(t.Named.Name)
+			if td != nil {
+				if len(td.FreeVariables) != len(t.Named.TypeArguments) {
+					return Type{}, errors.New("invalid number of type arguments for " + t.Named.Name)
+				}
+				nt := td.Type()
+				for i, a := range t.Named.TypeArguments {
+					o := td.FreeVariables[i]
+					nt, _ = nt.Rewrite(func(t Type) (Type, error) {
+						if t.IsNamed() && t.Named.Name == o {
+							return a, nil
+						}
+						return t, nil
+					})
+				}
+				return nt, nil
+			}
+			return t, nil
+		}
+		return t, nil
+	})
+}
+
 func initialiseVariables(exp *ast.Exp) error {
 	return exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Def != nil {
@@ -124,7 +237,19 @@ func initialiseVariables(exp *ast.Exp) error {
 			if err != nil {
 				return err
 			}
-			for name, value := range v.Block.TypeDefs {
+			names, err := topologicalSort(v.Block.TypeDefs)
+			if err != nil {
+				return err
+			}
+			for _, name := range names {
+				value := v.Block.TypeDefs[name]
+				err := rewriteNamedTypeDef(name, value, ctx.SubBlock(v.Block))
+				if err != nil {
+					return err
+				}
+			}
+			for _, name := range names {
+				value := v.Block.TypeDefs[name]
 				free := map[string]Type{}
 				used := map[string]bool{}
 				for _, n := range value.FreeVariables {
@@ -137,30 +262,19 @@ func initialiseVariables(exp *ast.Exp) error {
 				}
 
 				if value.Struct != nil {
-					ts := make([]types.Type, len(value.Struct.Fields)+1)
-					sf := make([]types.SField, len(value.Struct.Fields))
-					for i, f := range value.Struct.Fields {
+					for _, f := range value.Struct.Fields {
 						typ := f.Type
-						if !typ.IsDefined() {
-							typ = MakeVariable()
-						} else {
-							typ, err = resolveTypeVariables(typ, free, used)
-							if err != nil {
-								return err
-							}
+						typ, err = resolveTypeVariables(typ, free, used)
+						if err != nil {
+							return err
 						}
 						f.Type = typ
-						ts[i] = typ
-						sf[i] = SField{
-							Name: f.Name,
-							Type: typ,
-						}
 					}
-
-					stru := types.MakeStructure(name, sf...)
-					ts[len(value.Struct.Fields)] = stru
-
-					value.Struct.Type = types.MakeFunction(ts...)
+					typ, err := resolveTypeVariables(value.Struct.Type, free, used)
+					if err != nil {
+						return err
+					}
+					value.Struct.Type = typ
 				} else {
 					typ, err := resolveTypeVariables(value.TypeDecl, free, used)
 					if err != nil {
@@ -187,6 +301,12 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 			used[typ.Named.Name] = true
 			result = fv
 		}
+		for _, ta := range typ.Named.TypeArguments {
+			_, err := resolveTypeVariables(ta, free, used)
+			if err != nil {
+				return types.Type{}, err
+			}
+		}
 	} else if typ.Function != nil {
 		args := make([]types.Type, len(*typ.Function))
 		for i, a := range *typ.Function {
@@ -197,6 +317,19 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 			args[i] = na
 		}
 		result = MakeFunction(args...)
+	} else if typ.Structure != nil {
+		nf := make([]SField, len(typ.Structure.Fields))
+		for i, f := range typ.Structure.Fields {
+			na, err := resolveTypeVariables(f.Type, free, used)
+			if err != nil {
+				return types.Type{}, err
+			}
+			nf[i] = SField{
+				Name: f.Name,
+				Type: na,
+			}
+			result = MakeStructure(typ.Structure.Name, nf...)
+		}
 	}
 	return result, nil
 }
