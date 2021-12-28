@@ -19,6 +19,7 @@ func Parse(str string) (*Program, error) {
 		LineComment = ("//") { "\u0000"…"\uffff"-"\n" } .
 		BlockComment = ("/*") { "\u0000"…"\uffff"-"*/" } ("*/") .
 		Fun = "=>" .
+		Binding = "->" .
 		Newline = "\n" .
 		Whitespace = " " | "\r" | "\t" .
 		Reserved = "if" | "else" | "true" | "false" .
@@ -68,6 +69,7 @@ func (prg *Program) ToAst() (*ast.Exp, error) {
 func convBlock(from *Block) (*ast.Block, error) {
 	assigns := map[string]*ast.Exp{}
 	typedefs := map[string]*ast.TypeDefinition{}
+	bindings := []*ast.TypeBinding{}
 	for _, e := range from.Elements {
 		if e.Assignment != nil {
 			a := e.Assignment
@@ -103,6 +105,18 @@ func convBlock(from *Block) (*ast.Block, error) {
 					FreeVariables: from.FreeVars,
 					Struct:        &ast.Struct{Fields: fields},
 				}
+			} else if from.TypeClass != nil {
+				funs := map[string]*ast.TypeDefinition{}
+				for _, f := range from.TypeClass.Functions {
+					funs[*f.Name] = &ast.TypeDefinition{
+						FreeVariables: f.FreeVars,
+						TypeDecl:      convTypeFunction(f.Function),
+					}
+				}
+				typedefs[name] = &ast.TypeDefinition{
+					FreeVariables: from.FreeVars,
+					TypeClass:     &ast.TypeClass{Functions: funs},
+				}
 			} else {
 				t := convTypeDecl(from.Type)
 				typedefs[name] = &ast.TypeDefinition{
@@ -110,6 +124,28 @@ func convBlock(from *Block) (*ast.Block, error) {
 					TypeDecl:      t,
 				}
 			}
+		} else if e.TypeBinding != nil {
+			from := e.TypeBinding
+			params := make([]types.Type, len(from.Arguments))
+			for i, a := range from.Arguments {
+				params[i] = convTypeDecl(a)
+			}
+			fbinds := map[string]*ast.FDef{}
+			for _, b := range from.Assignments {
+				e, err := convExp(b.Value)
+				if err != nil {
+					return nil, err
+				}
+				if e.Def == nil {
+					return nil, errors.New("bound value must be a function")
+				}
+				fbinds[*b.Name] = e.Def
+			}
+			bindings = append(bindings, &ast.TypeBinding{
+				Name:       *from.Name,
+				Parameters: params,
+				Bindings:   fbinds,
+			})
 		}
 	}
 	exp, err := convExp(from.Value)
@@ -117,9 +153,10 @@ func convBlock(from *Block) (*ast.Block, error) {
 		return nil, err
 	}
 	return &ast.Block{
-		Assignments: assigns,
-		TypeDefs:    typedefs,
-		Value:       exp,
+		Assignments:  assigns,
+		TypeDefs:     typedefs,
+		Value:        exp,
+		TypeBindings: bindings,
 	}, nil
 }
 
@@ -191,6 +228,15 @@ func convDef(from *Definition) (*ast.Exp, error) {
 	}, nil
 }
 
+func convTypeFunction(t *TypeFunc) types.Type {
+	ps := make([]types.Type, len(t.Params)+1)
+	for i, p := range t.Params {
+		ps[i] = convTypeDecl(p)
+	}
+	ps[len(t.Params)] = convTypeDecl(t.Return)
+	return types.MakeFunction(ps...)
+}
+
 func convTypeDecl(t *TypeDeclaration) types.Type {
 	if t.Primitive != "" {
 		switch t.Primitive {
@@ -206,12 +252,7 @@ func convTypeDecl(t *TypeDeclaration) types.Type {
 			panic("invalid type: " + t.Primitive)
 		}
 	} else if t.Function != nil {
-		ps := make([]types.Type, len(t.Function.Params)+1)
-		for i, p := range t.Function.Params {
-			ps[i] = convTypeDecl(p)
-		}
-		ps[len(t.Function.Params)] = convTypeDecl(t.Function.Return)
-		return types.MakeFunction(ps...)
+		return convTypeFunction(t.Function)
 	} else if t.Named != nil {
 		vars := make([]types.Type, len(t.Named.Vars))
 		for i, v := range t.Named.Vars {

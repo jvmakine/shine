@@ -19,7 +19,7 @@ func TestSeqFN(t *testing.T) {
 		name: "combines sequential functions when possible",
 		before: Block(
 			Assgs{"a": Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x")},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Fcall(Id("a"), IConst(1)), IConst(2)),
 		),
 		after: Block(
@@ -27,7 +27,7 @@ func TestSeqFN(t *testing.T) {
 				"a":   Fdef(Fdef(Fcall(Op("+"), Id("x"), Id("y")), "y"), "x"),
 				"a%c": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a%c"), IConst(1), IConst(2)),
 		),
 	}}

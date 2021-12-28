@@ -38,8 +38,9 @@ func Op(name string) *ast.Exp {
 
 type Assgs = map[string]*ast.Exp
 type Typedefs = map[string]*ast.TypeDefinition
+type Bindings = []*ast.TypeBinding
 
-func Block(a Assgs, t Typedefs, e *ast.Exp) *ast.Exp {
+func Block(a Assgs, t Typedefs, b Bindings, e *ast.Exp) *ast.Exp {
 	assign := map[string]*ast.Exp{}
 	typedef := map[string]*ast.TypeDefinition{}
 	for k, v := range a {
@@ -50,9 +51,10 @@ func Block(a Assgs, t Typedefs, e *ast.Exp) *ast.Exp {
 	}
 	return &ast.Exp{
 		Block: &ast.Block{
-			Value:       e,
-			Assignments: assign,
-			TypeDefs:    typedef,
+			Value:        e,
+			Assignments:  assign,
+			TypeDefs:     typedef,
+			TypeBindings: b,
 		},
 	}
 }

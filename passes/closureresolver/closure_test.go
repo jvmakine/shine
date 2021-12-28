@@ -24,7 +24,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 		),
 		want: map[string]map[string]Type{
@@ -38,15 +38,15 @@ func TestResolveFunctionDef(tes *testing.T) {
 					Assgs{
 						"b": Fdef(Block(
 							Assgs{"c": Id("y")},
-							Typedefs{},
+							Typedefs{}, Bindings{},
 							Fcall(Op("if"), Id("c"), Id("x"), IConst(2)),
 						)),
 					},
-					Typedefs{},
+					Typedefs{}, Bindings{},
 					Fcall(Id("b")),
 				), "x", "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a"), IConst(1), BConst(true)),
 		),
 		want: map[string]map[string]Type{
@@ -64,7 +64,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 				"b": Fdef(Fcall(Op("+"), Fcall(Id("f"), Id("y")), IConst(2)), "y", "f"),
 				"s": Fdef(Fcall(Op("+"), Id("y"), IConst(3)), "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a"), IConst(1)),
 		),
 		want: map[string]map[string]Type{
@@ -76,7 +76,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 		name: "resolves closures for sequential functions",
 		exp: Block(
 			Assgs{"a": Fdef(Fdef(Fdef(Fcall(Op("+"), Fcall(Op("+"), Id("x"), Id("y")), Id("z")), "z"), "y"), "x")},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Fcall(Fcall(Id("a"), IConst(1)), IConst(2)), IConst(3)),
 		),
 		want: map[string]map[string]Type{
@@ -97,6 +97,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 				"f": Fdef(Fcall(Op("+"), Id("y"), Faccess(Id("a"), "x")), "y"),
 			},
 			Typedefs{"S": Struct(ast.StructField{"x", IntP})},
+			Bindings{},
 			Fcall(Id("f"), IConst(2)),
 		),
 		want: map[string]map[string]Type{

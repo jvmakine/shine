@@ -68,15 +68,33 @@ type Block struct {
 }
 
 type BlockElement struct {
-	TypeDef    *TypeDefinition `@@`
-	Assignment *Assignment     `| @@`
+	TypeDef     *TypeDefinition `@@`
+	TypeBinding *TypeBinding    `| @@`
+	Assignment  *Assignment     `| @@`
+}
+
+type TypeBinding struct {
+	Name        *string            `@Ident`
+	Arguments   []*TypeDeclaration `"[" (@@ ("," @@)*)? "]" Binding Newline*`
+	Assignments []*Assignment      `"{" @@+ "}" Newline*`
 }
 
 type TypeDefinition struct {
-	Name     *string            `@Ident`
-	FreeVars []string           `("[" (@Ident ("," @Ident)*)? "]")? TypeDef`
-	Struct   *StructDescription `(@@ Newline+`
-	Type     *TypeDeclaration   ` | @@ Newline+)`
+	Name      *string              `@Ident`
+	FreeVars  []string             `("[" (@Ident ("," @Ident)*)? "]")? TypeDef`
+	Struct    *StructDescription   `(@@ Newline+`
+	TypeClass *TypeClassDefinition ` | @@ Newline+`
+	Type      *TypeDeclaration     ` | @@ Newline+)`
+}
+
+type TypeClassDefinition struct {
+	Functions []*AbstractFunDef `"{" Newline* @@+ Newline* "}"`
+}
+
+type AbstractFunDef struct {
+	Name     *string   `@Ident`
+	FreeVars []string  `("[" (@Ident ("," @Ident)*)? "]")? TypeDef`
+	Function *TypeFunc `@@`
 }
 
 type StructDescription struct {
@@ -110,7 +128,7 @@ type PValue struct {
 type Assignment struct {
 	Name  *string          `@Ident`
 	Type  *TypeDeclaration `(":" @@)?`
-	Value *Expression      `"=" @@ Newline+`
+	Value *Expression      `"=" @@ Newline*`
 }
 
 type TypeFunc struct {

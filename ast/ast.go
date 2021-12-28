@@ -79,25 +79,37 @@ type FDef struct {
 // Blocks
 
 type Block struct {
-	Assignments map[string]*Exp
-	TypeDefs    map[string]*TypeDefinition
-	Value       *Exp
+	Assignments  map[string]*Exp
+	TypeDefs     map[string]*TypeDefinition
+	TypeBindings []*TypeBinding
+	Value        *Exp
 
 	ID int
 }
 
 // Types
 
+type TypeBinding struct {
+	Name       string
+	Parameters []types.Type
+	Bindings   map[string]*FDef
+}
+
 type TypeDefinition struct {
 	FreeVariables []string
 	VaribleMap    map[string]types.Type
 	Struct        *Struct
 	TypeDecl      types.Type
+	TypeClass     *TypeClass
 }
 
 func (t *TypeDefinition) WithFreeVars(vars ...string) *TypeDefinition {
 	t.FreeVariables = vars
 	return t
+}
+
+type TypeClass struct {
+	Functions map[string]*TypeDefinition
 }
 
 type StructField struct {

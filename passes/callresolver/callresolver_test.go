@@ -21,7 +21,7 @@ func TestResolveFunctions(t *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Op("if"),
 				Fcall(Id("a"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a"), BConst(true), IConst(5), IConst(6)),
@@ -33,7 +33,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%(bool,bool,bool)=>bool": Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 				"a%%1%%(bool,int,int)=>int":    Fdef(Fcall(Op("if"), Id("b"), Id("y"), Id("x")), "b", "y", "x"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Op("if"),
 				Fcall(Id("a%%1%%(bool,bool,bool)=>bool"), BConst(true), BConst(true), BConst(false)),
 				Fcall(Id("a%%1%%(bool,int,int)=>int"), BConst(true), IConst(5), IConst(6)),
@@ -46,7 +46,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"b": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a"), Id("b")),
 		),
 		after: Block(
@@ -56,7 +56,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"b%%1%%(int,int)=>int":        Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("b%%1%%(int,int)=>int")),
 		),
 	}, {
@@ -65,7 +65,7 @@ func TestResolveFunctions(t *testing.T) {
 			Assgs{
 				"a": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a"), Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y")),
 		),
 		after: Block(
@@ -74,7 +74,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%((int,int)=>int)=>int": Fdef(Fcall(Id("f"), IConst(1), IConst(2)), "f"),
 				"<anon1>%%1%%(int,int)=>int":  Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x", "y"),
 			},
-			Typedefs{},
+			Typedefs{}, Bindings{},
 			Fcall(Id("a%%1%%((int,int)=>int)=>int"), Id("<anon1>%%1%%(int,int)=>int")),
 		),
 	}, {
@@ -82,6 +82,7 @@ func TestResolveFunctions(t *testing.T) {
 		before: Block(
 			Assgs{},
 			Typedefs{"a": Struct(ast.StructField{"x", types.IntP})},
+			Bindings{},
 			Fcall(Id("a"), IConst(1)),
 		),
 		after: Block(
@@ -90,6 +91,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a":                     Struct(ast.StructField{"x", types.IntP}),
 				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
 			},
+			Bindings{},
 			Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1)),
 		),
 	}, {
@@ -97,6 +99,7 @@ func TestResolveFunctions(t *testing.T) {
 		before: Block(
 			Assgs{},
 			Typedefs{"a": Struct(ast.StructField{"x", types.MakeVariable()})},
+			Bindings{},
 			Fcall(Id("a"), Fcall(Id("a"), IConst(1))),
 		),
 		after: Block(
@@ -106,6 +109,7 @@ func TestResolveFunctions(t *testing.T) {
 				"a%%1%%(int)=>a{x:int}": Struct(ast.StructField{"x", types.IntP}),
 				"a%%1%%(a{x:int})=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
 			},
+			Bindings{},
 			Fcall(Id("a%%1%%(a{x:int})=>a"), Fcall(Id("a%%1%%(int)=>a{x:int}"), IConst(1))),
 		),
 	}}

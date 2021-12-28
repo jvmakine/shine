@@ -20,107 +20,107 @@ func TestExpressionParsing(tes *testing.T) {
 	}{{
 		name:  "parse an int const",
 		input: "42",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.IConst(42)),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.IConst(42)),
 	}, {
 		name:  "parse a real const",
 		input: "0.1",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.RConst(0.1)),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.RConst(0.1)),
 	}, {
 		name:  "parse a bool const",
 		input: "true",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.BConst(true)),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.BConst(true)),
 	}, {
 		name:  "parse an identifier",
 		input: "abc",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Id("abc")),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Id("abc")),
 	}, {
 		name:  "parse + term expression",
 		input: "1 + 2",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.IConst(1), t.IConst(2))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse - term expression",
 		input: "1 - 2",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("-"), t.IConst(1), t.IConst(2))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("-"), t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse * factor expression",
 		input: "2 * 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("*"), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("*"), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse / factor expression",
 		input: "2 / 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("/"), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("/"), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse % factor expression",
 		input: "2 % 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("%"), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("%"), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "maintain right precedence with + and *",
 		input: "2 + 3 * 4",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.IConst(2), t.Fcall(t.Op("*"), t.IConst(3), t.IConst(4)))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.IConst(2), t.Fcall(t.Op("*"), t.IConst(3), t.IConst(4)))),
 	}, {
 		name:  "parse numeric expressions with brackets",
 		input: "(2 + 4) * 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("*"), t.Fcall(t.Op("+"), t.IConst(2), t.IConst(4)), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("*"), t.Fcall(t.Op("+"), t.IConst(2), t.IConst(4)), t.IConst(3))),
 	}, {
 		name:  "parse id expressions with brackets",
 		input: "(c % 2) == 0",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("=="), t.Fcall(t.Op("%"), t.Id("c"), t.IConst(2)), t.IConst(0))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("=="), t.Fcall(t.Op("%"), t.Id("c"), t.IConst(2)), t.IConst(0))),
 	}, {
 		name:  "parse == operator",
 		input: "2 == 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("=="), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("=="), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse != operator",
 		input: "a != 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("!="), t.Id("a"), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("!="), t.Id("a"), t.IConst(3))),
 	}, {
 		name:  "parse < operator",
 		input: "2 < 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("<"), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("<"), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse > operator",
 		input: "2 > 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse >= operator",
 		input: "2 >= 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op(">="), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op(">="), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse <= operator",
 		input: "2 <= 3",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("<="), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("<="), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse || operator",
 		input: "true || false",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("||"), t.BConst(true), t.BConst(false))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("||"), t.BConst(true), t.BConst(false))),
 	}, {
 		name:  "parse && operator",
 		input: "true && false",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("&&"), t.BConst(true), t.BConst(false))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("&&"), t.BConst(true), t.BConst(false))),
 	}, {
 		name:  "parse if expression",
 		input: "if(2 > 3) 1 else 2",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.IConst(1), t.IConst(2))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.IConst(1), t.IConst(2))),
 	}, {
 		name:  "parse if expressions with blocks",
 		input: "if(2 > 3) { 1 } else { 2 }",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.Block(t.Assgs{}, t.Typedefs{}, t.IConst(1)), t.Block(t.Assgs{}, t.Typedefs{}, t.IConst(2)))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.IConst(1)), t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.IConst(2)))),
 	}, {
 		name:  "parse if else if expression",
 		input: "if (2 > 3) 1 else if (3 > 4) 2 else 4",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.IConst(1), t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(3), t.IConst(4)), t.IConst(2), t.IConst(4)))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(2), t.IConst(3)), t.IConst(1), t.Fcall(t.Op("if"), t.Fcall(t.Op(">"), t.IConst(3), t.IConst(4)), t.IConst(2), t.IConst(4)))),
 	}, {
 		name:  "parse a function call",
 		input: "f(1, x, y)",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Id("f"), t.IConst(1), t.Id("x"), t.Id("y"))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Id("f"), t.IConst(1), t.Id("x"), t.Id("y"))),
 	}, {
 		name:  "parse a function calls of returned function values",
 		input: "f(1, x, y)(2, 3)",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Fcall(t.Id("f"), t.IConst(1), t.Id("x"), t.Id("y")), t.IConst(2), t.IConst(3))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Fcall(t.Id("f"), t.IConst(1), t.Id("x"), t.Id("y")), t.IConst(2), t.IConst(3))),
 	}, {
 		name:  "parse functions as values",
 		input: "f((x) => {x + 2}, (y) => {y + 1})",
-		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Id("f"), t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.Id("x"), t.IConst(2))), "x"), t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.Id("y"), t.IConst(1))), "y"))),
+		want:  t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Id("f"), t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.Id("x"), t.IConst(2))), "x"), t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.Id("y"), t.IConst(1))), "y"))),
 	}, {
 		name: "parse several assignments",
 		input: `
@@ -135,7 +135,7 @@ func TestExpressionParsing(tes *testing.T) {
 				"b": t.Fcall(t.Op("+"), t.IConst(2), t.IConst(3)),
 				"c": t.Fcall(t.Op("+"), t.IConst(3), t.IConst(4)),
 			},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Op("+"), t.Fcall(t.Op("+"), t.Id("a"), t.Id("b")), t.Id("c")),
 		),
 	}, {
@@ -145,8 +145,8 @@ func TestExpressionParsing(tes *testing.T) {
 			a(1, 2)
 		`,
 		want: t.Block(
-			t.Assgs{"a": t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.Id("x"), t.Id("y"))), "x", "y")},
-			t.Typedefs{},
+			t.Assgs{"a": t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.Id("x"), t.Id("y"))), "x", "y")},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.IConst(1), t.IConst(2)),
 		),
 	}, {
@@ -163,14 +163,14 @@ func TestExpressionParsing(tes *testing.T) {
 				"a": t.Fdef(
 					t.Block(
 						t.Assgs{
-							"b": t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Fcall(t.Op("+"), t.Id("x"), t.IConst(1))), "x"),
+							"b": t.Fdef(t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.Fcall(t.Op("+"), t.Id("x"), t.IConst(1))), "x"),
 						},
-						t.Typedefs{},
+						t.Typedefs{}, t.Bindings{},
 						t.Fcall(t.Op("+"), t.Id("x"), t.Fcall(t.Id("b"), t.Id("y"))),
 					),
 					"x", "y"),
 			},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.IConst(1), t.IConst(2)),
 		),
 	}, {
@@ -181,7 +181,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: t.Block(
 			t.Assgs{"a": t.Fdef(t.Fdef(t.Fcall(t.Op("+"), t.Id("x"), t.Id("y")), "y"), "x")},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Fcall(t.Id("a"), t.IConst(1)), t.IConst(2)),
 		),
 	}, {
@@ -197,13 +197,13 @@ func TestExpressionParsing(tes *testing.T) {
 				t.Id("x"),
 				t.IConst(0),
 			), types.RealP), t.Param("x", types.IntP), t.Param("y", types.RealP), t.Param("z", types.BoolP))},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.IConst(1), t.RConst(2.0), t.BConst(true)),
 		),
 	}, {
 		name:  "parse explicit type definitions on generic expression",
 		input: `((1:int) + (2:bool)):real`,
-		want: t.Block(t.Assgs{}, t.Typedefs{}, t.TDecl(
+		want: t.Block(t.Assgs{}, t.Typedefs{}, t.Bindings{}, t.TDecl(
 			t.Fcall(
 				t.Op("+"),
 				t.TDecl(t.IConst(1), types.IntP),
@@ -224,7 +224,7 @@ func TestExpressionParsing(tes *testing.T) {
 				t.Id("x"),
 				t.IConst(0),
 			), t.Param("x", types.IntP), t.Param("f", types.MakeFunction(types.IntP, types.BoolP)))},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.IConst(1), t.Id("b")),
 		),
 	}, {
@@ -236,6 +236,7 @@ func TestExpressionParsing(tes *testing.T) {
 		want: t.Block(
 			t.Assgs{},
 			t.Typedefs{"a": t.Struct(ast.StructField{"x", types.IntP}, ast.StructField{"c", types.BoolP})},
+			t.Bindings{},
 			t.Fcall(t.Id("a"), t.IConst(1), t.BConst(true)),
 		),
 	}, {
@@ -243,7 +244,7 @@ func TestExpressionParsing(tes *testing.T) {
 		input: `a.foo.bar`,
 		want: t.Block(
 			t.Assgs{},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Faccess(t.Faccess(t.Id("a"), "foo"), "bar"),
 		),
 	}, {
@@ -251,7 +252,7 @@ func TestExpressionParsing(tes *testing.T) {
 		input: `a.foo(1)`,
 		want: t.Block(
 			t.Assgs{},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)),
 		),
 	}, {
@@ -259,7 +260,7 @@ func TestExpressionParsing(tes *testing.T) {
 		input: `a.foo(1).bar(2)`,
 		want: t.Block(
 			t.Assgs{},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Faccess(t.Fcall(t.Faccess(t.Id("a"), "foo"), t.IConst(1)), "bar"), t.IConst(2)),
 		),
 	}, {
@@ -270,7 +271,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: t.Block(
 			t.Assgs{"a": t.Fdef(t.Id("x"), t.Param("x", types.MakeNamed("A")))},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.Id("b")),
 		),
 	}, {
@@ -281,7 +282,7 @@ func TestExpressionParsing(tes *testing.T) {
 		`,
 		want: t.Block(
 			t.Assgs{"a": t.Fdef(t.Id("x"), t.Param("x", types.MakeNamed("A", types.IntP)))},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Fcall(t.Id("a"), t.Id("b")),
 		),
 	}, {
@@ -291,7 +292,7 @@ func TestExpressionParsing(tes *testing.T) {
 			`,
 		want: t.Block(
 			t.Assgs{"a": t.TDecl(t.IConst(5), types.IntP)},
-			t.Typedefs{},
+			t.Typedefs{}, t.Bindings{},
 			t.Id("a"),
 		),
 	}, {
@@ -311,6 +312,7 @@ func TestExpressionParsing(tes *testing.T) {
 					Type: types.MakeNamed("X"),
 				}}},
 			}},
+			t.Bindings{},
 			t.Fcall(t.Id("A"), t.IConst(1), t.IConst(2)),
 		),
 	}, {
@@ -334,7 +336,33 @@ func TestExpressionParsing(tes *testing.T) {
 				FreeVariables: []string{"A"},
 				TypeDecl:      types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A")),
 			}},
+			t.Bindings{},
 			t.Id("f"),
+		),
+	}, {
+		name: "parses type classes",
+		input: `Addable[A] :: { add :: (A,A) => A }
+				Addable[int] -> { add = (x,y) => x + y }
+				add(1,2)
+			`,
+		want: t.Block(
+			t.Assgs{},
+			t.Typedefs{"Addable": &a.TypeDefinition{
+				FreeVariables: []string{"A"},
+				TypeClass: &a.TypeClass{
+					Functions: map[string]*a.TypeDefinition{
+						"add": {TypeDecl: types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A"), types.MakeNamed("A"))},
+					},
+				},
+			}},
+			t.Bindings{&a.TypeBinding{
+				Name:       "Addable",
+				Parameters: []types.Type{types.IntP},
+				Bindings: map[string]*a.FDef{
+					"add": t.Fdef(t.Fcall(t.Op("+"), t.Id("x"), t.Id("y")), "x", "y").Def,
+				},
+			}},
+			t.Fcall(t.Id("add"), t.IConst(1), t.IConst(2)),
 		),
 	},
 	}
