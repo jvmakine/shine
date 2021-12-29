@@ -416,7 +416,7 @@ func TestInfer(tes *testing.T) {
 		  a = (x) => f(x,5)
 		  a(1)
 		`,
-		err: errors.New("no definition of Foo[int]"),
+		err: errors.New("can not unify Foo[V1] with int"),
 	},
 	}
 	for _, tt := range tests {

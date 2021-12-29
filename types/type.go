@@ -196,7 +196,7 @@ func (t Type) IsStructuralVar() bool {
 }
 
 func (t Type) IsDefined() bool {
-	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil || t.Named != nil
+	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil || t.Named != nil || t.TCRef != nil
 }
 
 func (t Type) HasFreeVars() bool {

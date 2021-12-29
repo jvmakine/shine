@@ -114,7 +114,7 @@ func sign(t Type, ctx *signctx, level int) string {
 		args := make([]string, len(t.TCRef.TypeClassVars))
 		for i, a := range t.TCRef.TypeClassVars {
 			if i == t.TCRef.Place && len(t.TCRef.TypeClassVars) > 1 {
-				args[i] = "[[" + sign(a, ctx, level) + "]]"
+				args[i] = "{" + sign(a, ctx, level) + "}"
 			} else {
 				args[i] = sign(a, ctx, level)
 			}

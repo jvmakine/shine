@@ -196,6 +196,12 @@ func TestType_Unify(t *testing.T) {
 		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Real)}),
 		want: MakeStructuralVar(map[string]Type{"x": IntP}),
 		err:  nil,
+	}, {
+		name: "unifies variables wthin tc references",
+		a:    MakeVariable(),
+		b:    MakeTypeClassRef("Foo", 0, var1),
+		want: MakeTypeClassRef("Foo", 0, var1),
+		err:  nil,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

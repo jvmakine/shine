@@ -54,6 +54,14 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsVariable() && !t.IsVariable() {
 		return unifier(o, t, ctx)
 	}
+	if t.IsVariable() && o.IsTypeClassRef() {
+		subs := MakeSubstitutions()
+		subs.Update(t.Variable, o)
+		return subs, nil
+	}
+	if o.IsTypeClassRef() && !t.IsTypeClassRef() {
+		return unifier(o, t, ctx)
+	}
 	if t.IsVariable() && o.IsFunction() {
 		if t.IsUnionVar() || t.IsUnionVar() {
 			return Substitutions{}, UnificationError(o, t)
@@ -71,6 +79,10 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, o)
 		return subs, nil
+	}
+	if t.IsTypeClassRef() {
+		// TODO
+		return Substitutions{}, UnificationError(o, t)
 	}
 	if o.IsFunction() && t.IsFunction() {
 		return unifyFunctions(t, o, ctx)
