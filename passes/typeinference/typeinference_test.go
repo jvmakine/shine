@@ -6,14 +6,17 @@ import (
 	"testing"
 
 	"github.com/jvmakine/shine/ast"
+	"github.com/jvmakine/shine/grammar"
 	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInfer(tes *testing.T) {
 	tests := []struct {
 		name string
 		exp  *ast.Exp
+		prg  string
 		typ  string
 		err  error
 	}{{
@@ -351,70 +354,84 @@ func TestInfer(tes *testing.T) {
 		err: errors.New("unused free type Y"),
 	}, {
 		name: "fail on incorrect type variable",
-		exp: Block(
-			Assgs{"f": Fdef(Faccess(Id("a"), "x"), &ast.FParam{Name: "a", Type: types.MakeNamed("A", types.RealP)})},
-			Typedefs{"A": Struct(ast.StructField{"x", types.MakeNamed("X")}).WithFreeVars("X")},
-			Bindings{},
-			Fcall(Id("f"), Fcall(Id("A"), IConst(1))),
-		),
+		prg: `
+			f = (a: A[real]) => a.x
+			A[X] :: (x: X)
+			f(A(1))
+		`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "fail on redefinitions",
-		exp: Block(
-			Assgs{"a": IConst(1)}, Typedefs{}, Bindings{},
-			Block(
-				Assgs{"a": IConst(1)}, Typedefs{}, Bindings{},
-				Id("a"),
-			),
-		),
+		prg: `
+			a = 1
+			{
+				a = 1
+				a
+			}
+		`,
 		err: errors.New("redefinition of a"),
 	}, {
 		name: "infers type parameters in functions",
-		exp: Block(
-			Assgs{},
-			Typedefs{"S": Struct(ast.StructField{Name: "a", Type: types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A"))}).WithFreeVars("A")},
-			Bindings{},
-			Fcall(Id("S"), Fdef(RConst(1.0), &ast.FParam{Name: "x", Type: types.IntP})),
-		),
+		prg: `
+			S[A] :: (a: (A)=>A)
+			S((x:int) => 1.0)
+		`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "infer types based on functions with type arguments",
-		exp: Block(
-			Assgs{"f": TDecl(Fdef(Id("x"), "x"), types.MakeNamed("F", types.IntP))},
-			Typedefs{"F": &ast.TypeDefinition{
-				FreeVariables: []string{"A"},
-				TypeDecl:      types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A")),
-			}},
-			Bindings{},
-			Id("f"),
-		),
+		prg: `
+		  f: F[int] = (x) => x
+		  F[A] :: (A) => A
+		  f 
+		`,
 		typ: "(int)=>int",
 	}, {
 		name: "infer type variables as arguments",
-		exp: Block(
-			Assgs{"f": TDecl(Fdef(Id("x"), "x"), types.MakeNamed("G", types.IntP))},
-			Typedefs{
-				"F": &ast.TypeDefinition{FreeVariables: []string{"A"}, TypeDecl: types.MakeFunction(types.MakeNamed("A"), types.MakeNamed("A"))},
-				"G": &ast.TypeDefinition{FreeVariables: []string{"X"}, TypeDecl: types.MakeNamed("F", types.MakeNamed("X"))},
-			},
-			Bindings{},
-			Id("f"),
-		),
+		prg: `
+			f: G[int] = (x) => x
+			F[A] :: (A) => A
+			G[X] :: F[X]
+			f
+		`,
 		typ: "(int)=>int",
+	}, {
+		name: "fails on redefinition of type class function",
+		prg: `
+			Foo[A] :: { f :: (A) => A }
+			f = (x) => x
+			f
+		`,
+		err: errors.New("redefinition of f"),
+	}, {
+		name: "infers type class functions",
+		prg: `
+		  Foo[A] :: { f[B] :: (A,B) => A }
+		  f
+		`,
+		typ: "(A,B)=>A",
 	},
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
-			err := Infer(tt.exp)
+			exp := tt.exp
+			if tt.prg != "" {
+				p, err := grammar.Parse(tt.prg)
+				require.NoError(t, err)
+				e, err := p.ToAst()
+				require.NoError(t, err)
+				exp = e
+			}
+			err := Infer(exp)
 			if err != nil {
 				if !reflect.DeepEqual(err, tt.err) {
 					t.Errorf("Infer() error = %v, want %v", err, tt.err)
 				}
 			} else {
-				if (!tt.exp.Type().IsDefined()) && tt.typ != "" {
+				require.NoError(t, err)
+				if (!exp.Type().IsDefined()) && tt.typ != "" {
 					t.Errorf("Infer() wrong type = nil, want %v", tt.typ)
-				} else if tt.exp.Type().IsDefined() && tt.exp.Type().Signature() != tt.typ {
-					t.Errorf("Infer() wrong type = %v, want %v", tt.exp.Type().Signature(), tt.typ)
+				} else if exp.Type().IsDefined() && exp.Type().Signature() != tt.typ {
+					t.Errorf("Infer() wrong type = %v, want %v", exp.Type().Signature(), tt.typ)
 				}
 			}
 		})

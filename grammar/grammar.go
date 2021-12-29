@@ -157,6 +157,7 @@ func convBlock(from *Block) (*ast.Block, error) {
 		TypeDefs:     typedefs,
 		Value:        exp,
 		TypeBindings: bindings,
+		TCFunctions:  map[string]*ast.TypeDefinition{},
 	}, nil
 }
 

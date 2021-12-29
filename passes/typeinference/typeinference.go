@@ -66,6 +66,11 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 			id.Type = ref.Type().Copy(NewTypeCopyCtx())
 			return nil
 		}
+		tc := b.TCFunctions[id.Name]
+		if tc != nil {
+			id.Type = tc.TypeClass.Functions[id.Name].TypeDecl
+			return nil
+		}
 		tdef := b.TypeDefs[id.Name]
 		if tdef == nil {
 			panic("no id found: " + id.Name)
@@ -233,6 +238,7 @@ func initialiseVariables(exp *ast.Exp) error {
 				}
 			}
 		} else if v.Block != nil {
+			ctx = ctx.SubBlock(v.Block)
 			err := v.Block.CheckValueCycles()
 			if err != nil {
 				return err
@@ -243,7 +249,7 @@ func initialiseVariables(exp *ast.Exp) error {
 			}
 			for _, name := range names {
 				value := v.Block.TypeDefs[name]
-				err := rewriteNamedTypeDef(name, value, ctx.SubBlock(v.Block))
+				err := rewriteNamedTypeDef(name, value, ctx)
 				if err != nil {
 					return err
 				}
@@ -275,6 +281,20 @@ func initialiseVariables(exp *ast.Exp) error {
 						return err
 					}
 					value.Struct.Type = typ
+				} else if value.TypeClass != nil {
+					for name, f := range value.TypeClass.Functions {
+						if ctx.BlockOf(name) != nil {
+							return errors.New("redefinition of " + name)
+						}
+						_, err := resolveTypeVariables(f.TypeDecl, free, used)
+						if err != nil {
+							return err
+						}
+						if v.Block.TCFunctions == nil {
+							v.Block.TCFunctions = map[string]*ast.TypeDefinition{}
+						}
+						v.Block.TCFunctions[name] = value
+					}
 				} else {
 					typ, err := resolveTypeVariables(value.TypeDecl, free, used)
 					if err != nil {

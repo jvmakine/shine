@@ -81,6 +81,7 @@ type FDef struct {
 type Block struct {
 	Assignments  map[string]*Exp
 	TypeDefs     map[string]*TypeDefinition
+	TCFunctions  map[string]*TypeDefinition
 	TypeBindings []*TypeBinding
 	Value        *Exp
 

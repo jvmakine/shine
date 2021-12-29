@@ -49,7 +49,7 @@ func (c *VisitContext) ParamOf(id string) *FParam {
 func (c *VisitContext) BlockOf(id string) *Block {
 	if c.block == nil {
 		return nil
-	} else if c.block.Assignments[id] != nil || c.block.TypeDefs[id] != nil {
+	} else if c.block.Assignments[id] != nil || c.block.TypeDefs[id] != nil || c.block.TCFunctions[id] != nil {
 		return c.block
 	} else if c.parent != nil {
 		return c.parent.BlockOf(id)
