@@ -258,9 +258,13 @@ func initialiseVariables(exp *ast.Exp) error {
 				value := v.Block.TypeDefs[name]
 				free := map[string]Type{}
 				used := map[string]bool{}
-				for _, n := range value.FreeVariables {
+				index := map[string]int{}
+				freeFields := make([]Type, len(value.FreeVariables))
+				for i, n := range value.FreeVariables {
 					free[n] = MakeVariable()
 					used[n] = false
+					index[n] = i
+					freeFields[i] = free[n]
 					d := ctx.BlockOf(n)
 					if d != nil || v.Block.Assignments[n] != nil || v.Block.TypeDefs[n] != nil {
 						return errors.New("redefinition of " + n)
@@ -282,18 +286,51 @@ func initialiseVariables(exp *ast.Exp) error {
 					}
 					value.Struct.Type = typ
 				} else if value.TypeClass != nil {
-					for name, f := range value.TypeClass.Functions {
-						if ctx.BlockOf(name) != nil {
-							return errors.New("redefinition of " + name)
+					for fname, f := range value.TypeClass.Functions {
+						if ctx.BlockOf(fname) != nil {
+							return errors.New("redefinition of " + fname)
 						}
-						_, err := resolveTypeVariables(f.TypeDecl, free, used)
+
+						// rewrite TC refs
+						for i, a := range *f.TypeDecl.Function {
+							if a.IsNamed() && free[a.Named.Name].IsDefined() {
+								used[a.Named.Name] = true
+								idx := index[a.Named.Name]
+								nt := types.MakeTypeClassRef(name, idx, freeFields...)
+								(*f.TypeDecl.Function)[i] = nt
+							}
+						}
+
+						nfree := map[string]Type{}
+						nused := map[string]bool{}
+						for n, t := range free {
+							nfree[n] = t
+							nused[n] = used[n]
+						}
+						for _, n := range f.FreeVariables {
+							if nfree[n].IsDefined() {
+								return errors.New("redefinition of " + n)
+							}
+							nfree[n] = types.MakeVariable()
+						}
+
+						nt, err := resolveTypeVariables(f.TypeDecl, nfree, nused)
 						if err != nil {
 							return err
 						}
+						f.TypeDecl = nt
+
+						for n := range nused {
+							if free[n].IsDefined() {
+								used[n] = used[n] || nused[n]
+							}
+						}
+
 						if v.Block.TCFunctions == nil {
 							v.Block.TCFunctions = map[string]*ast.TypeDefinition{}
 						}
-						v.Block.TCFunctions[name] = value
+						v.Block.TCFunctions[fname] = value
+
 					}
 				} else {
 					typ, err := resolveTypeVariables(value.TypeDecl, free, used)

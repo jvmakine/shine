@@ -38,12 +38,19 @@ type TypeVar struct {
 	Structural map[string]Type
 }
 
+type TypeClassRef struct {
+	TypeClass     string
+	TypeClassVars []Type
+	Place         int
+}
+
 type Type struct {
 	Function  *Function
 	Structure *Structure
 	Variable  *TypeVar
 	Primitive *Primitive
 	Named     *Named
+	TCRef     *TypeClassRef
 }
 
 func WithType(t Type, f func(t Type) Type) Type {
@@ -83,6 +90,10 @@ func MakeStructure(name string, fields ...SField) Type {
 	return Type{Structure: &Structure{Name: name, Fields: fields}}
 }
 
+func MakeTypeClassRef(name string, place int, fields ...Type) Type {
+	return Type{TCRef: &TypeClassRef{TypeClass: name, TypeClassVars: fields, Place: place}}
+}
+
 func (t Type) FreeVars() []*TypeVar {
 	if t.Variable != nil {
 		stru := t.Variable.Structural
@@ -108,6 +119,13 @@ func (t Type) FreeVars() []*TypeVar {
 		}
 		return res
 	}
+	if tc := t.TCRef; tc != nil {
+		res := []*TypeVar{}
+		for _, p := range tc.TypeClassVars {
+			res = append(res, p.FreeVars()...)
+		}
+		return res
+	}
 	return []*TypeVar{}
 }
 
@@ -117,6 +135,10 @@ func (t Type) IsFunction() bool {
 
 func (t Type) IsStructure() bool {
 	return t.Structure != nil
+}
+
+func (t Type) IsTypeClassRef() bool {
+	return t.TCRef != nil
 }
 
 func (t Type) IsString() bool {
@@ -219,6 +241,16 @@ func (t Type) NamedTypes() map[string]bool {
 		}
 		return res
 	}
+	if t.IsTypeClassRef() {
+		res := map[string]bool{}
+		for _, f := range t.TCRef.TypeClassVars {
+			v := f.NamedTypes()
+			for n := range v {
+				res[n] = true
+			}
+		}
+		return res
+	}
 	return map[string]bool{}
 }
 
@@ -253,6 +285,16 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 			nf[i] = SField{Name: a.Name, Type: b}
 		}
 		return f(MakeStructure(t.Structure.Name, nf...))
+	} else if t.IsTypeClassRef() {
+		nf := make([]Type, len(t.TCRef.TypeClassVars))
+		for i, a := range t.TCRef.TypeClassVars {
+			b, err := a.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			nf[i] = b
+		}
+		return f(MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, nf...))
 	}
 	return f(t)
 }
@@ -262,6 +304,7 @@ func (t *Type) AssignFrom(o Type) {
 	t.Function = o.Function
 	t.Primitive = o.Primitive
 	t.Structure = o.Structure
+	t.TCRef = o.TCRef
 }
 
 func (s *Structure) GetField(name string) *Type {

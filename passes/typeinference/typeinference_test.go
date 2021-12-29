@@ -408,7 +408,15 @@ func TestInfer(tes *testing.T) {
 		  Foo[A] :: { f[B] :: (A,B) => A }
 		  f
 		`,
-		typ: "(A,B)=>A",
+		typ: "(Foo[V1],V2)=>Foo[V1]",
+	}, {
+		name: "fails if binding for given type is not found",
+		prg: `
+		  Foo[A] :: { f[B] :: (A,B) => A }
+		  a = (x) => f(x,5)
+		  a(1)
+		`,
+		err: errors.New("no definition of Foo[int]"),
 	},
 	}
 	for _, tt := range tests {

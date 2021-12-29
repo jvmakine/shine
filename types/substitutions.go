@@ -51,6 +51,11 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 			target.Variable.Structural[k] = apply(s, v, ctx)
 		}
 	}
+	if target.IsTypeClassRef() {
+		for i, a := range target.TCRef.TypeClassVars {
+			target.TCRef.TypeClassVars[i] = apply(s, a, ctx)
+		}
+	}
 	return target
 }
 

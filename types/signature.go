@@ -109,6 +109,18 @@ func sign(t Type, ctx *signctx, level int) string {
 		}
 		return t.Named.Name + post
 	}
+	if t.IsTypeClassRef() {
+		res := t.TCRef.TypeClass + "["
+		args := make([]string, len(t.TCRef.TypeClassVars))
+		for i, a := range t.TCRef.TypeClassVars {
+			if i == t.TCRef.Place && len(t.TCRef.TypeClassVars) > 1 {
+				args[i] = "[[" + sign(a, ctx, level) + "]]"
+			} else {
+				args[i] = sign(a, ctx, level)
+			}
+		}
+		return res + strings.Join(args, ",") + "]"
+	}
 	if !t.IsDefined() {
 		return "<undefined>"
 	}
