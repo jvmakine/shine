@@ -34,6 +34,18 @@ func (c *VisitContext) Block() *Block {
 	return c.block
 }
 
+func (c *VisitContext) ParentBlock() *VisitContext {
+	currentBlock := c.block
+	current := c
+	if currentBlock == nil {
+		return nil
+	}
+	for currentBlock == current.block && current != nil {
+		current = current.parent
+	}
+	return current
+}
+
 func (c *VisitContext) ParamOf(id string) *FParam {
 	if c.def != nil {
 		if p := c.def.ParamOf(id); p != nil {

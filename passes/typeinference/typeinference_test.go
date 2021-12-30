@@ -7,8 +7,9 @@ import (
 
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/grammar"
-	. "github.com/jvmakine/shine/test"
 	"github.com/jvmakine/shine/types"
+
+	. "github.com/jvmakine/shine/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -355,68 +356,77 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "fail on incorrect type variable",
 		prg: `
-			f = (a: A[real]) => a.x
-			A[X] :: (x: X)
-			f(A(1))
-		`,
+				f = (a: A[real]) => a.x
+				A[X] :: (x: X)
+				f(A(1))
+			`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "fail on redefinitions",
 		prg: `
-			a = 1
-			{
 				a = 1
-				a
-			}
-		`,
+				{
+					a = 1
+					a
+				}
+			`,
 		err: errors.New("redefinition of a"),
 	}, {
 		name: "infers type parameters in functions",
 		prg: `
-			S[A] :: (a: (A)=>A)
-			S((x:int) => 1.0)
-		`,
+				S[A] :: (a: (A)=>A)
+				S((x:int) => 1.0)
+			`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "infer types based on functions with type arguments",
 		prg: `
-		  f: F[int] = (x) => x
-		  F[A] :: (A) => A
-		  f 
-		`,
+			  f: F[int] = (x) => x
+			  F[A] :: (A) => A
+			  f
+			`,
 		typ: "(int)=>int",
 	}, {
 		name: "infer type variables as arguments",
 		prg: `
-			f: G[int] = (x) => x
-			F[A] :: (A) => A
-			G[X] :: F[X]
-			f
-		`,
+				f: G[int] = (x) => x
+				F[A] :: (A) => A
+				G[X] :: F[X]
+				f
+			`,
 		typ: "(int)=>int",
 	}, {
 		name: "fails on redefinition of type class function",
 		prg: `
-			Foo[A] :: { f :: (A) => A }
-			f = (x) => x
-			f
-		`,
+				Foo[A] :: { f :: (A) => A }
+				f = (x) => x
+				f
+			`,
 		err: errors.New("redefinition of f"),
 	}, {
 		name: "infers type class functions",
 		prg: `
-		  Foo[A] :: { f[B] :: (A,B) => A }
-		  f
-		`,
+			  Foo[A] :: { f[B] :: (A,B) => A }
+			  f
+			`,
 		typ: "(Foo[V1],V2)=>Foo[V1]",
 	}, {
 		name: "fails if binding for given type is not found",
 		prg: `
-		  Foo[A] :: { f[B] :: (A,B) => A }
-		  a = (x) => f(x,5)
+			  Foo[A] :: { f[B] :: (A,B) => A }
+			  a = (x) => f(x,5)
+			  a(1)
+			`,
+		err: errors.New("can not unify Foo[V1] with int"),
+	}, {
+		name: "succeeds if binding for given type is found",
+		prg: `
+		  Foo[A] :: { f :: (A) => A }
+		  Foo[int] -> { f = (x) => x + 1 }
+		  a = (x) => f(x)
 		  a(1)
 		`,
-		err: errors.New("can not unify Foo[V1] with int"),
+		typ: "int",
 	},
 	}
 	for _, tt := range tests {

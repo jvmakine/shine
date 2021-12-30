@@ -97,14 +97,42 @@ func typeOp(op *ast.Op, ctx *ast.VisitContext) error {
 	return nil
 }
 
-func typeCall(call *ast.FCall, unifier Substitutions) error {
+func getBindings(ctx *ast.VisitContext) []TCBinding {
+	result := []TCBinding{}
+	block := ctx.Block()
+	if block == nil {
+		return result
+	}
+	for _, b := range block.TypeBindings {
+		result = append(result, TCBinding{
+			Name: b.Name,
+			Args: b.Parameters,
+		})
+	}
+	parent := ctx.ParentBlock()
+	result = append(result, getBindings(parent)...)
+	return result
+}
+
+func typeCall(call *ast.FCall, unifier Substitutions, ctx *ast.VisitContext) error {
 	call.Type = MakeVariable()
 	ftype := call.MakeFunType()
-	s, err := ftype.Unifier(call.Function.Type())
+
+	bindings := getBindings(ctx)
+
+	nt, _ := call.Function.Type().Rewrite(func(t Type) (Type, error) {
+		if t.IsTypeClassRef() {
+			t.TCRef.LocalBindings = bindings
+		}
+		return t, nil
+	})
+
+	s, err := ftype.Unifier(nt)
 	if err != nil {
 		return err
 	}
 	call.Type = s.Apply(call.Type)
+
 	for _, p := range call.Params {
 		p.Convert(s)
 	}
@@ -493,7 +521,7 @@ func Infer(exp *ast.Exp) error {
 				return err
 			}
 		} else if v.Call != nil {
-			if err := typeCall(v.Call, unifier); err != nil {
+			if err := typeCall(v.Call, unifier, ctx); err != nil {
 				return err
 			}
 		} else if v.Def != nil {

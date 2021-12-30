@@ -28,6 +28,15 @@ func (t Type) Copy(ctx *TypeCopyCtx) Type {
 	if t.Structure != nil {
 		return Type{Structure: t.Structure.Copy(ctx)}
 	}
+	if t.TCRef != nil {
+		ps := make([]Type, len(*&t.TCRef.TypeClassVars))
+		for i, p := range t.TCRef.TypeClassVars {
+			ps[i] = p.Copy(ctx)
+		}
+		c := MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, ps...)
+		c.TCRef.LocalBindings = t.TCRef.LocalBindings
+		return c
+	}
 	return t
 }
 

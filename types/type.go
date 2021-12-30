@@ -38,10 +38,16 @@ type TypeVar struct {
 	Structural map[string]Type
 }
 
+type TCBinding struct {
+	Name string
+	Args []Type
+}
+
 type TypeClassRef struct {
 	TypeClass     string
 	TypeClassVars []Type
 	Place         int
+	LocalBindings []TCBinding
 }
 
 type Type struct {
@@ -294,7 +300,9 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 			}
 			nf[i] = b
 		}
-		return f(MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, nf...))
+		c := MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, nf...)
+		c.TCRef.LocalBindings = t.TCRef.LocalBindings
+		return f(c)
 	}
 	return f(t)
 }

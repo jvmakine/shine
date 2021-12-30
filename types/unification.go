@@ -81,7 +81,10 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return subs, nil
 	}
 	if t.IsTypeClassRef() {
-		// TODO
+		for _, b := range t.TCRef.LocalBindings {
+			f1 := b.Args[t.TCRef.Place]
+			return o.Unifier(f1)
+		}
 		return Substitutions{}, UnificationError(o, t)
 	}
 	if o.IsFunction() && t.IsFunction() {
