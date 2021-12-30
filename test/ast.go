@@ -55,6 +55,7 @@ func Block(a Assgs, t Typedefs, b Bindings, e *ast.Exp) *ast.Exp {
 			Assignments:  assign,
 			TypeDefs:     typedef,
 			TypeBindings: b,
+			TCFunctions:  map[string]*ast.TypeDefinition{},
 		},
 	}
 }

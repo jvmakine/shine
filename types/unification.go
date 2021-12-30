@@ -106,19 +106,19 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 
 			s, err := o.Unifier(f1)
 			if err != nil {
-				return Substitutions{}, err
+				continue
 			}
 			err = subs.Combine(s)
 			if err != nil {
-				return Substitutions{}, err
+				continue
 			}
 			s, err = t.TCRef.TypeClassVars[t.TCRef.Place].Unifier(f1)
 			if err != nil {
-				return Substitutions{}, err
+				continue
 			}
 			err = subs.Combine(s)
 			if err != nil {
-				return Substitutions{}, err
+				continue
 			}
 
 			return subs, nil
