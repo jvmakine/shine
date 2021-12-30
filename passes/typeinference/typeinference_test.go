@@ -421,10 +421,10 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "succeeds if binding for given type is found",
 		prg: `
-		  Foo[A] :: { f :: (A) => A }
-		  Foo[int] -> { f = (x) => x + 1 }
-		  a = (x) => f(x)
-		  a(1)
+			Foo[A] :: { f :: (A) => A }
+			Foo[int] -> { f = (x) => x + 1 }
+			a = (x) => f(x)
+			a(1)
 		`,
 		typ: "int",
 	},

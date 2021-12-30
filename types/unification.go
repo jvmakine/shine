@@ -1,6 +1,8 @@
 package types
 
-import "errors"
+import (
+	"errors"
+)
 
 type unificationCtx struct {
 	seenStructures map[*Structure]map[*Structure]bool
@@ -80,10 +82,46 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		subs.Update(t.Variable, o)
 		return subs, nil
 	}
+	if t.IsTypeClassRef() && o.IsTypeClassRef() {
+		subs := MakeSubstitutions()
+		for i, first := range t.TCRef.TypeClassVars {
+			second := o.TCRef.TypeClassVars[i]
+			s, err := first.Unifier(second)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			err = subs.Combine(s)
+			if err != nil {
+				return Substitutions{}, err
+			}
+		}
+
+		return subs, nil
+	}
 	if t.IsTypeClassRef() {
 		for _, b := range t.TCRef.LocalBindings {
 			f1 := b.Args[t.TCRef.Place]
-			return o.Unifier(f1)
+
+			subs := MakeSubstitutions()
+
+			s, err := o.Unifier(f1)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			err = subs.Combine(s)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			s, err = t.TCRef.TypeClassVars[t.TCRef.Place].Unifier(f1)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			err = subs.Combine(s)
+			if err != nil {
+				return Substitutions{}, err
+			}
+
+			return subs, nil
 		}
 		return Substitutions{}, UnificationError(o, t)
 	}

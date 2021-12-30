@@ -55,6 +55,9 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		for i, a := range target.TCRef.TypeClassVars {
 			target.TCRef.TypeClassVars[i] = apply(s, a, ctx)
 		}
+		if !target.TCRef.TypeClassVars[target.TCRef.Place].HasFreeVars() {
+			return target.TCRef.TypeClassVars[target.TCRef.Place]
+		}
 	}
 	return target
 }
