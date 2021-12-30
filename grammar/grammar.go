@@ -41,7 +41,7 @@ func Parse(str string) (*Program, error) {
 	`)
 	parser, err := participle.Build(
 		&Program{},
-		participle.UseLookahead(2),
+		participle.UseLookahead(4),
 		participle.Lexer(lexer),
 		participle.Elide("Whitespace", "LineComment", "BlockComment"),
 	)
