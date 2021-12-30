@@ -265,18 +265,13 @@ func TestInfer(tes *testing.T) {
 		err: errors.New("can not unify bool with V1[int|real|string]"),
 	}, {
 		name: "fail to unify two different named types",
-		exp: Block(
-			Assgs{
-				"ai": Fcall(Id("a"), IConst(1)),
-				"bi": Fcall(Id("b"), IConst(1)),
-			},
-			Typedefs{
-				"a": Struct(ast.StructField{"a1", types.IntP}),
-				"b": Struct(ast.StructField{"a1", types.IntP}),
-			},
-			Bindings{},
-			Fcall(Op("if"), BConst(true), Id("ai"), Id("bi")),
-		),
+		prg: `
+			ai = a(1)
+			bi = b(1)
+			a :: (a1: int)
+			b :: (a1: int)
+			if (true) ai else bi
+		`,
 		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
 	}, {
 		name: "fail on unknown named type",
@@ -302,12 +297,10 @@ func TestInfer(tes *testing.T) {
 		typ: "t{x:int}",
 	}, {
 		name: "unify recursive types",
-		exp: Block(
-			Assgs{},
-			Typedefs{"a": Struct(ast.StructField{"a1", types.Type{}})},
-			Bindings{},
-			Fcall(Id("a"), Fcall(Id("a"), IConst(0))),
-		),
+		prg: `
+			a[X] :: (a1: X)
+			a(a(0))
+		`,
 		typ: "a{a1:a}",
 		err: nil,
 	}, {
@@ -356,67 +349,67 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "fail on incorrect type variable",
 		prg: `
-					f = (a: A[real]) => a.x
-					A[X] :: (x: X)
-					f(A(1))
-				`,
+				f = (a: A[real]) => a.x
+				A[X] :: (x: X)
+				f(A(1))
+			`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "fail on redefinitions",
 		prg: `
+				a = 1
+				{
 					a = 1
-					{
-						a = 1
-						a
-					}
-				`,
+					a
+				}
+			`,
 		err: errors.New("redefinition of a"),
 	}, {
 		name: "infers type parameters in functions",
 		prg: `
-					S[A] :: (a: (A)=>A)
-					S((x:int) => 1.0)
-				`,
+				S[A] :: (a: (A)=>A)
+				S((x:int) => 1.0)
+			`,
 		err: errors.New("can not unify int with real"),
 	}, {
 		name: "infer types based on functions with type arguments",
 		prg: `
-				  f: F[int] = (x) => x
-				  F[A] :: (A) => A
-				  f
-				`,
+				f: F[int] = (x) => x
+				F[A] :: (A) => A
+				f
+			`,
 		typ: "(int)=>int",
 	}, {
 		name: "infer type variables as arguments",
 		prg: `
-					f: G[int] = (x) => x
-					F[A] :: (A) => A
-					G[X] :: F[X]
-					f
-				`,
+				f: G[int] = (x) => x
+				F[A] :: (A) => A
+				G[X] :: F[X]
+				f
+			`,
 		typ: "(int)=>int",
 	}, {
 		name: "fails on redefinition of type class function",
 		prg: `
-					Foo[A] :: { f :: (A) => A }
-					f = (x) => x
-					f
-				`,
+				Foo[A] :: { f :: (A) => A }
+				f = (x) => x
+				f
+			`,
 		err: errors.New("redefinition of f"),
 	}, {
 		name: "infers type class functions",
 		prg: `
-				  Foo[A] :: { f[B] :: (A,B) => A }
-				  f
-				`,
+				Foo[A] :: { f[B] :: (A,B) => A }
+				f
+			`,
 		typ: "(Foo[V1],V2)=>Foo[V1]",
 	}, {
 		name: "fails if binding for given type is not found",
 		prg: `
-				  Foo[A] :: { f[B] :: (A,B) => A }
-				  a = (x) => f(x,5)
-				  a(1)
-				`,
+				Foo[A] :: { f[B] :: (A,B) => A }
+				a = (x) => f(x,5)
+				a(1)
+			`,
 		err: errors.New("can not unify Foo[V1] with int"),
 	}, {
 		name: "succeeds if binding for given type is found",
@@ -436,6 +429,23 @@ func TestInfer(tes *testing.T) {
 			if (f(true)) f(1) else f(2)
 		`,
 		typ: "int",
+	}, {
+		name: "resolve a second order type class",
+		prg: `
+			S[A] :: (value: A)
+			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
+			Functor[S] -> { map = (s, f) => S(f(s.value)) }
+			map(S(1), (x) => 1.0)
+		`,
+		typ: "S[real]",
+	}, {
+		name: "fail to unify structures with incorrect named variables",
+		prg: `
+			S[A] :: (value: A)
+			N[X] :: S[X]
+			S(1): N[real]
+		`,
+		err: errors.New("can not unify int with real"),
 	},
 	}
 	for _, tt := range tests {

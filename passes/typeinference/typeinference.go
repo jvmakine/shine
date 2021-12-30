@@ -76,7 +76,10 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 			panic("no id found: " + id.Name)
 		}
 		if tdef.Struct != nil {
-			id.Type = tdef.Type().Copy(NewTypeCopyCtx())
+			ts := tdef.Type().Structure.FieldTypes()
+			ts = append(ts, tdef.Type())
+			fun := MakeFunction(ts...)
+			id.Type = fun
 		} else {
 			return errors.New("invalid type def")
 		}
@@ -211,7 +214,7 @@ func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitCon
 		stru := types.MakeStructure(name, sf...)
 		ts[len(def.Struct.Fields)] = stru
 
-		nt, err := rewriteNamedType(types.MakeFunction(ts...), ctx)
+		nt, err := rewriteNamedType(stru, ctx)
 		if err != nil {
 			return err
 		}

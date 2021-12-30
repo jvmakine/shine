@@ -323,3 +323,11 @@ func (s *Structure) GetField(name string) *Type {
 	}
 	return nil
 }
+
+func (s *Structure) FieldTypes() []Type {
+	res := make([]Type, len(s.Fields))
+	for i, f := range s.Fields {
+		res[i] = f.Type
+	}
+	return res
+}
