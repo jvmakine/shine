@@ -38,19 +38,16 @@ func (s Structure) sign(ctx *signctx, level int) string {
 		ctx.definingStructs[s.Name] = true
 	}
 	var sb strings.Builder
-	if s.Name != "" {
-		sb.WriteString(s.Name)
-	}
-	sb.WriteString("{")
-	for i, p := range s.Fields {
-		sb.WriteString(p.Name)
-		sb.WriteString(":")
-		sb.WriteString(sign(p.Type, ctx, level+1))
-		if i < len(s.Fields)-1 {
-			sb.WriteString(",")
+	sb.WriteString(s.Name)
+	if len(s.TypeArguments) > 0 {
+		sb.WriteString("[")
+		strs := make([]string, len(s.TypeArguments))
+		for i, a := range s.TypeArguments {
+			strs[i] = sign(a, ctx, level)
 		}
+		sb.WriteString(strings.Join(strs, ","))
+		sb.WriteString("]")
 	}
-	sb.WriteString("}")
 	return sb.String()
 }
 

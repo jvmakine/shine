@@ -29,8 +29,9 @@ type SField struct {
 }
 
 type Structure struct {
-	Name   string
-	Fields []SField
+	Name          string
+	TypeArguments []Type
+	Fields        []SField
 }
 
 type TypeVar struct {
@@ -102,8 +103,8 @@ func MakeFunction(ts ...Type) Type {
 	return Type{Function: &f}
 }
 
-func MakeStructure(name string, fields ...SField) Type {
-	return Type{Structure: &Structure{Name: name, Fields: fields}}
+func MakeStructure(name string, targs []Type, fields ...SField) Type {
+	return Type{Structure: &Structure{Name: name, Fields: fields, TypeArguments: targs}}
 }
 
 func MakeTypeClassRef(name string, place int, fields ...Type) Type {
@@ -321,7 +322,15 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 			}
 			nf[i] = SField{Name: a.Name, Type: b}
 		}
-		return f(MakeStructure(t.Structure.Name, nf...))
+		nt := make([]Type, len(t.Structure.TypeArguments))
+		for i, a := range t.Structure.TypeArguments {
+			b, err := a.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			nt[i] = b
+		}
+		return f(MakeStructure(t.Structure.Name, nt, nf...))
 	} else if t.IsTypeClassRef() {
 		nf := make([]Type, len(t.TCRef.TypeClassVars))
 		for i, a := range t.TCRef.TypeClassVars {

@@ -9,22 +9,14 @@ func TestType_Signature(t *testing.T) {
 		want string
 	}{{
 		name: "support structures without variables",
-		typ:  MakeStructure("", SField{"a", IntP}, SField{"b", MakeFunction(RealP, RealP)}, SField{"c", BoolP}),
-		want: "{a:int,b:(real)=>real,c:bool}",
+		typ:  MakeStructure("S", []Type{}, SField{"a", IntP}, SField{"b", MakeFunction(RealP, RealP)}, SField{"c", BoolP}),
+		want: "S",
 	}, {
 		name: "support structures with variables",
 		typ: WithType(MakeVariable(), func(t Type) Type {
-			return MakeStructure("", SField{"a", t}, SField{"b", MakeFunction(t, IntP)}, SField{"c", BoolP})
+			return MakeStructure("S", []Type{t}, SField{"a", t}, SField{"b", MakeFunction(t, IntP)}, SField{"c", BoolP})
 		}),
-		want: "{a:V1,b:(V1)=>int,c:bool}",
-	}, {
-		name: "support named structures",
-		typ:  MakeStructure("data", SField{"a", IntP}, SField{"b", BoolP}),
-		want: "data{a:int,b:bool}",
-	}, {
-		name: "support recursive structures",
-		typ:  recursiveStruct("data", "b", SField{"a", IntP}),
-		want: "data{a:int,b:data}",
+		want: "S[V1]",
 	}, {
 		name: "support structural variables",
 		typ:  MakeStructuralVar(map[string]Type{"x": IntP}),

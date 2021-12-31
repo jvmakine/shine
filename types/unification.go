@@ -139,6 +139,27 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if t.IsStructure() && o.IsHVariable() {
 		return unifier(o, t, ctx)
 	}
+	if t.IsHVariable() && o.IsStructure() {
+		subs := MakeSubstitutions()
+		if len(t.HVariable.Params) != len(o.Structure.TypeArguments) {
+			return Substitutions{}, UnificationError(o, t)
+		}
+		for i, p := range t.HVariable.Params {
+			s, err := unifier(p, o.Structure.TypeArguments[i], ctx)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			err = subs.Combine(s)
+			if err != nil {
+				return Substitutions{}, err
+			}
+		}
+		// err := subs.Update(t.HVariable.Root, o)
+		// if err != nil {
+		// 	return Substitutions{}, err
+		// }
+		return subs, nil
+	}
 	if t.IsHVariable() && o.IsHVariable() {
 		subs := MakeSubstitutions()
 		err := subs.Update(t.HVariable.Root, Type{Variable: o.HVariable.Root})

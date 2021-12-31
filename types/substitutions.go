@@ -44,7 +44,11 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 				Type: apply(s, v.Type, ctx),
 			}
 		}
-		return MakeStructure(target.Structure.Name, ntyps...)
+		nt := make([]Type, len(target.Structure.TypeArguments))
+		for i, a := range target.Structure.TypeArguments {
+			nt[i] = apply(s, a, ctx)
+		}
+		return MakeStructure(target.Structure.Name, nt, ntyps...)
 	}
 	if target.IsStructuralVar() {
 		for k, v := range target.Variable.Structural {

@@ -208,7 +208,12 @@ func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitCon
 			}
 		}
 
-		stru := types.MakeStructure(name, sf...)
+		args := []Type{}
+		if def.Struct.Type.Structure != nil {
+			args = def.Struct.Type.Structure.TypeArguments
+		}
+
+		stru := types.MakeStructure(name, args, sf...)
 		ts[len(def.Struct.Fields)] = stru
 
 		nt, err := rewriteNamedType(stru, ctx)
@@ -308,6 +313,12 @@ func initialiseVariables(exp *ast.Exp) error {
 						}
 						f.Type = typ
 					}
+
+					value.Struct.Type.Structure.TypeArguments = make([]Type, len(value.FreeVariables))
+					for i, n := range value.FreeVariables {
+						value.Struct.Type.Structure.TypeArguments[i] = free[n]
+					}
+
 					typ, err := resolveTypeVariables(value.Struct.Type, free, used)
 					if err != nil {
 						return err
@@ -434,7 +445,7 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 				Name: f.Name,
 				Type: na,
 			}
-			result = MakeStructure(typ.Structure.Name, nf...)
+			result = MakeStructure(typ.Structure.Name, typ.Structure.TypeArguments, nf...)
 		}
 	} else if typ.HVariable != nil {
 		args := make([]types.Type, len(typ.HVariable.Params))
@@ -479,7 +490,7 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		}
 		var resolved types.Type
 		if tdef.Struct != nil {
-			resolved = createStructType(t.Named.Name, tdef)
+			resolved = tdef.Struct.Type
 		} else {
 			resolved = tdef.Type()
 		}
@@ -515,24 +526,6 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		return MakeHierarchicalVar(t.HVariable.Root, ps...), nil
 	}
 	return t, nil
-}
-
-func createStructType(name string, tdef *ast.TypeDefinition) Type {
-	fs := make([]types.SField, len(tdef.Struct.Fields))
-	for i, f := range tdef.Struct.Fields {
-		if !f.Type.IsDefined() {
-			fs[i] = types.SField{
-				Name: f.Name,
-				Type: types.MakeVariable(),
-			}
-		} else {
-			fs[i] = types.SField{
-				Name: f.Name,
-				Type: f.Type,
-			}
-		}
-	}
-	return types.MakeStructure(name, fs...)
 }
 
 func rewriteNamed(exp *ast.Exp) error {

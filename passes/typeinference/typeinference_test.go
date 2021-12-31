@@ -272,7 +272,7 @@ func TestInfer(tes *testing.T) {
 				b :: (a1: int)
 				if (true) ai else bi
 			`,
-		err: errors.New("can not unify a{a1:int} with b{a1:int}"),
+		err: errors.New("can not unify a with b"),
 	}, {
 		name: "fail on unknown named type",
 		prg:  `a: t`,
@@ -292,14 +292,14 @@ func TestInfer(tes *testing.T) {
 			t :: (x: int)
 			a: t
 		`,
-		typ: "t{x:int}",
+		typ: "t",
 	}, {
 		name: "unify recursive types",
 		prg: `
 				a[X] :: (a1: X)
 				a(a(0))
 			`,
-		typ: "a{a1:a}",
+		typ: "a[a]",
 		err: nil,
 	}, {
 		name: "infer function types from structure fields",
@@ -442,7 +442,7 @@ func TestInfer(tes *testing.T) {
 			map
 		`,
 		typ: "(Functor[V1[V2]],(V2)=>V3)=>Functor[V1[V3]]",
-	}, /*{
+	}, {
 		name: "resolve a second order type class",
 		prg: `
 				S[A] :: (value: A)
@@ -451,7 +451,7 @@ func TestInfer(tes *testing.T) {
 				map(S(1), (x) => 1.0)
 			`,
 		typ: "S[real]",
-	},*/
+	},
 	}
 	for _, tt := range tests {
 		tes.Run(tt.name, func(t *testing.T) {
