@@ -54,43 +54,58 @@ func (s Structure) sign(ctx *signctx, level int) string {
 	return sb.String()
 }
 
+func signVar(v *TypeVar, ctx *signctx, level int) string {
+	if ctx.varm[v] == "" {
+		ctx.varc++
+		ctx.varm[v] = "V" + strconv.Itoa(ctx.varc)
+		if v.Union != nil {
+			var sb strings.Builder
+			sb.WriteString("[")
+			for i, r := range v.Union {
+				sb.WriteString(r)
+				if i < len(v.Union)-1 {
+					sb.WriteString("|")
+				}
+			}
+			sb.WriteString("]")
+			ctx.varm[v] += sb.String()
+		} else if len(v.Structural) > 0 {
+			var sb strings.Builder
+			sb.WriteString("{")
+			i := 0
+			for k, va := range v.Structural {
+				sb.WriteString(k)
+				sb.WriteString(":")
+				sb.WriteString(sign(va, ctx, level))
+				if i < len(v.Structural)-1 {
+					sb.WriteString(",")
+				}
+				i++
+			}
+			sb.WriteString("}")
+			ctx.varm[v] += sb.String()
+		}
+	}
+	return ctx.varm[v]
+}
+
 func sign(t Type, ctx *signctx, level int) string {
 	if t.IsPrimitive() {
 		return *t.Primitive
 	}
-	if t.IsVariable() && !t.IsFunction() {
-		if ctx.varm[t.Variable] == "" {
-			ctx.varc++
-			ctx.varm[t.Variable] = "V" + strconv.Itoa(ctx.varc)
-			if t.IsUnionVar() {
-				var sb strings.Builder
-				sb.WriteString("[")
-				for i, r := range t.Variable.Union {
-					sb.WriteString(r)
-					if i < len(t.Variable.Union)-1 {
-						sb.WriteString("|")
-					}
-				}
-				sb.WriteString("]")
-				ctx.varm[t.Variable] += sb.String()
-			} else if t.IsStructuralVar() {
-				var sb strings.Builder
-				sb.WriteString("{")
-				i := 0
-				for k, v := range t.Variable.Structural {
-					sb.WriteString(k)
-					sb.WriteString(":")
-					sb.WriteString(sign(v, ctx, level))
-					if i < len(t.Variable.Structural)-1 {
-						sb.WriteString(",")
-					}
-					i++
-				}
-				sb.WriteString("}")
-				ctx.varm[t.Variable] += sb.String()
+	if t.IsVariable() {
+		return signVar(t.Variable, ctx, level)
+	}
+	if t.IsHVariable() {
+		r := signVar(t.HVariable.Root, ctx, level)
+		if len(t.HVariable.Params) > 0 {
+			strs := make([]string, len(t.HVariable.Params))
+			for i, p := range t.HVariable.Params {
+				strs[i] = sign(p, ctx, level)
 			}
+			r += "[" + strings.Join(strs, ",") + "]"
 		}
-		return ctx.varm[t.Variable]
+		return r
 	}
 	if t.IsFunction() {
 		return t.Function.sign(ctx, level)

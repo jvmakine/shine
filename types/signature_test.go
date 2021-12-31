@@ -29,6 +29,14 @@ func TestType_Signature(t *testing.T) {
 		name: "support structural variables",
 		typ:  MakeStructuralVar(map[string]Type{"x": IntP}),
 		want: "V1{x:int}",
+	}, {
+		name: "support hierarchical variables",
+		typ:  MakeHierarchicalVar(MakeVariable().Variable, MakeVariable()),
+		want: "V1[V2]",
+	}, {
+		name: "support variable functions",
+		typ:  MakeFunction(MakeVariable(), MakeVariable()),
+		want: "(V1)=>V2",
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

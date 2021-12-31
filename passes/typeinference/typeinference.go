@@ -76,10 +76,7 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 			panic("no id found: " + id.Name)
 		}
 		if tdef.Struct != nil {
-			ts := tdef.Type().Structure.FieldTypes()
-			ts = append(ts, tdef.Type())
-			fun := MakeFunction(ts...)
-			id.Type = fun
+			id.Type = tdef.Struct.Constructor().Copy(types.NewTypeCopyCtx())
 		} else {
 			return errors.New("invalid type def")
 		}
@@ -327,7 +324,28 @@ func initialiseVariables(exp *ast.Exp) error {
 							if a.IsNamed() && free[a.Named.Name].IsDefined() {
 								used[a.Named.Name] = true
 								idx := index[a.Named.Name]
-								nt := types.MakeTypeClassRef(name, idx, freeFields...)
+
+								it := free[a.Named.Name]
+								if len(a.Named.TypeArguments) > 0 {
+									rws := make([]Type, len(a.Named.TypeArguments))
+									for i, t := range a.Named.TypeArguments {
+										nt, err := resolveTypeVariables(t, free, used)
+										if err != nil {
+											return err
+										}
+										rws[i] = nt
+									}
+
+									it = types.MakeHierarchicalVar(it.Variable, rws...)
+								}
+
+								ff := make([]Type, len(freeFields))
+								for i, f := range freeFields {
+									ff[i] = f
+								}
+								ff[idx] = it
+
+								nt := types.MakeTypeClassRef(name, idx, ff...)
 								(*f.TypeDecl.Function)[i] = nt
 							}
 						}
@@ -418,6 +436,26 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 			}
 			result = MakeStructure(typ.Structure.Name, nf...)
 		}
+	} else if typ.HVariable != nil {
+		args := make([]types.Type, len(typ.HVariable.Params))
+		for i, a := range typ.HVariable.Params {
+			na, err := resolveTypeVariables(a, free, used)
+			if err != nil {
+				return types.Type{}, err
+			}
+			args[i] = na
+		}
+		result = MakeHierarchicalVar(typ.HVariable.Root, args...)
+	} else if typ.TCRef != nil {
+		args := make([]types.Type, len(typ.TCRef.TypeClassVars))
+		for i, a := range typ.TCRef.TypeClassVars {
+			na, err := resolveTypeVariables(a, free, used)
+			if err != nil {
+				return types.Type{}, err
+			}
+			args[i] = na
+		}
+		result = MakeTypeClassRef(typ.TCRef.TypeClass, typ.TCRef.Place, args...)
 	}
 	return result, nil
 }
@@ -464,6 +502,17 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		}
 
 		return unifier.Apply(resolved), nil
+	}
+	if t.IsHVariable() {
+		ps := make([]Type, len(t.HVariable.Params))
+		for i, p := range t.HVariable.Params {
+			nt, err := rewriter(p, ctx)
+			if err != nil {
+				return Type{}, err
+			}
+			ps[i] = nt
+		}
+		return MakeHierarchicalVar(t.HVariable.Root, ps...), nil
 	}
 	return t, nil
 }

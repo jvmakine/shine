@@ -38,6 +38,11 @@ type TypeVar struct {
 	Structural map[string]Type
 }
 
+type HierarchicalVar struct {
+	Root   *TypeVar
+	Params []Type
+}
+
 type TCBinding struct {
 	Name string
 	Args []Type
@@ -54,6 +59,7 @@ type Type struct {
 	Function  *Function
 	Structure *Structure
 	Variable  *TypeVar
+	HVariable *HierarchicalVar
 	Primitive *Primitive
 	Named     *Named
 	TCRef     *TypeClassRef
@@ -65,6 +71,10 @@ func WithType(t Type, f func(t Type) Type) Type {
 
 func MakeVariable() Type {
 	return Type{Variable: &TypeVar{}}
+}
+
+func MakeHierarchicalVar(root *TypeVar, inner ...Type) Type {
+	return Type{HVariable: &HierarchicalVar{Root: root, Params: inner}}
 }
 
 func MakeUnionVar(ps ...Primitive) Type {
@@ -108,6 +118,13 @@ func (t Type) FreeVars() []*TypeVar {
 			for _, v := range stru {
 				res = append(res, v.FreeVars()...)
 			}
+		}
+		return res
+	}
+	if t.HVariable != nil {
+		res := []*TypeVar{t.HVariable.Root}
+		for _, p := range t.HVariable.Params {
+			res = append(res, p.FreeVars()...)
 		}
 		return res
 	}
@@ -189,6 +206,10 @@ func (t Type) IsVariable() bool {
 	return t.Variable != nil
 }
 
+func (t Type) IsHVariable() bool {
+	return t.HVariable != nil
+}
+
 func (t Type) IsNamed() bool {
 	return t.Named != nil
 }
@@ -257,6 +278,16 @@ func (t Type) NamedTypes() map[string]bool {
 		}
 		return res
 	}
+	if t.IsHVariable() {
+		res := map[string]bool{}
+		for _, f := range *&t.HVariable.Params {
+			v := f.NamedTypes()
+			for n := range v {
+				res[n] = true
+			}
+		}
+		return res
+	}
 	return map[string]bool{}
 }
 
@@ -303,6 +334,16 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 		c := MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, nf...)
 		c.TCRef.LocalBindings = t.TCRef.LocalBindings
 		return f(c)
+	} else if t.IsHVariable() {
+		fn := make([]Type, len(t.HVariable.Params))
+		for i, a := range t.HVariable.Params {
+			b, err := a.Rewrite(f)
+			if err != nil {
+				return Type{}, err
+			}
+			fn[i] = b
+		}
+		return f(MakeHierarchicalVar(t.HVariable.Root, fn...))
 	}
 	return f(t)
 }
@@ -313,6 +354,7 @@ func (t *Type) AssignFrom(o Type) {
 	t.Primitive = o.Primitive
 	t.Structure = o.Structure
 	t.TCRef = o.TCRef
+	t.HVariable = o.HVariable
 }
 
 func (s *Structure) GetField(name string) *Type {

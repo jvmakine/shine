@@ -188,20 +188,27 @@ func TestType_Unify(t *testing.T) {
 		name: "fails to unify conflicting structural variables with structures",
 		a:    MakeStructure("a", SField{"x", IntP}),
 		b:    MakeStructuralVar(map[string]Type{"y": MakeVariable()}),
-		want: Type{},
 		err:  errors.New("can not unify V1{y:V2} with a{x:int}"),
 	}, {
 		name: "unifies variables wthin structural variables",
 		a:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Bool)}),
 		b:    MakeStructuralVar(map[string]Type{"x": MakeUnionVar(Int, Real)}),
 		want: MakeStructuralVar(map[string]Type{"x": IntP}),
-		err:  nil,
 	}, {
 		name: "unifies variables wthin tc references",
 		a:    MakeVariable(),
 		b:    MakeTypeClassRef("Foo", 0, var1),
 		want: MakeTypeClassRef("Foo", 0, var1),
-		err:  nil,
+	}, {
+		name: "unifies variables with subvariables",
+		a:    MakeHierarchicalVar(var1.Variable),
+		b:    MakeVariable(),
+		want: MakeHierarchicalVar(var1.Variable),
+	}, {
+		name: "fails to unify subvariables with primitives",
+		a:    MakeHierarchicalVar(var1.Variable, MakeVariable()),
+		b:    IntP,
+		err:  errors.New("can not unify V1[V2] with int"),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

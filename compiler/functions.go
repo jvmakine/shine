@@ -67,7 +67,7 @@ func compileFDefs(fcat *callresolver.FCat, ctx *context) {
 					panic(err)
 				}
 			}
-			s := subCtx.makeStructure(v.Struct.Type.FunctReturn().Structure, nil)
+			s := subCtx.makeStructure(v.Struct.Type.Structure, nil)
 			subCtx.Block.NewRet(s)
 		}
 	}

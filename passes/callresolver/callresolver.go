@@ -104,20 +104,21 @@ func resolveIdFunct(v *ast.Exp, ctx *ast.VisitContext) {
 		fsig := MakeFSign(v.Id.Name, block.ID, v.Type().TSignature())
 		if block.TypeDefs[fsig] == nil {
 			f := block.TypeDefs[v.Id.Name]
+
 			cop := f.Copy()
-			subs, err := cop.Type().Unifier(v.Type())
+			subs, err := cop.Struct.Constructor().Unifier(v.Type())
 			if err != nil {
 				panic(err)
 			}
 			cop.Convert(subs)
 			if cop.Type().HasFreeVars() {
-				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
+				panic("could not unify " + cop.Struct.Constructor().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
 			block.TypeDefs[fsig] = cop
 		} else {
 			f := block.TypeDefs[v.Id.Name]
 			cop := f.Copy()
-			_, err := cop.Type().Unifier(v.Type())
+			_, err := cop.Struct.Constructor().Unifier(v.Type())
 			if err != nil {
 				panic(err)
 			}

@@ -61,6 +61,11 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		subs.Update(t.Variable, o)
 		return subs, nil
 	}
+	if t.IsVariable() && o.IsHVariable() {
+		subs := MakeSubstitutions()
+		subs.Update(t.Variable, o)
+		return subs, nil
+	}
 	if o.IsTypeClassRef() && !t.IsTypeClassRef() {
 		return unifier(o, t, ctx)
 	}
@@ -131,7 +136,34 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsStructure() && t.IsStructure() {
 		return unifyStructures(t, o, ctx)
 	}
+	if t.IsStructure() && o.IsHVariable() {
+		return unifier(o, t, ctx)
+	}
+	if t.IsHVariable() && o.IsHVariable() {
+		subs := MakeSubstitutions()
+		err := subs.Update(t.HVariable.Root, Type{Variable: o.HVariable.Root})
+		if err != nil {
+			return Substitutions{}, err
+		}
+		if len(t.HVariable.Params) != len(o.HVariable.Params) {
+			return Substitutions{}, UnificationError(o, t)
+		}
+		for i, p := range t.HVariable.Params {
+			s, err := unifier(p, o.HVariable.Params[i], ctx)
+			if err != nil {
+				return Substitutions{}, err
+			}
+			err = subs.Combine(s)
+			if err != nil {
+				return Substitutions{}, err
+			}
+		}
+		return subs, nil
+	}
 	if o.IsPrimitive() {
+		if t.IsHVariable() {
+			return Substitutions{}, UnificationError(o, t)
+		}
 		if t.IsUnionVar() {
 			err := t.Variable.Union.Unifies(*o.Primitive)
 			subs := MakeSubstitutions()
@@ -144,7 +176,10 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		}
 		return Substitutions{}, nil
 	}
-	return Substitutions{}, nil
+	if !o.IsDefined() {
+		return Substitutions{}, nil
+	}
+	return Substitutions{}, UnificationError(o, t)
 }
 
 func unifyStructureWithStructuralVar(v Type, s Type) (Substitutions, error) {

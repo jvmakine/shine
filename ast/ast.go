@@ -123,6 +123,14 @@ type Struct struct {
 	Type   types.Type
 }
 
+func (a *Struct) Constructor() types.Type {
+	pars := make([]types.Type, len(a.Fields))
+	for i, sf := range a.Fields {
+		pars[i] = sf.Type
+	}
+	return types.MakeFunction(append(pars, a.Type)...)
+}
+
 func (a *FDef) ParamOf(name string) *FParam {
 	for _, p := range a.Params {
 		if p.Name == name {
