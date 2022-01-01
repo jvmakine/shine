@@ -154,10 +154,10 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 				return Substitutions{}, err
 			}
 		}
-		// err := subs.Update(t.HVariable.Root, o)
-		// if err != nil {
-		// 	return Substitutions{}, err
-		// }
+		err := subs.Update(t.HVariable.Root, o)
+		if err != nil {
+			return Substitutions{}, err
+		}
 		return subs, nil
 	}
 	if t.IsHVariable() && o.IsHVariable() {

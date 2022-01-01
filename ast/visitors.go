@@ -185,6 +185,14 @@ func (a *Exp) visit(f VisitFunc, l VisitFunc, ctx *VisitContext) error {
 				return err
 			}
 		}
+		for _, b := range a.Block.TypeBindings {
+			for _, def := range b.Bindings {
+				e := &Exp{Def: def}
+				if err := e.visit(f, l, sub); err != nil {
+					return err
+				}
+			}
+		}
 		if err := a.Block.Value.visit(f, l, sub); err != nil {
 			return err
 		}
@@ -258,6 +266,18 @@ func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, 
 					return err
 				}
 				p.Type = t
+			}
+		} else if v.Block != nil {
+			for _, bind := range v.Block.TypeBindings {
+				nt := make([]types.Type, len(bind.Parameters))
+				for i, t := range bind.Parameters {
+					x, err := f(t, ctx.SubBlock(v.Block))
+					if err != nil {
+						return err
+					}
+					nt[i] = x
+				}
+				bind.Parameters = nt
 			}
 		}
 		return nil

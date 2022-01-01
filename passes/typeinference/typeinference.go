@@ -485,7 +485,7 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		if err != nil {
 			return Type{}, err
 		}
-		if len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
+		if len(t.Named.TypeArguments) != 0 && len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
 			return Type{}, errors.New("wrong number of type arguments for " + t.Named.Name)
 		}
 		var resolved types.Type
@@ -513,17 +513,6 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		}
 
 		return unifier.Apply(resolved), nil
-	}
-	if t.IsHVariable() {
-		ps := make([]Type, len(t.HVariable.Params))
-		for i, p := range t.HVariable.Params {
-			nt, err := rewriter(p, ctx)
-			if err != nil {
-				return Type{}, err
-			}
-			ps[i] = nt
-		}
-		return MakeHierarchicalVar(t.HVariable.Root, ps...), nil
 	}
 	return t, nil
 }

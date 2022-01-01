@@ -63,6 +63,15 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 			return target.TCRef.TypeClassVars[target.TCRef.Place]
 		}
 	}
+	if target.IsHVariable() {
+		for i, a := range target.HVariable.Params {
+			target.HVariable.Params[i] = apply(s, a, ctx)
+		}
+		if s.substitutions[target.HVariable.Root].IsDefined() {
+			// TODO: correctly apply parameters
+			return s.substitutions[target.HVariable.Root]
+		}
+	}
 	return target
 }
 
