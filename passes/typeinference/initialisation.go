@@ -103,14 +103,14 @@ func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitCon
 func rewriteNamedType(from Type, ctx *ast.VisitContext) (Type, error) {
 	return from.Rewrite(func(t Type) (Type, error) {
 		if t.IsNamed() {
-			td := ctx.TypeDef(t.Named.Name)
-			if td != nil {
-				if len(td.FreeVariables) != len(t.Named.TypeArguments) {
+			tdef := ctx.TypeDef(t.Named.Name)
+			if tdef != nil {
+				if len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
 					return Type{}, errors.New("invalid number of type arguments for " + t.Named.Name)
 				}
-				nt := td.Type()
+				nt := tdef.Type()
 				for i, a := range t.Named.TypeArguments {
-					o := td.FreeVariables[i]
+					o := tdef.FreeVariables[i]
 					nt, _ = nt.Rewrite(func(t Type) (Type, error) {
 						if t.IsNamed() && t.Named.Name == o {
 							return a, nil
@@ -153,9 +153,8 @@ func initialiseVariables(exp *ast.Exp) error {
 				return err
 			}
 			for _, name := range names {
-				value := v.Block.TypeDefs[name]
-				err := rewriteNamedTypeDef(name, value, ctx)
-				if err != nil {
+				tdef := v.Block.TypeDefs[name]
+				if err := rewriteNamedTypeDef(name, tdef, ctx); err != nil {
 					return err
 				}
 			}

@@ -6,6 +6,7 @@ import (
 
 type unificationCtx struct {
 	seenStructures map[*Structure]map[*Structure]bool
+	sctx           *signctx
 }
 
 func UnificationError(a Type, b Type) error {
@@ -33,13 +34,14 @@ func (t Type) Unify(o Type) (Type, error) {
 }
 
 func (t Type) Unifier(o Type) (Substitutions, error) {
-	ctx := &unificationCtx{seenStructures: map[*Structure]map[*Structure]bool{}}
+	ctx := &unificationCtx{seenStructures: map[*Structure]map[*Structure]bool{}, sctx: newSignCtx()}
 	return unifier(t, o, ctx)
 }
 
 func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive != *t.Primitive {
-		return Substitutions{}, UnificationError(o, t)
+	//fmt.Fprintf(os.Stderr, "%s -> %s\n", sign(t, ctx.sctx, 0), sign(o, ctx.sctx, 0))
+	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive == *t.Primitive {
+		return Substitutions{}, nil
 	}
 	if (o.IsPrimitive() && t.IsFunction()) || (o.IsFunction() && t.IsPrimitive()) {
 		return Substitutions{}, UnificationError(o, t)
@@ -182,20 +184,25 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return subs, nil
 	}
 	if o.IsPrimitive() {
-		if t.IsHVariable() {
-			return Substitutions{}, UnificationError(o, t)
-		}
 		if t.IsUnionVar() {
 			err := t.Variable.Union.Unifies(*o.Primitive)
+			if err != nil {
+				return Substitutions{}, err
+			}
 			subs := MakeSubstitutions()
-			subs.Update(t.Variable, o)
+			err = subs.Update(t.Variable, o)
 			return subs, err
 		} else if t.IsVariable() {
 			subs := MakeSubstitutions()
-			subs.Update(t.Variable, o)
-			return subs, nil
+			err := subs.Update(t.Variable, o)
+			return subs, err
 		}
-		return Substitutions{}, nil
+		return Substitutions{}, UnificationError(o, t)
+	}
+	if t.IsVariable() {
+		subs := MakeSubstitutions()
+		subs.Update(t.Variable, o)
+		return subs, nil
 	}
 	if !o.IsDefined() {
 		return Substitutions{}, nil

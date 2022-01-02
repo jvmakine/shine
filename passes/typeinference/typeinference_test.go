@@ -445,11 +445,11 @@ func TestInfer(tes *testing.T) {
 	}, {
 		name: "resolve a second order type class",
 		prg: `
-			S[A] :: (value: A)
-			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
-			Functor[S] -> { map = (s, f) => S(f(s.value)) }
-			map(S(1), (x) => 1.0)
-		`,
+				S[A] :: (value: A)
+				Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
+				Functor[S] -> { map = (s, f) => S(f(s.value)) }
+				map(S(1), (x) => 1.0)
+			`,
 		typ: "S[real]",
 	},
 	}

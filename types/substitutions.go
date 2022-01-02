@@ -69,7 +69,8 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		}
 		if s.substitutions[target.HVariable.Root].IsDefined() {
 			// TODO: correctly apply parameters
-			return s.substitutions[target.HVariable.Root]
+			res := s.substitutions[target.HVariable.Root]
+			return res
 		}
 	}
 	return target

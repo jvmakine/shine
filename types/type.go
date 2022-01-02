@@ -234,7 +234,13 @@ func (t Type) IsStructuralVar() bool {
 }
 
 func (t Type) IsDefined() bool {
-	return t.Function != nil || t.Variable != nil || t.Primitive != nil || t.Structure != nil || t.Named != nil || t.TCRef != nil
+	return t.Function != nil ||
+		t.Variable != nil ||
+		t.Primitive != nil ||
+		t.Structure != nil ||
+		t.Named != nil ||
+		t.TCRef != nil ||
+		t.HVariable != nil
 }
 
 func (t Type) HasFreeVars() bool {
@@ -365,15 +371,6 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 		return f(MakeHierarchicalVar(t.HVariable.Root, fn...))
 	}
 	return f(t)
-}
-
-func (t *Type) AssignFrom(o Type) {
-	t.Variable = o.Variable
-	t.Function = o.Function
-	t.Primitive = o.Primitive
-	t.Structure = o.Structure
-	t.TCRef = o.TCRef
-	t.HVariable = o.HVariable
 }
 
 func (s *Structure) GetField(name string) *Type {

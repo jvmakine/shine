@@ -222,6 +222,16 @@ func TestType_Unify(t *testing.T) {
 				}
 				require.Equal(t, tt.want, got)
 			}
+			got, err = tt.b.Unify(tt.a)
+			if tt.err != nil {
+				require.Equal(t, tt.err, err)
+			} else {
+				if err != nil {
+					t.Errorf("Type.Unify() error = %v", err)
+					return
+				}
+				require.Equal(t, tt.want, got)
+			}
 		})
 	}
 }

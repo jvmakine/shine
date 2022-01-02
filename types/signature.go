@@ -139,11 +139,14 @@ func sign(t Type, ctx *signctx, level int) string {
 	panic("invalid type")
 }
 
-func (t Type) Signature() string {
+func newSignCtx() *signctx {
 	varm := map[*TypeVar]string{}
 	ds := map[string]bool{}
-	ctx := signctx{varc: 0, varm: varm, definingStructs: ds}
-	return sign(t, &ctx, 0)
+	return &signctx{varc: 0, varm: varm, definingStructs: ds}
+}
+
+func (t Type) Signature() string {
+	return sign(t, newSignCtx(), 0)
 }
 
 // TODO: Remove
