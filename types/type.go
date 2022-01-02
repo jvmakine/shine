@@ -66,6 +66,16 @@ type Type struct {
 	TCRef     *TypeClassRef
 }
 
+type Types []Type
+
+func (ts Types) Copy(ctx *TypeCopyCtx) Types {
+	res := make(Types, len(ts))
+	for i, t := range ts {
+		res[i] = t.Copy(ctx)
+	}
+	return res
+}
+
 func WithType(t Type, f func(t Type) Type) Type {
 	return f(t)
 }
