@@ -162,13 +162,14 @@ func Infer(exp *ast.Exp) error {
 					}
 					funtyp, _ := fun.Type().Rewrite(func(t Type) (Type, error) {
 						if t.IsTypeClassRef() {
-							return binding.Parameters[t.TCRef.Place], nil
+							return binding.Parameters[t.TCRef.Place].Copy(NewTypeCopyCtx()), nil
 						}
 						return t, nil
 					})
 
 					exp := &ast.Exp{Def: fdef}
 					expType := exp.Type()
+
 					s, err := funtyp.Unifier(expType)
 					if err != nil {
 						return err

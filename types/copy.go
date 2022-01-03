@@ -80,7 +80,9 @@ func (t *TypeVar) Copy(ctx *TypeCopyCtx) *TypeVar {
 	for k, v := range t.Structural {
 		structural[k] = v.Copy(ctx)
 	}
+	varcount++
 	return &TypeVar{
+		ID:         varcount,
 		Union:      t.Union,
 		Structural: structural,
 	}

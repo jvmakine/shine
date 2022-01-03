@@ -1,6 +1,7 @@
 package types
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -71,7 +72,15 @@ func signVar(v *TypeVar, ctx *signctx, level int) string {
 			var sb strings.Builder
 			sb.WriteString("{")
 			i := 0
-			for k, va := range v.Structural {
+
+			names := []string{}
+			for n := range v.Structural {
+				names = append(names, n)
+			}
+			sort.Strings(names)
+
+			for _, k := range names {
+				va := v.Structural[k]
 				sb.WriteString(k)
 				sb.WriteString(":")
 				sb.WriteString(sign(va, ctx, level))
@@ -133,6 +142,9 @@ func sign(t Type, ctx *signctx, level int) string {
 			}
 		}
 		return res + strings.Join(args, ",") + "]"
+	}
+	if t.IsConstructor() {
+		return t.Constructor.Name
 	}
 	if !t.IsDefined() {
 		return "<undefined>"

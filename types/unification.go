@@ -139,8 +139,13 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		if len(t.HVariable.Params) != len(o.Structure.TypeArguments) {
 			return Substitutions{}, UnificationError(o, t)
 		}
-		for i, p := range t.HVariable.Params {
-			s, err := unifier(p, o.Structure.TypeArguments[i], ctx)
+		err := subs.Update(t.HVariable.Root, Type{Constructor: &TypeConstructor{Name: o.Structure.Name, Arguments: len(o.Structure.TypeArguments), Underlying: o}})
+		if err != nil {
+			return Substitutions{}, err
+		}
+		for i, p1 := range t.HVariable.Params {
+			p2 := o.Structure.TypeArguments[i]
+			s, err := p1.Unifier(p2)
 			if err != nil {
 				return Substitutions{}, err
 			}
@@ -148,10 +153,6 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 			if err != nil {
 				return Substitutions{}, err
 			}
-		}
-		err := subs.Update(t.HVariable.Root, o)
-		if err != nil {
-			return Substitutions{}, err
 		}
 		return subs, nil
 	}
@@ -195,6 +196,21 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if t.IsVariable() {
 		subs := MakeSubstitutions()
 		subs.Update(t.Variable, o)
+		return subs, nil
+	}
+	if o.IsConstructor() && t.IsConstructor() {
+		if o.Constructor.Name != t.Constructor.Name {
+			return Substitutions{}, UnificationError(o, t)
+		}
+		return Substitutions{}, nil
+	}
+	if o.IsConstructor() {
+		return unifier(o, t, ctx)
+	}
+	if t.IsConstructor() && o.IsHVariable() {
+		inst := t.Constructor.Underlying.Instantiate(o.HVariable.Params)
+		subs := MakeSubstitutions()
+		subs.Update(o.HVariable.Root, inst)
 		return subs, nil
 	}
 	if !o.IsDefined() {

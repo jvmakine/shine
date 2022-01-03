@@ -134,17 +134,18 @@ func TestResolveFunctions(t *testing.T) {
 			}},
 			Fcall(Op("if"), Fcall(Op(">"), Fcall(Id("add%%1%%(real,real)=>real"), RConst(1.0), RConst(2.0)), RConst(2.0)), Fcall(Id("add%%1%%(int,int)=>int"), IConst(1), IConst(2)), IConst(4)),
 		),
-	}, /*{
+	}, {
 		name: "resolves higher order functions",
 		prg: `
-			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
 			S[A] :: (value: A)
+			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
 			Functor[S] -> { map = (s, f) => S(f(s.value)) }
 			map(S(1), (x) => 1.0).value
 		`,
 		after: Block(
 			Assgs{
-				"map%%1%%(S[int],(int)=>real)=>S[real]": Fdef(Fcall(Id("S"), Fcall(Id("f"), Faccess(Id("s"), "value"))), "s", "f"),
+				"map%%1%%(S[int],(int)=>real)=>S[real]": Fdef(Fcall(Id("S%%1%%(real)=>S[real]"), Fcall(Id("f"), Faccess(Id("s"), "value"))), "s", "f"),
+				"<anon1>%%1%%(int)=>real":               Fdef(RConst(1.0), "x"),
 			},
 			Typedefs{
 				"Functor": &ast.TypeDefinition{
@@ -163,6 +164,8 @@ func TestResolveFunctions(t *testing.T) {
 					VaribleMap:    map[string]types.Type{"A": types.MakeVariable()},
 					Struct:        Struct(ast.StructField{Name: "value", Type: types.MakeNamed("A")}).Struct,
 				},
+				"S%%1%%(real)=>S[real]": Struct(ast.StructField{Name: "value", Type: types.RealP}),
+				"S%%1%%(int)=>S[int]":   Struct(ast.StructField{Name: "value", Type: types.IntP}),
 			},
 			Bindings{&ast.TypeBinding{
 				Name:       "Functor",
@@ -171,9 +174,9 @@ func TestResolveFunctions(t *testing.T) {
 					"map": Fdef(Fcall(Id("S"), Fcall(Id("f"), Faccess(Id("s"), "value"))), "s", "f").Def,
 				},
 			}},
-			Faccess(Fcall(Id("map%%1%%(S[int],(int)=>real)=>S[real]"), Fcall(Id("S")), Fdef(RConst(1.0), "x")), "value"),
+			Faccess(Fcall(Id("map%%1%%(S[int],(int)=>real)=>S[real]"), Fcall(Id("S%%1%%(int)=>S[int]"), IConst(1)), Id("<anon1>%%1%%(int)=>real")), "value"),
 		),
-	}*/}
+	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := grammar.Parse(tt.prg)

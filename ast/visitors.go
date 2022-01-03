@@ -13,7 +13,7 @@ type VisitContext struct {
 }
 
 func (ctx *VisitContext) SubBlock(b *Block) *VisitContext {
-	return &VisitContext{parent: ctx, block: b, def: ctx.def}
+	return &VisitContext{parent: ctx, block: b, def: ctx.def, binding: ctx.binding}
 }
 
 func (ctx *VisitContext) SubBinding(b *TypeBinding) *VisitContext {
@@ -164,7 +164,7 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 		return err
 	}
 	if a.Block != nil {
-		sub := &VisitContext{block: a.Block, def: ctx.def, parent: ctx}
+		sub := ctx.SubBlock(a.Block)
 		for _, b := range a.Block.TypeBindings {
 			for _, def := range b.Bindings {
 				exp := &Exp{Def: def}
@@ -177,7 +177,7 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 			return err
 		}
 	} else if a.Def != nil {
-		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def}
+		sub := &VisitContext{block: ctx.block, parent: ctx, def: a.Def, binding: ctx.binding}
 		if err := a.Def.Body.crawl(f, l, sub, visited); err != nil {
 			return err
 		}

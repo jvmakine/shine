@@ -3,4 +3,4 @@ Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
 S[A] :: (value: A)
 Functor[S] -> { map = (s, f) => S(f(s.value)) }
 
-map(S(1), (x) => 1).value
+map(S(1), (x) => 1.0).value

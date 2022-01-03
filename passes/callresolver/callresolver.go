@@ -50,7 +50,7 @@ func ResolveFunctions(exp *ast.Exp) {
 		if v.Call != nil {
 			resolveCall(v.Call, ctx)
 		}
-		if v.Id != nil && v.Type().IsFunction() && !strings.Contains(v.Id.Name, "%%") {
+		if v.Id != nil && v.Type().IsFunction() && !strings.Contains(v.Id.Name, "%%") && ctx.Binding() == nil {
 			resolveIdFunct(v, bmap, ctx)
 		} else if v.Def != nil && ctx.NameOf(v) == "" && ctx.Binding() == nil {
 			anonCount++
@@ -85,10 +85,6 @@ func resolveCall(v *ast.FCall, ctx *ast.VisitContext) {
 		}
 		return t, nil
 	})
-
-	s1 := fun.Signature()
-	s2 := nt.Signature()
-	println(s1 + s2)
 
 	uni, err := fun.Unifier(nt)
 
@@ -170,6 +166,7 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 					if b.Name == tcname {
 						def := b.Bindings[name]
 						exp := &ast.Exp{Def: def}
+
 						if exp.Type().Unifies(v.Type()) {
 							blockId = b2.ID
 							fexp = exp.Copy()

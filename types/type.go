@@ -61,14 +61,21 @@ type TypeClassRef struct {
 	LocalBindings []TCBinding
 }
 
+type TypeConstructor struct {
+	Name       string
+	Arguments  int
+	Underlying Type
+}
+
 type Type struct {
-	Function  *Function
-	Structure *Structure
-	Variable  *TypeVar
-	HVariable *HierarchicalVar
-	Primitive *Primitive
-	Named     *Named
-	TCRef     *TypeClassRef
+	Function    *Function
+	Structure   *Structure
+	Variable    *TypeVar
+	HVariable   *HierarchicalVar
+	Primitive   *Primitive
+	Named       *Named
+	TCRef       *TypeClassRef
+	Constructor *TypeConstructor
 }
 
 type Types []Type
@@ -89,7 +96,7 @@ var varcount = 0
 
 func MakeVariable() Type {
 	// enable for debugging
-	// varcount++
+	varcount++
 	return Type{Variable: &TypeVar{ID: varcount}}
 }
 
@@ -199,6 +206,10 @@ func (t Type) IsStructure() bool {
 	return t.Structure != nil
 }
 
+func (t Type) IsConstructor() bool {
+	return t.Constructor != nil
+}
+
 func (t Type) IsTypeClassRef() bool {
 	return t.TCRef != nil
 }
@@ -268,7 +279,8 @@ func (t Type) IsDefined() bool {
 		t.Structure != nil ||
 		t.Named != nil ||
 		t.TCRef != nil ||
-		t.HVariable != nil
+		t.HVariable != nil ||
+		t.Constructor != nil
 }
 
 func (t Type) HasFreeVars() bool {
@@ -428,6 +440,9 @@ func (t Type) Instantiate(types []Type) Type {
 	if s := t.Structure; s != nil {
 		return Type{Structure: s.Instantiate(types)}
 	}
+	if c := t.Constructor; c != nil {
+		return c.Underlying.Instantiate(types)
+	}
 	return t
 }
 
@@ -441,12 +456,12 @@ func (s *Structure) Instantiate(types []Type) *Structure {
 	}
 
 	args := make([]Type, len(s.TypeArguments))
-	for i, v := range s.OrginalVars {
-		args[i] = subs.Apply(Type{Variable: v})
+	for i := range types {
+		args[i] = types[i]
 	}
 
 	fields := make([]SField, len(s.Fields))
-	for i, f := range s.Fields {
+	for i, f := range s.OriginalFields {
 		fields[i] = SField{Name: f.Name, Type: subs.Apply(f.Type)}
 	}
 

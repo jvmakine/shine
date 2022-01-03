@@ -203,6 +203,11 @@ func TestType_Unify(t *testing.T) {
 		a:    MakeHierarchicalVar(var1.Variable, MakeVariable()),
 		b:    IntP,
 		err:  errors.New("can not unify V1[V2] with int"),
+	}, {
+		name: "unifies structures with higher order variables",
+		a:    MakeFunction(MakeHierarchicalVar(var1.Variable, MakeVariable()), MakeHierarchicalVar(var1.Variable, MakeVariable()), IntP),
+		b:    MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}), IntP),
+		want: MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}), IntP),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -214,7 +219,7 @@ func TestType_Unify(t *testing.T) {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				require.Equal(t, tt.want, got)
+				require.Equal(t, tt.want.Signature(), got.Signature())
 			}
 			got, err = tt.b.Unify(tt.a)
 			if tt.err != nil {
@@ -224,7 +229,7 @@ func TestType_Unify(t *testing.T) {
 					t.Errorf("Type.Unify() error = %v", err)
 					return
 				}
-				require.Equal(t, tt.want, got)
+				require.Equal(t, tt.want.Signature(), got.Signature())
 			}
 		})
 	}
