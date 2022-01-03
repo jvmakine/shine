@@ -85,7 +85,7 @@ func (c *context) addId(name string, val value.Value) (*context, error) {
 }
 
 func (c *context) isFun(name string) bool {
-	return c.global.functions[name].From != nil
+	return c.global.functions[name].Fun != nil
 }
 
 func (c *context) resolveFun(name string) function {

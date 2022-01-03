@@ -448,9 +448,9 @@ func TestInfer(tes *testing.T) {
 				S[A] :: (value: A)
 				Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
 				Functor[S] -> { map = (s, f) => S(f(s.value)) }
-				map(S(1), (x) => 1.0)
+				map(S(1), (x) => 1.0).value
 			`,
-		typ: "S[real]",
+		typ: "real",
 	},
 	}
 	for _, tt := range tests {

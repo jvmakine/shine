@@ -109,7 +109,8 @@ func MakeUnionVar(ps ...Primitive) Type {
 }
 
 func MakeStructuralVar(s map[string]Type) Type {
-	return Type{Variable: &TypeVar{Structural: s}}
+	varcount++
+	return Type{Variable: &TypeVar{Structural: s, ID: varcount}}
 }
 
 func MakePrimitive(p string) Type {

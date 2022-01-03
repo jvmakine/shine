@@ -141,7 +141,7 @@ func (a *FDef) ParamOf(name string) *FParam {
 }
 
 func (a *FDef) HasClosure() bool {
-	return a.Closure != nil && len(a.Closure.Fields) > 0
+	return a != nil && a.Closure != nil && len(a.Closure.Fields) > 0
 }
 
 func (a *FCall) RootFunc() *Exp {

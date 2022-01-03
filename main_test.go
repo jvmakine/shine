@@ -100,9 +100,10 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile type classes",
 		program: `
-			Addable[X] :: { add :: (X,X)=>X }
-			Addable[int] -> { add = (a, b) => a + b }
-			add(1,2)
+			S[A] :: (value: A)
+			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
+			Functor[S] -> { map = (s, f) => S(f(s.value)) }
+			map(S(1), (x) => 1.0).value
 		`,
 	}}
 	for _, tt := range tests {

@@ -208,7 +208,7 @@ func Infer(exp *ast.Exp) error {
 				return err
 			}
 			unifier.Combine(uni)
-			v.FAccess.Type = vari
+			v.FAccess.Type = unifier.Apply(vari)
 		}
 		return nil
 	}

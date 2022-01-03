@@ -101,7 +101,11 @@ func compileID(exp *ast.Exp, ctx *context) cresult {
 	name := exp.Id.Name
 	if ctx.isFun(name) {
 		f := ctx.global.functions[name]
-		clj := ctx.makeStructure(f.From.Closure, f.Fun)
+		var closure *t.Structure
+		if f.From != nil {
+			closure = f.From.Closure
+		}
+		clj := ctx.makeStructure(closure, f.Fun)
 		return makeCR(exp, clj)
 	}
 	id, err := ctx.resolveId(name)
