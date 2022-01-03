@@ -62,7 +62,13 @@ func (s *Structure) Copy(ctx *TypeCopyCtx) *Structure {
 	for i, a := range s.TypeArguments {
 		nt[i] = a.Copy(ctx)
 	}
-	return MakeStructure(s.Name, nt, ps...).Structure
+	return &Structure{
+		Name:           s.Name,
+		TypeArguments:  nt,
+		Fields:         ps,
+		OrginalVars:    s.OrginalVars,
+		OriginalFields: s.OriginalFields,
+	}
 }
 
 func (t *TypeVar) Copy(ctx *TypeCopyCtx) *TypeVar {

@@ -9,12 +9,12 @@ func TestType_Signature(t *testing.T) {
 		want string
 	}{{
 		name: "support structures without variables",
-		typ:  MakeStructure("S", []Type{}, SField{"a", IntP}, SField{"b", MakeFunction(RealP, RealP)}, SField{"c", BoolP}),
+		typ:  MakeStructure("S", SField{"a", IntP}, SField{"b", MakeFunction(RealP, RealP)}, SField{"c", BoolP}),
 		want: "S",
 	}, {
 		name: "support structures with variables",
 		typ: WithType(MakeVariable(), func(t Type) Type {
-			return MakeStructure("S", []Type{t}, SField{"a", t}, SField{"b", MakeFunction(t, IntP)}, SField{"c", BoolP})
+			return MakeStructure("S", SField{"a", t}, SField{"b", MakeFunction(t, IntP)}, SField{"c", BoolP})
 		}),
 		want: "S[V1]",
 	}, {

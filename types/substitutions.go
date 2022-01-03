@@ -32,23 +32,30 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		}
 		return MakeFunction(ntyps...)
 	}
-	if target.IsStructure() {
-		if ctx.visited[target.Structure] {
+	if struc := target.Structure; struc != nil {
+		if ctx.visited[struc] {
 			return target
 		}
-		ctx.visited[target.Structure] = true
-		ntyps := make([]SField, len(target.Structure.Fields))
-		for i, v := range target.Structure.Fields {
-			ntyps[i] = SField{
+		ctx.visited[struc] = true
+		fields := make([]SField, len(struc.Fields))
+		for i, v := range struc.Fields {
+			fields[i] = SField{
 				Name: v.Name,
 				Type: apply(s, v.Type, ctx),
 			}
 		}
-		nt := make([]Type, len(target.Structure.TypeArguments))
-		for i, a := range target.Structure.TypeArguments {
+		nt := make([]Type, len(struc.TypeArguments))
+		for i, a := range struc.TypeArguments {
 			nt[i] = apply(s, a, ctx)
 		}
-		return MakeStructure(target.Structure.Name, nt, ntyps...)
+		return Type{Structure: &Structure{
+			Name:          struc.Name,
+			TypeArguments: nt,
+			Fields:        fields,
+
+			OrginalVars:    struc.OrginalVars,
+			OriginalFields: struc.OriginalFields,
+		}}
 	}
 	if target.IsStructuralVar() {
 		for k, v := range target.Variable.Structural {
@@ -67,10 +74,9 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		for i, a := range target.HVariable.Params {
 			target.HVariable.Params[i] = apply(s, a, ctx)
 		}
-		if s.substitutions[target.HVariable.Root].IsDefined() {
-			// TODO: correctly apply parameters
+		if ss := s.substitutions[target.HVariable.Root]; ss.IsDefined() {
 			res := s.substitutions[target.HVariable.Root]
-			return res
+			return res.Instantiate(target.HVariable.Params)
 		}
 	}
 	return target
@@ -118,6 +124,7 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 			}
 		}
 	}
+
 	return nil
 }
 

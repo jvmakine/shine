@@ -61,7 +61,6 @@ func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitCon
 			}
 			f.Type = nt
 		}
-		ts := make([]types.Type, len(def.Struct.Fields)+1)
 		sf := make([]types.SField, len(def.Struct.Fields))
 		for i, f := range def.Struct.Fields {
 			typ := f.Type
@@ -69,27 +68,18 @@ func rewriteNamedTypeDef(name string, def *ast.TypeDefinition, ctx *ast.VisitCon
 				typ = MakeVariable()
 			}
 			f.Type = typ
-			ts[i] = typ
+			nt, err := rewriteNamedType(typ, ctx)
+			if err != nil {
+				return err
+			}
 			sf[i] = SField{
 				Name: f.Name,
-				Type: typ,
+				Type: nt,
 			}
 		}
 
-		args := []Type{}
-		if def.Struct.Type.Structure != nil {
-			args = def.Struct.Type.Structure.TypeArguments
-		}
-
-		stru := types.MakeStructure(name, args, sf...)
-		ts[len(def.Struct.Fields)] = stru
-
-		nt, err := rewriteNamedType(stru, ctx)
-		if err != nil {
-			return err
-		}
-
-		def.Struct.Type = nt
+		stru := types.MakeStructure(name, sf...)
+		def.Struct.Type = stru
 	} else {
 		nt, err := rewriteNamedType(def.TypeDecl, ctx)
 		if err != nil {
@@ -194,7 +184,7 @@ func initialiseVariables(exp *ast.Exp) error {
 					if err != nil {
 						return err
 					}
-					value.Struct.Type = typ
+					value.Struct.Type = types.MakeStructure(name, typ.Structure.Fields...)
 				} else if value.TypeClass != nil {
 					for fname, f := range value.TypeClass.Functions {
 						if ctx.BlockOf(fname) != nil {
@@ -311,9 +301,9 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 			args[i] = na
 		}
 		result = MakeFunction(args...)
-	} else if typ.Structure != nil {
-		nf := make([]SField, len(typ.Structure.Fields))
-		for i, f := range typ.Structure.Fields {
+	} else if s := typ.Structure; s != nil {
+		nf := make([]SField, len(s.Fields))
+		for i, f := range s.Fields {
 			na, err := resolveTypeVariables(f.Type, free, used)
 			if err != nil {
 				return types.Type{}, err
@@ -322,7 +312,13 @@ func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]
 				Name: f.Name,
 				Type: na,
 			}
-			result = MakeStructure(typ.Structure.Name, typ.Structure.TypeArguments, nf...)
+			result = Type{Structure: &Structure{
+				Name:           s.Name,
+				TypeArguments:  s.TypeArguments,
+				Fields:         nf,
+				OrginalVars:    s.OrginalVars,
+				OriginalFields: s.OriginalFields,
+			}}
 		}
 	} else if typ.HVariable != nil {
 		args := make([]types.Type, len(typ.HVariable.Params))

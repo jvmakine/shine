@@ -102,7 +102,7 @@ func TestResolveFunctionDef(tes *testing.T) {
 		),
 		want: map[string]map[string]Type{
 			"f%%1%%(int)=>int": map[string]Type{
-				"a": types.MakeStructure("S", []Type{}, SField{"x", IntP}),
+				"a": types.MakeStructure("S", SField{"x", IntP}),
 			},
 		},
 	}}

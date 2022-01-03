@@ -32,6 +32,9 @@ type Structure struct {
 	Name          string
 	TypeArguments []Type
 	Fields        []SField
+
+	OrginalVars    []*TypeVar
+	OriginalFields []SField
 }
 
 type TypeVar struct {
@@ -113,8 +116,31 @@ func MakeFunction(ts ...Type) Type {
 	return Type{Function: &f}
 }
 
-func MakeStructure(name string, targs []Type, fields ...SField) Type {
-	return Type{Structure: &Structure{Name: name, Fields: fields, TypeArguments: targs}}
+func MakeStructure(name string, fields ...SField) Type {
+	vars := map[*TypeVar]bool{}
+	copfields := make([]SField, len(fields))
+	for i, f := range fields {
+		copfields[i] = SField{Name: f.Name, Type: f.Type}
+		for _, v := range f.Type.FreeVars() {
+			vars[v] = true
+		}
+	}
+
+	targlist := make([]Type, 0, len(vars))
+	varlist := make([]*TypeVar, 0, len(vars))
+	for v := range vars {
+		varlist = append(varlist, v)
+		targlist = append(targlist, Type{Variable: v})
+	}
+
+	return Type{Structure: &Structure{
+		Name:          name,
+		Fields:        fields,
+		TypeArguments: targlist,
+
+		OriginalFields: copfields,
+		OrginalVars:    varlist,
+	}}
 }
 
 func MakeTypeClassRef(name string, place int, fields ...Type) Type {
@@ -329,24 +355,30 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 			fn[i] = b
 		}
 		return f(MakeNamed(t.Named.Name, fn...))
-	} else if t.IsStructure() {
-		nf := make([]SField, len(t.Structure.Fields))
-		for i, a := range t.Structure.Fields {
+	} else if s := t.Structure; s != nil {
+		nf := make([]SField, len(s.Fields))
+		for i, a := range s.Fields {
 			b, err := a.Type.Rewrite(f)
 			if err != nil {
 				return Type{}, err
 			}
 			nf[i] = SField{Name: a.Name, Type: b}
 		}
-		nt := make([]Type, len(t.Structure.TypeArguments))
-		for i, a := range t.Structure.TypeArguments {
+		nt := make([]Type, len(s.TypeArguments))
+		for i, a := range s.TypeArguments {
 			b, err := a.Rewrite(f)
 			if err != nil {
 				return Type{}, err
 			}
 			nt[i] = b
 		}
-		return f(MakeStructure(t.Structure.Name, nt, nf...))
+		return f(Type{Structure: &Structure{
+			Name:           s.Name,
+			TypeArguments:  nt,
+			Fields:         nf,
+			OrginalVars:    s.OrginalVars,
+			OriginalFields: s.OriginalFields,
+		}})
 	} else if t.IsTypeClassRef() {
 		nf := make([]Type, len(t.TCRef.TypeClassVars))
 		for i, a := range t.TCRef.TypeClassVars {
@@ -388,4 +420,39 @@ func (s *Structure) FieldTypes() []Type {
 		res[i] = f.Type
 	}
 	return res
+}
+
+func (t Type) Instantiate(types []Type) Type {
+	if s := t.Structure; s != nil {
+		return Type{Structure: s.Instantiate(types)}
+	}
+	return t
+}
+
+func (s *Structure) Instantiate(types []Type) *Structure {
+	subs := MakeSubstitutions()
+	for i, t := range types {
+		err := subs.Update(s.OrginalVars[i], t)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	args := make([]Type, len(s.TypeArguments))
+	for i, v := range s.OrginalVars {
+		args[i] = subs.Apply(Type{Variable: v})
+	}
+
+	fields := make([]SField, len(s.Fields))
+	for i, f := range s.Fields {
+		fields[i] = SField{Name: f.Name, Type: subs.Apply(f.Type)}
+	}
+
+	return &Structure{
+		Name:           s.Name,
+		TypeArguments:  args,
+		Fields:         fields,
+		OrginalVars:    s.OrginalVars,
+		OriginalFields: s.OriginalFields,
+	}
 }

@@ -105,12 +105,12 @@ func TestResolveFunctions(t *testing.T) {
 		after: Block(
 			Assgs{},
 			Typedefs{
-				"a":              Struct(ast.StructField{"x", types.MakeVariable()}),
-				"a%%1%%(int)=>a": Struct(ast.StructField{"x", types.IntP}),
-				"a%%1%%(a)=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
+				"a":                   Struct(ast.StructField{"x", types.MakeVariable()}),
+				"a%%1%%(int)=>a[int]": Struct(ast.StructField{"x", types.IntP}),
+				"a%%1%%(a[int])=>a":   Struct(ast.StructField{"x", types.MakeNamed("a")}),
 			},
 			Bindings{},
-			Fcall(Id("a%%1%%(a)=>a"), Fcall(Id("a%%1%%(int)=>a"), IConst(1))),
+			Fcall(Id("a%%1%%(a[int])=>a"), Fcall(Id("a%%1%%(int)=>a[int]"), IConst(1))),
 		),
 	}}
 	for _, tt := range tests {

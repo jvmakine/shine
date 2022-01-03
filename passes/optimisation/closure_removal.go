@@ -18,7 +18,7 @@ func ClosureRemoval(exp *ast.Exp) {
 					v.Block.Assignments[newname] = &ast.Exp{Def: &ast.FDef{
 						Body:    a.Def.Body,
 						Params:  newparams,
-						Closure: types.MakeStructure("", []types.Type{}).Structure,
+						Closure: types.MakeStructure("").Structure,
 					}}
 				}
 			}
