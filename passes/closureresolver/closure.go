@@ -69,7 +69,7 @@ func CollectClosures(exp *ast.Exp) {
 			}
 			result := Structure{Name: "", Fields: []SField{}}
 			for n, t := range closureAt[v] {
-				if block := ctx.BlockOf(n); block == nil || !block.Assignments[n].Type().IsFunction() {
+				if block := ctx.BlockOf(n); block == nil || block.Assignments[n] == nil || !block.Assignments[n].Type().IsFunction() {
 					result.Fields = append(result.Fields, SField{Name: n, Type: t})
 				}
 			}

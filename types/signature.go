@@ -48,6 +48,7 @@ func (s Structure) sign(ctx *signctx, level int) string {
 		sb.WriteString(strings.Join(strs, ","))
 		sb.WriteString("]")
 	}
+	ctx.definingStructs[s.Name] = false
 	return sb.String()
 }
 

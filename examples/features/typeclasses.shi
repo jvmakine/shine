@@ -1,5 +1,6 @@
-Addable[X] :: { add :: (X, X) => X }
-Addable[int] -> { add = (a, b) => a + b }
-Addable[real] -> { add = (a, b) => a + b }
+Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }  
 
-if (add(1.0, 2.0) > 2.0) add(1,2) else add(3,4)
+S[A] :: (value: A)
+Functor[S] -> { map = (s, f) => S(f(s.value)) }
+
+map(S(1), (x) => 1).value

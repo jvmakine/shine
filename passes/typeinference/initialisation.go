@@ -252,6 +252,9 @@ func initialiseVariables(exp *ast.Exp) error {
 						}
 						v.Block.TCFunctions[fname] = value
 
+						sig := f.TypeDecl.Copy(NewTypeCopyCtx()).Signature()
+						println(sig)
+
 					}
 				} else {
 					typ, err := resolveTypeVariables(value.TypeDecl, free, used)

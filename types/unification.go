@@ -44,7 +44,6 @@ func (t Type) Unifies(o Type) bool {
 }
 
 func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
-	//fmt.Fprintf(os.Stderr, "%s -> %s\n", sign(t, ctx.sctx, 0), sign(o, ctx.sctx, 0))
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive == *t.Primitive {
 		return Substitutions{}, nil
 	}
@@ -95,24 +94,13 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return subs, nil
 	}
 	if t.IsTypeClassRef() && o.IsTypeClassRef() {
-		subs := MakeSubstitutions()
-		for i, first := range t.TCRef.TypeClassVars {
-			second := o.TCRef.TypeClassVars[i]
-			s, err := first.Unifier(second)
-			if err != nil {
-				return Substitutions{}, err
-			}
-			err = subs.Combine(s)
-			if err != nil {
-				return Substitutions{}, err
-			}
-		}
-
-		return subs, nil
+		f := t.TCRef.TypeClassVars[t.TCRef.Place]
+		s := o.TCRef.TypeClassVars[o.TCRef.Place]
+		return f.Unifier(s)
 	}
 	if t.IsTypeClassRef() {
 		for _, b := range t.TCRef.LocalBindings {
-			f1 := b.Args[t.TCRef.Place]
+			f1 := b.Args[t.TCRef.Place].Copy(NewTypeCopyCtx())
 
 			subs := MakeSubstitutions()
 

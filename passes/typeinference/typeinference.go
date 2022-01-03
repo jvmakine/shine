@@ -68,7 +68,7 @@ func typeId(id *ast.Id, ctx *ast.VisitContext) error {
 		}
 		tc := b.TCFunctions[id.Name]
 		if tc != nil {
-			id.Type = tc.TypeClass.Functions[id.Name].TypeDecl
+			id.Type = tc.TypeClass.Functions[id.Name].TypeDecl.Copy(NewTypeCopyCtx())
 			return nil
 		}
 		tdef := b.TypeDefs[id.Name]
@@ -118,7 +118,12 @@ func typeCall(call *ast.FCall, unifier Substitutions, ctx *ast.VisitContext) err
 	for _, p := range call.Params {
 		p.Convert(s)
 	}
-	unifier.Combine(s)
+
+	err = unifier.Combine(s)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

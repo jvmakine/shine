@@ -42,7 +42,11 @@ func (t Type) Copy(ctx *TypeCopyCtx) Type {
 		for i, p := range t.HVariable.Params {
 			ps[i] = p.Copy(ctx)
 		}
-		return MakeHierarchicalVar(t.HVariable.Root.Copy(ctx), ps...)
+		r := t.HVariable.Root
+		if ctx.vars[r] == nil {
+			ctx.vars[r] = r.Copy(ctx)
+		}
+		return MakeHierarchicalVar(ctx.vars[r], ps...)
 	}
 	return t
 }

@@ -38,6 +38,7 @@ type Structure struct {
 }
 
 type TypeVar struct {
+	ID         int
 	Union      Union
 	Structural map[string]Type
 }
@@ -84,8 +85,12 @@ func WithType(t Type, f func(t Type) Type) Type {
 	return f(t)
 }
 
+var varcount = 0
+
 func MakeVariable() Type {
-	return Type{Variable: &TypeVar{}}
+	// enable for debugging
+	// varcount++
+	return Type{Variable: &TypeVar{ID: varcount}}
 }
 
 func MakeHierarchicalVar(root *TypeVar, inner ...Type) Type {
@@ -181,11 +186,7 @@ func (t Type) FreeVars() []*TypeVar {
 		return res
 	}
 	if tc := t.TCRef; tc != nil {
-		res := []*TypeVar{}
-		for _, p := range tc.TypeClassVars {
-			res = append(res, p.FreeVars()...)
-		}
-		return res
+		return t.TCRef.TypeClassVars[t.TCRef.Place].FreeVars()
 	}
 	return []*TypeVar{}
 }

@@ -86,6 +86,10 @@ func resolveCall(v *ast.FCall, ctx *ast.VisitContext) {
 		return t, nil
 	})
 
+	s1 := fun.Signature()
+	s2 := nt.Signature()
+	println(s1 + s2)
+
 	uni, err := fun.Unifier(nt)
 
 	if err != nil {
