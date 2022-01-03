@@ -8,11 +8,16 @@ type VisitContext struct {
 	parent     *VisitContext
 	block      *Block
 	def        *FDef
+	binding    *TypeBinding
 	assignment string
 }
 
 func (ctx *VisitContext) SubBlock(b *Block) *VisitContext {
 	return &VisitContext{parent: ctx, block: b, def: ctx.def}
+}
+
+func (ctx *VisitContext) SubBinding(b *TypeBinding) *VisitContext {
+	return &VisitContext{parent: ctx, block: ctx.block, def: ctx.def, binding: b}
 }
 
 func (c *VisitContext) Path() map[string]bool {
@@ -95,6 +100,10 @@ func (c *VisitContext) NameOf(exp *Exp) string {
 	return ""
 }
 
+func (c *VisitContext) Binding() *TypeBinding {
+	return c.binding
+}
+
 func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
 	if c.block != nil && c.block.Assignments[id] != nil {
 		return c.block.Assignments[id], c
@@ -102,6 +111,24 @@ func (c *VisitContext) resolve(id string) (*Exp, *VisitContext) {
 		return c.parent.resolve(id)
 	}
 	return nil, nil
+}
+
+func (c *VisitContext) GetBindings() []types.TCBinding {
+	result := []types.TCBinding{}
+	block := c.Block()
+	if block == nil {
+		return result
+	}
+	for _, b := range block.TypeBindings {
+		result = append(result, types.TCBinding{
+			Name:    b.Name,
+			Args:    b.Parameters,
+			BlockID: block.ID,
+		})
+	}
+	parent := c.ParentBlock()
+	result = append(result, parent.GetBindings()...)
+	return result
 }
 
 type VisitFunc = func(p *Exp, ctx *VisitContext) error
@@ -138,6 +165,14 @@ func (a *Exp) crawl(f VisitFunc, l VisitFunc, ctx *VisitContext, visited *map[*E
 	}
 	if a.Block != nil {
 		sub := &VisitContext{block: a.Block, def: ctx.def, parent: ctx}
+		for _, b := range a.Block.TypeBindings {
+			for _, def := range b.Bindings {
+				exp := &Exp{Def: def}
+				if err := exp.crawl(f, l, sub.SubBinding(b), visited); err != nil {
+					return err
+				}
+			}
+		}
 		if err := a.Block.Value.crawl(f, l, sub, visited); err != nil {
 			return err
 		}
@@ -279,7 +314,35 @@ func (a *Exp) RewriteTypes(f func(t types.Type, ctx *VisitContext) (types.Type, 
 				}
 				bind.Parameters = nt
 			}
+			for _, td := range v.Block.TypeDefs {
+				if err := rewriteTypeDef(td, f, ctx); err != nil {
+					return err
+				}
+			}
 		}
 		return nil
 	})
+}
+
+func rewriteTypeDef(td *TypeDefinition, f func(t types.Type, ctx *VisitContext) (types.Type, error), ctx *VisitContext) error {
+	if s := td.Struct; s != nil {
+		nt, err := f(s.Type, ctx)
+		if err != nil {
+			return err
+		}
+		s.Type = nt
+	} else if c := td.TypeClass; c != nil {
+		for _, d := range c.Functions {
+			if err := rewriteTypeDef(d, f, ctx); err != nil {
+				return err
+			}
+		}
+	} else if td.TypeDecl.IsDefined() {
+		nt, err := f(td.TypeDecl, ctx)
+		if err != nil {
+			return err
+		}
+		td.TypeDecl = nt
+	}
+	return nil
 }

@@ -48,8 +48,9 @@ type HierarchicalVar struct {
 }
 
 type TCBinding struct {
-	Name string
-	Args []Type
+	BlockID int
+	Name    string
+	Args    []Type
 }
 
 type TypeClassRef struct {

@@ -97,6 +97,13 @@ func TestCompile(t *testing.T) {
 			f: Func[int,int] = (x) => x
 			f(1)
 		`,
+	}, {
+		name: "compile type classes",
+		program: `
+			Addable[X] :: { add :: (X,X)=>X }
+			Addable[int] -> { add = (a, b) => a + b }
+			add(1,2)
+		`,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

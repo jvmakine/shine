@@ -148,8 +148,3 @@ func newSignCtx() *signctx {
 func (t Type) Signature() string {
 	return sign(t, newSignCtx(), 0)
 }
-
-// TODO: Remove
-func (t Type) TSignature() string {
-	return t.Signature()
-}

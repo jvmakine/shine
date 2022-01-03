@@ -97,28 +97,10 @@ func typeOp(op *ast.Op, ctx *ast.VisitContext) error {
 	return nil
 }
 
-func getBindings(ctx *ast.VisitContext) []TCBinding {
-	result := []TCBinding{}
-	block := ctx.Block()
-	if block == nil {
-		return result
-	}
-	for _, b := range block.TypeBindings {
-		result = append(result, TCBinding{
-			Name: b.Name,
-			Args: b.Parameters,
-		})
-	}
-	parent := ctx.ParentBlock()
-	result = append(result, getBindings(parent)...)
-	return result
-}
-
 func typeCall(call *ast.FCall, unifier Substitutions, ctx *ast.VisitContext) error {
 	call.Type = MakeVariable()
 	ftype := call.MakeFunType()
-
-	bindings := getBindings(ctx)
+	bindings := ctx.GetBindings()
 
 	nt, _ := call.Function.Type().Rewrite(func(t Type) (Type, error) {
 		if t.IsTypeClassRef() {
@@ -152,6 +134,8 @@ func Infer(exp *ast.Exp) error {
 		} else if v.Block != nil {
 			blockCount++
 			v.Block.ID = blockCount
+			nctx := ctx.SubBlock(v.Block)
+
 			for name := range v.Block.Assignments {
 				if ctx.BlockOf(name) != nil {
 					return errors.New("redefinition of " + name)
@@ -160,6 +144,33 @@ func Infer(exp *ast.Exp) error {
 			for name := range v.Block.TypeDefs {
 				if ctx.BlockOf(name) != nil {
 					return errors.New("redefinition of " + name)
+				}
+			}
+			for _, binding := range v.Block.TypeBindings {
+				name := binding.Name
+				class := nctx.TypeDef(name).TypeClass
+
+				for fname, fdef := range binding.Bindings {
+					fun := class.Functions[fname]
+					if fun == nil {
+						return errors.New("function " + fname + "not defined in " + name)
+					}
+					funtyp, _ := fun.Type().Rewrite(func(t Type) (Type, error) {
+						if t.IsTypeClassRef() {
+							return binding.Parameters[t.TCRef.Place], nil
+						}
+						return t, nil
+					})
+
+					exp := &ast.Exp{Def: fdef}
+					expType := exp.Type()
+					s, err := funtyp.Unifier(expType)
+					if err != nil {
+						return err
+					}
+
+					exp.Convert(s)
+					binding.Bindings[fname] = exp.Def
 				}
 			}
 		} else if v.Id != nil {

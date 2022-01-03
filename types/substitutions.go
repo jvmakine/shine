@@ -62,13 +62,16 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 			target.Variable.Structural[k] = apply(s, v, ctx)
 		}
 	}
-	if target.IsTypeClassRef() {
-		for i, a := range target.TCRef.TypeClassVars {
-			target.TCRef.TypeClassVars[i] = apply(s, a, ctx)
+	if r := target.TCRef; r != nil {
+		fields := make([]Type, len(r.TypeClassVars))
+		for i, a := range r.TypeClassVars {
+			fields[i] = apply(s, a, ctx)
 		}
-		if !target.TCRef.TypeClassVars[target.TCRef.Place].HasFreeVars() {
-			return target.TCRef.TypeClassVars[target.TCRef.Place]
+		nr := MakeTypeClassRef(r.TypeClass, r.Place, fields...)
+		if !nr.TCRef.TypeClassVars[nr.TCRef.Place].HasFreeVars() {
+			return nr.TCRef.TypeClassVars[nr.TCRef.Place]
 		}
+		return nr
 	}
 	if target.IsHVariable() {
 		for i, a := range target.HVariable.Params {
