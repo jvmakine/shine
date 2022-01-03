@@ -5,6 +5,12 @@ import "github.com/jvmakine/shine/ast"
 func DeadCodeElimination(exp *ast.Exp) {
 	visited := map[*ast.Exp]bool{}
 	visitedT := map[*ast.TypeDefinition]bool{}
+	exp.Visit(func(v *ast.Exp, _ *ast.VisitContext) error {
+		if v.Block != nil {
+			v.Block.TypeBindings = nil
+		}
+		return nil
+	})
 	exp.Crawl(func(v *ast.Exp, c *ast.VisitContext) error {
 		if v.Id != nil {
 			n := v.Id.Name
