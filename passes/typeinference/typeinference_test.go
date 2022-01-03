@@ -451,6 +451,13 @@ func TestInfer(tes *testing.T) {
 				map(S(1), (x) => 1.0).value
 			`,
 		typ: "real",
+	}, {
+		name: "infer monad function",
+		prg: `
+			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
+			fmap
+		`,
+		typ: "(Monad[V1[V2]],(V2)=>Monad[V1[V3]])=>Monad[V1[V3]]",
 	},
 	}
 	for _, tt := range tests {

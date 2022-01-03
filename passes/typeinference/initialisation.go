@@ -191,8 +191,7 @@ func initialiseVariables(exp *ast.Exp) error {
 							return errors.New("redefinition of " + fname)
 						}
 
-						// rewrite TC refs
-						for i, a := range *f.TypeDecl.Function {
+						nt, err := f.TypeDecl.Rewrite(func(a Type) (Type, error) {
 							if a.IsNamed() && free[a.Named.Name].IsDefined() {
 								used[a.Named.Name] = true
 								idx := index[a.Named.Name]
@@ -203,7 +202,7 @@ func initialiseVariables(exp *ast.Exp) error {
 									for i, t := range a.Named.TypeArguments {
 										nt, err := resolveTypeVariables(t, free, used)
 										if err != nil {
-											return err
+											return Type{}, err
 										}
 										rws[i] = nt
 									}
@@ -218,9 +217,14 @@ func initialiseVariables(exp *ast.Exp) error {
 								ff[idx] = it
 
 								nt := types.MakeTypeClassRef(name, idx, ff...)
-								(*f.TypeDecl.Function)[i] = nt
+								return nt, nil
 							}
+							return a, nil
+						})
+						if err != nil {
+							return err
 						}
+						f.TypeDecl = nt
 
 						nfree := map[string]Type{}
 						nused := map[string]bool{}
@@ -235,7 +239,7 @@ func initialiseVariables(exp *ast.Exp) error {
 							nfree[n] = types.MakeVariable()
 						}
 
-						nt, err := resolveTypeVariables(f.TypeDecl, nfree, nused)
+						nt, err = resolveTypeVariables(f.TypeDecl, nfree, nused)
 						if err != nil {
 							return err
 						}
