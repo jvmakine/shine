@@ -420,6 +420,16 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 	return f(t)
 }
 
+func (t Type) ApplyBindings(bindings []TCBinding) Type {
+	nt, _ := t.Rewrite(func(t Type) (Type, error) {
+		if t.IsTypeClassRef() {
+			t.TCRef.LocalBindings = bindings
+		}
+		return t, nil
+	})
+	return nt
+}
+
 func (s *Structure) GetField(name string) *Type {
 	for _, f := range s.Fields {
 		if f.Name == name {

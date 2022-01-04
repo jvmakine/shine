@@ -106,6 +106,16 @@ func TestCompile(t *testing.T) {
 			
 			fmap(S(1), (x) => S(x + 5)).value
 		`,
+	}, {
+		name: "compile abstract functions based on type classes",
+		program: `
+			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
+			S[A] :: (value: A)
+			Monad[S] -> { fmap = (s, f) => f(s.value) }
+			afun = (a, f) => fmap(a, f)
+			
+			afun(S(1), (y) => S(y + 1)).value
+		`,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

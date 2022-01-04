@@ -1,8 +1,7 @@
 Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
-
 S[A] :: (value: A)
+afun = (a, f) => fmap(a, f)
+
 Monad[S] -> { fmap = (s, f) => f(s.value) }
 
-mog = (x) => fmap(x, (y) => S(y + 1))
-
-mog(S(1)).value
+afun(S(1), (y) => S(y + 1)).value

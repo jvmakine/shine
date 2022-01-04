@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/jvmakine/shine/ast"
-	"github.com/jvmakine/shine/types"
 )
 
 type FSign = string
@@ -79,12 +78,7 @@ func resolveCall(v *ast.FCall, ctx *ast.VisitContext) {
 	bindings := ctx.GetBindings()
 	fun := v.MakeFunType()
 
-	nt, _ := v.Function.Type().Rewrite(func(t types.Type) (types.Type, error) {
-		if t.IsTypeClassRef() {
-			t.TCRef.LocalBindings = bindings
-		}
-		return t, nil
-	})
+	nt := v.Function.Type().ApplyBindings(bindings)
 
 	uni, err := fun.Unifier(nt)
 
@@ -105,7 +99,8 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 		if block.Assignments[fsig] == nil {
 			f := block.Assignments[v.Id.Name]
 			cop := f.Copy()
-			subs, err := cop.Type().Unifier(v.Type())
+			nt := cop.Type().ApplyBindings(ctx.GetBindings())
+			subs, err := nt.Unifier(v.Type())
 			if err != nil {
 				panic(err)
 			}
