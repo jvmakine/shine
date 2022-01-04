@@ -1,10 +1,10 @@
 package optimisation
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/jvmakine/shine/passes/typeinference"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jvmakine/shine/ast"
 	. "github.com/jvmakine/shine/test"
@@ -34,7 +34,7 @@ func TestDCE(t *testing.T) {
 				"a": Fdef(Fcall(Op("+"), Id("x"), Id("y")), "x"),
 				"y": IConst(5),
 			},
-			Typedefs{}, Bindings{},
+			Typedefs{}, nil,
 			Fcall(Id("a"), IConst(1)),
 		),
 	}}
@@ -49,9 +49,7 @@ func TestDCE(t *testing.T) {
 				panic(err)
 			}
 			DeadCodeElimination(tt.before)
-			if !reflect.DeepEqual(tt.before, tt.after) {
-				t.Errorf("Resolve() = %v, want %v", tt.before, tt.after)
-			}
+			require.Equal(t, tt.before, tt.after)
 		})
 	}
 }

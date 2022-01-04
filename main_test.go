@@ -100,10 +100,11 @@ func TestCompile(t *testing.T) {
 	}, {
 		name: "compile type classes",
 		program: `
+			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
 			S[A] :: (value: A)
-			Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }
-			Functor[S] -> { map = (s, f) => S(f(s.value)) }
-			map(S(1), (x) => 1.0).value
+			Monad[S] -> { fmap = (s, f) => f(s.value) }
+			
+			fmap(S(1), (x) => S(x + 5)).value
 		`,
 	}}
 	for _, tt := range tests {

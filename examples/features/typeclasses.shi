@@ -1,6 +1,5 @@
-Functor[F] :: { map[A,B] :: (F[A], (A) => B) => F[B] }  
-
+Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
 S[A] :: (value: A)
-Functor[S] -> { map = (s, f) => S(f(s.value)) }
+Monad[S] -> { fmap = (s, f) => f(s.value) }
 
-map(S(1), (x) => 1.0).value
+fmap(S(1), (x) => S(x + 5)).value
