@@ -201,8 +201,8 @@ func Infer(exp *ast.Exp) error {
 			if err := typeOp(v.Op, ctx); err != nil {
 				return err
 			}
-		} else if v.Call != nil {
-			if err := typeCall(v.Call, unifier, ctx); err != nil {
+		} else if call := v.Call; call != nil {
+			if err := typeCall(call, unifier, ctx); err != nil {
 				return err
 			}
 		} else if v.Def != nil {
@@ -221,7 +221,10 @@ func Infer(exp *ast.Exp) error {
 			if err != nil {
 				return err
 			}
-			unifier.Combine(uni)
+			err = unifier.Combine(uni)
+			if err != nil {
+				return err
+			}
 			v.FAccess.Type = unifier.Apply(vari)
 		}
 		return nil

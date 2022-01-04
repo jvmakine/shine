@@ -290,7 +290,7 @@ func TestInfer(tes *testing.T) {
 		name: "work on known named type",
 		prg: `
 			t :: (x: int)
-			a: t
+			t(1): t
 		`,
 		typ: "t",
 	}, {
@@ -471,6 +471,19 @@ func TestInfer(tes *testing.T) {
 			a(1,2)
 		`,
 		err: errors.New("following functions were not defined for Foo[int]: b"),
+	}, {
+		name: "fails when a wrong binding is given to an abstract function",
+		prg: `
+			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
+			S[A] :: (value: A)
+			Monad[S] -> { fmap = (s, f) => f(s.value) }
+			O[A] :: (value: A)
+			Monad[O] -> { fmap = (s, f) => f(s.value) }
+
+			mog = (x) => fmap(x, (y) => S(y + 1))
+			mog(O(1)).value
+		`,
+		err: errors.New("can not unify O[int] with S[int]"),
 	},
 	}
 	for _, tt := range tests {
