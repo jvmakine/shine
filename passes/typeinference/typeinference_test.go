@@ -458,6 +458,19 @@ func TestInfer(tes *testing.T) {
 			fmap
 		`,
 		typ: "(Monad[V1[V2]],(V2)=>Monad[V1[V3]])=>Monad[V1[V3]]",
+	}, {
+		name: "fail if all class functions are not defined",
+		prg: `
+			Foo[X] :: { 
+				a :: (X, X) => X
+				b :: (X, X) => X
+			}
+			Foo[int] -> { 
+				a = (x,y) => x + y
+			}
+			a(1,2)
+		`,
+		err: errors.New("following functions were not defined for Foo[int]: b"),
 	},
 	}
 	for _, tt := range tests {

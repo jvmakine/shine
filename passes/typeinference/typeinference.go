@@ -2,6 +2,7 @@ package typeinference
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/jvmakine/shine/ast"
 	"github.com/jvmakine/shine/types"
@@ -154,8 +155,10 @@ func Infer(exp *ast.Exp) error {
 			for _, binding := range v.Block.TypeBindings {
 				name := binding.Name
 				class := nctx.TypeDef(name).TypeClass
+				found := map[string]bool{}
 
 				for fname, fdef := range binding.Bindings {
+					found[fname] = true
 					fun := class.Functions[fname]
 					if fun == nil {
 						return errors.New("function " + fname + "not defined in " + name)
@@ -177,6 +180,17 @@ func Infer(exp *ast.Exp) error {
 
 					exp.Convert(s)
 					binding.Bindings[fname] = exp.Def
+				}
+
+				for fname := range class.Functions {
+					if !found[fname] {
+						strs := make([]string, len(binding.Parameters))
+						for i, t := range binding.Parameters {
+							strs[i] = t.Signature()
+						}
+						sig := binding.Name + "[" + strings.Join(strs, ",") + "]"
+						return errors.New("following functions were not defined for " + sig + ": " + fname)
+					}
 				}
 			}
 		} else if v.Id != nil {

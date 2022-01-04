@@ -76,7 +76,7 @@ type BlockElement struct {
 type TypeBinding struct {
 	Name        *string            `@Ident`
 	Arguments   []*TypeDeclaration `"[" @@ ("," @@)* "]" Binding Newline*`
-	Assignments []*Assignment      `"{" @@+ "}" Newline*`
+	Assignments []*Assignment      `"{" Newline* @@+ "}" Newline*`
 }
 
 type TypeDefinition struct {
@@ -88,13 +88,13 @@ type TypeDefinition struct {
 }
 
 type TypeClassDefinition struct {
-	Functions []*AbstractFunDef `"{" Newline* @@+ Newline* "}"`
+	Functions []*AbstractFunDef `"{" Newline* @@+ "}"`
 }
 
 type AbstractFunDef struct {
 	Name     *string   `@Ident`
 	FreeVars []string  `("[" @Ident ("," @Ident)* "]")? TypeDef`
-	Function *TypeFunc `@@`
+	Function *TypeFunc `@@ Newline*`
 }
 
 type StructDescription struct {
