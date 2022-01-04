@@ -161,7 +161,7 @@ func Infer(exp *ast.Exp) error {
 					found[fname] = true
 					fun := class.Functions[fname]
 					if fun == nil {
-						return errors.New("function " + fname + "not defined in " + name)
+						return errors.New("function " + fname + " not defined in " + name)
 					}
 					funtyp, _ := fun.Type().Rewrite(func(t Type) (Type, error) {
 						if t.IsTypeClassRef() {
