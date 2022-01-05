@@ -62,15 +62,6 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	if o.IsPrimitive() && t.IsPrimitive() && *o.Primitive == *t.Primitive {
 		return Substitutions{}, nil
 	}
-	if (o.IsPrimitive() && t.IsFunction()) || (o.IsFunction() && t.IsPrimitive()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsPrimitive() && t.IsStructure()) || (o.IsStructure() && t.IsPrimitive()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
-	if (o.IsFunction() && t.IsStructure()) || (o.IsStructure() && t.IsFunction()) {
-		return Substitutions{}, UnificationError(o, t)
-	}
 	if t.IsVariable() && o.IsVariable() {
 		return unifyVariables(t, o, ctx)
 	}
@@ -231,9 +222,6 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		subs := MakeSubstitutions()
 		subs.Update(o.HVariable.Root, inst, ctx.resolver)
 		return subs, nil
-	}
-	if !o.IsDefined() {
-		return Substitutions{}, nil
 	}
 	return Substitutions{}, UnificationError(o, t)
 }
