@@ -114,9 +114,9 @@ func TestType_Unify(t *testing.T) {
 		err:  nil,
 	}, {
 		name: "unifies matching structures with variables",
-		a:    MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{var1, BoolP}),
-		b:    MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{IntP, var2}),
-		want: MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{IntP, BoolP}),
+		a:    MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{var1, BoolP}, &NullResolver{}),
+		b:    MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{IntP, var2}, &NullResolver{}),
+		want: MakeStructure("s1", SField{"a", var1}, SField{"b", var2}).Instantiate([]Type{IntP, BoolP}, &NullResolver{}),
 		err:  nil,
 	}, {
 		name: "fails to unify structure with a function",
@@ -206,12 +206,12 @@ func TestType_Unify(t *testing.T) {
 	}, {
 		name: "unifies structures with higher order variables",
 		a:    MakeFunction(MakeHierarchicalVar(var1.Variable, MakeVariable()), MakeHierarchicalVar(var1.Variable, MakeVariable()), IntP),
-		b:    MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}), IntP),
-		want: MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}), IntP),
+		b:    MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}, &NullResolver{}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}, &NullResolver{}), IntP),
+		want: MakeFunction(MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{IntP}, &NullResolver{}), MakeStructure("S", SField{Name: "a", Type: MakeVariable()}).Instantiate([]Type{RealP}, &NullResolver{}), IntP),
 	}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.a.Unify(tt.b)
+			got, err := tt.a.Unify(tt.b, &NullResolver{})
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 			} else {
@@ -221,7 +221,7 @@ func TestType_Unify(t *testing.T) {
 				}
 				require.Equal(t, tt.want.Signature(), got.Signature())
 			}
-			got, err = tt.b.Unify(tt.a)
+			got, err = tt.b.Unify(tt.a, &NullResolver{})
 			if tt.err != nil {
 				require.Equal(t, tt.err, err)
 			} else {

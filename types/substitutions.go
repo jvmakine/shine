@@ -13,11 +13,12 @@ func MakeSubstitutions() Substitutions {
 }
 
 type substCtx struct {
-	visited map[*Structure]bool
+	visited  map[*Structure]bool
+	resolver BindingResolver
 }
 
-func (s Substitutions) Apply(t Type) Type {
-	return apply(s, t, &substCtx{visited: map[*Structure]bool{}})
+func (s Substitutions) Apply(t Type, resolver BindingResolver) Type {
+	return apply(s, t, &substCtx{visited: map[*Structure]bool{}, resolver: resolver})
 }
 
 func apply(s Substitutions, t Type, ctx *substCtx) Type {
@@ -79,27 +80,27 @@ func apply(s Substitutions, t Type, ctx *substCtx) Type {
 		}
 		if ss := s.substitutions[target.HVariable.Root]; ss.IsDefined() {
 			res := s.substitutions[target.HVariable.Root]
-			return res.Instantiate(target.HVariable.Params)
+			return res.Instantiate(target.HVariable.Params, ctx.resolver)
 		}
 	}
 	return target
 }
 
-func (s Substitutions) Update(from *TypeVar, to Type) error {
+func (s Substitutions) Update(from *TypeVar, to Type, resolver BindingResolver) error {
 	if from == to.Variable {
 		return nil
 	}
 
-	result := s.Apply(to)
+	result := s.Apply(to, resolver)
 
 	if p := s.substitutions[from]; p.IsDefined() {
 		if result != p {
-			uni, err := result.Unifier(p)
+			uni, err := result.Unifier(p, resolver)
 			if err != nil {
 				return err
 			}
-			s.Combine(uni)
-			result = uni.Apply(result)
+			s.Combine(uni, resolver)
+			result = uni.Apply(result, resolver)
 		}
 	}
 
@@ -115,10 +116,10 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 	if rs := s.references[from]; rs != nil {
 		s.references[from] = nil
 		subs := MakeSubstitutions()
-		subs.Update(from, result)
+		subs.Update(from, result, resolver)
 		for k := range rs {
 			substit := s.substitutions[k]
-			s.substitutions[k] = subs.Apply(substit)
+			s.substitutions[k] = subs.Apply(substit, resolver)
 			for _, fv := range s.substitutions[k].FreeVars() {
 				if s.references[fv] == nil {
 					s.references[fv] = map[*TypeVar]bool{}
@@ -131,9 +132,9 @@ func (s Substitutions) Update(from *TypeVar, to Type) error {
 	return nil
 }
 
-func (s Substitutions) Combine(o Substitutions) error {
+func (s Substitutions) Combine(o Substitutions, resolver BindingResolver) error {
 	for f, t := range o.substitutions {
-		err := s.Update(f, t)
+		err := s.Update(f, t, resolver)
 		if err != nil {
 			return err
 		}

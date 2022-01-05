@@ -377,18 +377,18 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 				return Type{}, err
 			}
 			v := tdef.VaribleMap[tdef.FreeVariables[i]]
-			nt, err = nt.Unify(v)
+			nt, err = nt.Unify(v, ctx)
 			if err != nil {
 				return Type{}, err
 			}
-			err = unifier.Update(v.Variable, nt)
+			err = unifier.Update(v.Variable, nt, ctx)
 			if err != nil {
 				return Type{}, err
 			}
 			t.Named.TypeArguments[i] = nt
 		}
 
-		return unifier.Apply(resolved), nil
+		return unifier.Apply(resolved, ctx), nil
 	}
 	return t, nil
 }

@@ -256,17 +256,17 @@ func (t *TypeDefinition) Type() types.Type {
 	return t.TypeDecl
 }
 
-func (exp *Exp) Convert(s types.Substitutions) {
+func (exp *Exp) Convert(s types.Substitutions, resolver types.BindingResolver) {
 	exp.RewriteTypes(func(t types.Type, ctx *VisitContext) (types.Type, error) {
-		return s.Apply(t), nil
+		return s.Apply(t, resolver), nil
 	})
 }
 
-func (t *TypeDefinition) Convert(s types.Substitutions) {
+func (t *TypeDefinition) Convert(s types.Substitutions, resolver types.BindingResolver) {
 	if t.Struct != nil {
-		t.Struct.Type = s.Apply(t.Struct.Type)
+		t.Struct.Type = s.Apply(t.Struct.Type, resolver)
 		for _, f := range t.Struct.Fields {
-			f.Type = s.Apply(f.Type)
+			f.Type = s.Apply(f.Type, resolver)
 		}
 	}
 }

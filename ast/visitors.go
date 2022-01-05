@@ -12,6 +12,34 @@ type VisitContext struct {
 	assignment string
 }
 
+func (ctx *VisitContext) FindBindings(name string, args []types.Type) []*types.TCBinding {
+	var res []*types.TCBinding
+	if ctx.block != nil {
+		block := ctx.block
+		for _, binding := range block.TypeBindings {
+			if binding.Name != name {
+				continue
+			}
+			f1 := types.MakeFunction(binding.Parameters...)
+			f2 := types.MakeFunction(args...)
+
+			if f1.Unifies(f2, ctx) {
+				res = append(res, &types.TCBinding{
+					BlockID: block.ID,
+					Name:    name,
+					Args:    binding.Parameters,
+				})
+			}
+		}
+
+	}
+	parent := ctx.ParentBlock()
+	if parent != nil {
+		return append(res, parent.FindBindings(name, args)...)
+	}
+	return res
+}
+
 func (ctx *VisitContext) SubBlock(b *Block) *VisitContext {
 	return &VisitContext{parent: ctx, block: b, def: ctx.def, binding: ctx.binding}
 }

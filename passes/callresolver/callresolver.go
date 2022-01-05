@@ -75,17 +75,13 @@ func makeBlockMap(exp *ast.Exp) map[int]*ast.Block {
 }
 
 func resolveCall(v *ast.FCall, ctx *ast.VisitContext) {
-	bindings := ctx.GetBindings()
 	fun := v.MakeFunType()
-
-	nt := v.Function.Type().ApplyBindings(bindings)
-
-	uni, err := fun.Unifier(nt)
+	uni, err := fun.Unifier(v.Function.Type(), ctx)
 
 	if err != nil {
 		panic(err)
 	}
-	v.Function.Convert(uni)
+	v.Function.Convert(uni, ctx)
 }
 
 func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) {
@@ -99,12 +95,11 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 		if block.Assignments[fsig] == nil {
 			f := block.Assignments[v.Id.Name]
 			cop := f.Copy()
-			nt := cop.Type().ApplyBindings(ctx.GetBindings())
-			subs, err := nt.Unifier(v.Type())
+			subs, err := cop.Type().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}
-			cop.Convert(subs)
+			cop.Convert(subs, ctx)
 			if cop.Type().HasFreeVars() {
 				panic("could not unify " + f.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
@@ -112,7 +107,7 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 		} else {
 			f := block.Assignments[v.Id.Name]
 			cop := f.Copy()
-			_, err := cop.Type().Unifier(v.Type())
+			_, err := cop.Type().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}
@@ -124,11 +119,11 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 			f := block.TypeDefs[v.Id.Name]
 
 			cop := f.Copy()
-			subs, err := cop.Struct.Constructor().Unifier(v.Type())
+			subs, err := cop.Struct.Constructor().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}
-			cop.Convert(subs)
+			cop.Convert(subs, ctx)
 			if cop.Type().HasFreeVars() {
 				panic("could not unify " + cop.Struct.Constructor().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
@@ -136,7 +131,7 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 		} else {
 			f := block.TypeDefs[v.Id.Name]
 			cop := f.Copy()
-			_, err := cop.Struct.Constructor().Unifier(v.Type())
+			_, err := cop.Struct.Constructor().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}
@@ -162,7 +157,7 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 						def := b.Bindings[name]
 						exp := &ast.Exp{Def: def}
 
-						if exp.Type().Unifies(v.Type()) {
+						if exp.Type().Unifies(v.Type(), ctx) {
 							blockId = b2.ID
 							fexp = exp.Copy()
 							break
@@ -182,18 +177,18 @@ func resolveIdFunct(v *ast.Exp, bmap map[int]*ast.Block, ctx *ast.VisitContext) 
 		fsig := MakeFSign(v.Id.Name, blockId, v.Type().Signature())
 		if block.Assignments[fsig] == nil {
 			cop := fexp.Copy()
-			subs, err := cop.Type().Unifier(v.Type())
+			subs, err := cop.Type().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}
-			cop.Convert(subs)
+			cop.Convert(subs, ctx)
 			if cop.Type().HasFreeVars() {
 				panic("could not unify " + fexp.Type().Signature() + " u " + v.Type().Signature() + " => " + cop.Type().Signature())
 			}
 			block.Assignments[fsig] = cop
 		} else {
 			cop := block.Assignments[fsig].Copy()
-			_, err := cop.Type().Unifier(v.Type())
+			_, err := cop.Type().Unifier(v.Type(), ctx)
 			if err != nil {
 				panic(err)
 			}

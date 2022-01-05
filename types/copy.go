@@ -34,7 +34,6 @@ func (t Type) Copy(ctx *TypeCopyCtx) Type {
 			ps[i] = p.Copy(ctx)
 		}
 		c := MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, ps...)
-		c.TCRef.LocalBindings = t.TCRef.LocalBindings
 		return c
 	}
 	if t.HVariable != nil {

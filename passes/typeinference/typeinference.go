@@ -101,26 +101,18 @@ func typeOp(op *ast.Op, ctx *ast.VisitContext) error {
 func typeCall(call *ast.FCall, unifier Substitutions, ctx *ast.VisitContext) error {
 	call.Type = MakeVariable()
 	ftype := call.MakeFunType()
-	bindings := ctx.GetBindings()
 
-	nt, _ := call.Function.Type().Rewrite(func(t Type) (Type, error) {
-		if t.IsTypeClassRef() {
-			t.TCRef.LocalBindings = bindings
-		}
-		return t, nil
-	})
-
-	s, err := ftype.Unifier(nt)
+	s, err := ftype.Unifier(call.Function.Type(), ctx)
 	if err != nil {
 		return err
 	}
-	call.Type = s.Apply(call.Type)
+	call.Type = s.Apply(call.Type, ctx)
 
 	for _, p := range call.Params {
-		p.Convert(s)
+		p.Convert(s, ctx)
 	}
 
-	err = unifier.Combine(s)
+	err = unifier.Combine(s, ctx)
 	if err != nil {
 		return err
 	}
@@ -163,22 +155,16 @@ func Infer(exp *ast.Exp) error {
 					if fun == nil {
 						return errors.New("function " + fname + " not defined in " + name)
 					}
-					funtyp, _ := fun.Type().Rewrite(func(t Type) (Type, error) {
-						if t.IsTypeClassRef() {
-							return binding.Parameters[t.TCRef.Place].Copy(NewTypeCopyCtx()), nil
-						}
-						return t, nil
-					})
 
 					exp := &ast.Exp{Def: fdef}
 					expType := exp.Type()
 
-					s, err := funtyp.Unifier(expType)
+					s, err := fun.Type().Unifier(expType, nctx)
 					if err != nil {
 						return err
 					}
 
-					exp.Convert(s)
+					exp.Convert(s, nctx)
 					binding.Bindings[fname] = exp.Def
 				}
 
@@ -206,26 +192,26 @@ func Infer(exp *ast.Exp) error {
 				return err
 			}
 		} else if v.Def != nil {
-			v.Convert(unifier)
+			v.Convert(unifier, ctx)
 		} else if v.TDecl != nil {
-			uni, err := v.TDecl.Type.Unifier(v.TDecl.Exp.Type())
+			uni, err := v.TDecl.Type.Unifier(v.TDecl.Exp.Type(), ctx)
 			if err != nil {
 				return err
 			}
-			unifier.Combine(uni)
-			v.TDecl.Exp.Convert(unifier)
+			unifier.Combine(uni, ctx)
+			v.TDecl.Exp.Convert(unifier, ctx)
 		} else if v.FAccess != nil {
 			vari := MakeVariable()
 			typ := MakeStructuralVar(map[string]Type{v.FAccess.Field: vari})
-			uni, err := v.FAccess.Exp.Type().Unifier(typ)
+			uni, err := v.FAccess.Exp.Type().Unifier(typ, ctx)
 			if err != nil {
 				return err
 			}
-			err = unifier.Combine(uni)
+			err = unifier.Combine(uni, ctx)
 			if err != nil {
 				return err
 			}
-			v.FAccess.Type = unifier.Apply(vari)
+			v.FAccess.Type = unifier.Apply(vari, ctx)
 		}
 		return nil
 	}

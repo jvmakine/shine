@@ -103,7 +103,7 @@ func TestCompile(t *testing.T) {
 			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
 			S[A] :: (value: A)
 			Monad[S] -> { fmap = (s, f) => f(s.value) }
-			
+
 			fmap(S(1), (x) => S(x + 5)).value
 		`,
 	}, {
@@ -112,7 +112,7 @@ func TestCompile(t *testing.T) {
 			Monad[F] :: { fmap[A,B] :: (F[A], (A) => F[B]) => F[B] }
 			S[A] :: (value: A)
 			Monad[S] -> { fmap = (s, f) => f(s.value) }
-			afun = (a, f) => fmap(a, f)
+			afun = (i, j) => fmap(i, j)
 			
 			afun(S(1), (y) => S(y + 1)).value
 		`,

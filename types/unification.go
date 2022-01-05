@@ -7,6 +7,17 @@ import (
 type unificationCtx struct {
 	seenStructures map[*Structure]map[*Structure]bool
 	sctx           *signctx
+	resolver       BindingResolver
+}
+
+type BindingResolver interface {
+	FindBindings(name string, types []Type) []*TCBinding
+}
+
+type NullResolver struct{}
+
+func (r *NullResolver) FindBindings(name string, types []Type) []*TCBinding {
+	return nil
 }
 
 func UnificationError(a Type, b Type) error {
@@ -19,12 +30,12 @@ func UnificationError(a Type, b Type) error {
 	}
 }
 
-func (t Type) Unify(o Type) (Type, error) {
-	sub, err := t.Unifier(o)
+func (t Type) Unify(o Type, resolver BindingResolver) (Type, error) {
+	sub, err := t.Unifier(o, resolver)
 	if err != nil {
 		return t, err
 	}
-	res := sub.Apply(t)
+	res := sub.Apply(t, resolver)
 	if res.IsStructure() && t.IsStructure() && o.IsStructure() {
 		if t.Structure.Name != o.Structure.Name {
 			res.Structure.Name = ""
@@ -33,13 +44,17 @@ func (t Type) Unify(o Type) (Type, error) {
 	return res, nil
 }
 
-func (t Type) Unifier(o Type) (Substitutions, error) {
-	ctx := &unificationCtx{seenStructures: map[*Structure]map[*Structure]bool{}, sctx: newSignCtx()}
+func (t Type) Unifier(o Type, resolver BindingResolver) (Substitutions, error) {
+	ctx := &unificationCtx{
+		seenStructures: map[*Structure]map[*Structure]bool{},
+		sctx:           newSignCtx(),
+		resolver:       resolver,
+	}
 	return unifier(t, o, ctx)
 }
 
-func (t Type) Unifies(o Type) bool {
-	_, err := t.Unifier(o)
+func (t Type) Unifies(o Type, resolver BindingResolver) bool {
+	_, err := t.Unifier(o, resolver)
 	return err == nil
 }
 
@@ -64,12 +79,12 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if t.IsVariable() && o.IsTypeClassRef() {
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
+		subs.Update(t.Variable, o, ctx.resolver)
 		return subs, nil
 	}
 	if t.IsVariable() && o.IsHVariable() {
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
+		subs.Update(t.Variable, o, ctx.resolver)
 		return subs, nil
 	}
 	if o.IsTypeClassRef() && !t.IsTypeClassRef() {
@@ -80,43 +95,47 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 			return Substitutions{}, UnificationError(o, t)
 		}
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
+		subs.Update(t.Variable, o, ctx.resolver)
 		return subs, nil
 	}
 	if t.IsVariable() && o.IsStructure() {
 		if t.IsUnionVar() {
 			return Substitutions{}, UnificationError(o, t)
 		} else if t.IsStructuralVar() {
-			return unifyStructureWithStructuralVar(t, o)
+			return unifyStructureWithStructuralVar(t, o, ctx)
 		}
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
+		subs.Update(t.Variable, o, ctx.resolver)
 		return subs, nil
 	}
 	if t.IsTypeClassRef() && o.IsTypeClassRef() {
 		f := t.TCRef.TypeClassVars[t.TCRef.Place]
 		s := o.TCRef.TypeClassVars[o.TCRef.Place]
-		return f.Unifier(s)
+		return f.Unifier(s, ctx.resolver)
 	}
 	if t.IsTypeClassRef() {
-		for _, b := range t.TCRef.LocalBindings {
+		bs := ctx.resolver.FindBindings(t.TCRef.TypeClass, t.TCRef.TypeClassVars)
+		if len(bs) == 0 {
+			return Substitutions{}, UnificationError(o, t)
+		}
+		for _, b := range bs {
 			f1 := b.Args[t.TCRef.Place].Copy(NewTypeCopyCtx())
 
 			subs := MakeSubstitutions()
 
-			s, err := o.Unifier(f1)
+			s, err := o.Unifier(f1, ctx.resolver)
 			if err != nil {
 				continue
 			}
-			err = subs.Combine(s)
+			err = subs.Combine(s, ctx.resolver)
 			if err != nil {
 				continue
 			}
-			s, err = t.TCRef.TypeClassVars[t.TCRef.Place].Unifier(f1)
+			s, err = t.TCRef.TypeClassVars[t.TCRef.Place].Unifier(f1, ctx.resolver)
 			if err != nil {
 				continue
 			}
-			err = subs.Combine(s)
+			err = subs.Combine(s, ctx.resolver)
 			if err != nil {
 				continue
 			}
@@ -139,17 +158,17 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		if len(t.HVariable.Params) != len(o.Structure.TypeArguments) {
 			return Substitutions{}, UnificationError(o, t)
 		}
-		err := subs.Update(t.HVariable.Root, Type{Constructor: &TypeConstructor{Name: o.Structure.Name, Arguments: len(o.Structure.TypeArguments), Underlying: o}})
+		err := subs.Update(t.HVariable.Root, Type{Constructor: &TypeConstructor{Name: o.Structure.Name, Arguments: len(o.Structure.TypeArguments), Underlying: o}}, ctx.resolver)
 		if err != nil {
 			return Substitutions{}, err
 		}
 		for i, p1 := range t.HVariable.Params {
 			p2 := o.Structure.TypeArguments[i]
-			s, err := p1.Unifier(p2)
+			s, err := p1.Unifier(p2, ctx.resolver)
 			if err != nil {
 				return Substitutions{}, err
 			}
-			err = subs.Combine(s)
+			err = subs.Combine(s, ctx.resolver)
 			if err != nil {
 				return Substitutions{}, err
 			}
@@ -158,7 +177,7 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	}
 	if t.IsHVariable() && o.IsHVariable() {
 		subs := MakeSubstitutions()
-		err := subs.Update(t.HVariable.Root, Type{Variable: o.HVariable.Root})
+		err := subs.Update(t.HVariable.Root, Type{Variable: o.HVariable.Root}, ctx.resolver)
 		if err != nil {
 			return Substitutions{}, err
 		}
@@ -170,7 +189,7 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 			if err != nil {
 				return Substitutions{}, err
 			}
-			err = subs.Combine(s)
+			err = subs.Combine(s, ctx.resolver)
 			if err != nil {
 				return Substitutions{}, err
 			}
@@ -184,18 +203,18 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 				return Substitutions{}, err
 			}
 			subs := MakeSubstitutions()
-			err = subs.Update(t.Variable, o)
+			err = subs.Update(t.Variable, o, ctx.resolver)
 			return subs, err
 		} else if t.IsVariable() {
 			subs := MakeSubstitutions()
-			err := subs.Update(t.Variable, o)
+			err := subs.Update(t.Variable, o, ctx.resolver)
 			return subs, err
 		}
 		return Substitutions{}, UnificationError(o, t)
 	}
 	if t.IsVariable() {
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, o)
+		subs.Update(t.Variable, o, ctx.resolver)
 		return subs, nil
 	}
 	if o.IsConstructor() && t.IsConstructor() {
@@ -208,9 +227,9 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 		return unifier(o, t, ctx)
 	}
 	if t.IsConstructor() && o.IsHVariable() {
-		inst := t.Constructor.Underlying.Instantiate(o.HVariable.Params)
+		inst := t.Constructor.Underlying.Instantiate(o.HVariable.Params, ctx.resolver)
 		subs := MakeSubstitutions()
-		subs.Update(o.HVariable.Root, inst)
+		subs.Update(o.HVariable.Root, inst, ctx.resolver)
 		return subs, nil
 	}
 	if !o.IsDefined() {
@@ -219,7 +238,7 @@ func unifier(t Type, o Type, ctx *unificationCtx) (Substitutions, error) {
 	return Substitutions{}, UnificationError(o, t)
 }
 
-func unifyStructureWithStructuralVar(v Type, s Type) (Substitutions, error) {
+func unifyStructureWithStructuralVar(v Type, s Type, ctx *unificationCtx) (Substitutions, error) {
 	tres := MakeSubstitutions()
 	smap := map[string]Type{}
 	for _, f := range s.Structure.Fields {
@@ -231,16 +250,16 @@ func unifyStructureWithStructuralVar(v Type, s Type) (Substitutions, error) {
 		if !sv.IsDefined() {
 			return Substitutions{}, UnificationError(v, s)
 		}
-		sub, err := t.Unifier(sv)
+		sub, err := unifier(t, sv, ctx)
 		if err != nil {
 			return Substitutions{}, err
 		}
-		err = tres.Combine(sub)
+		err = tres.Combine(sub, ctx.resolver)
 		if err != nil {
 			return Substitutions{}, err
 		}
 	}
-	tres.Update(v.Variable, s)
+	tres.Update(v.Variable, s, ctx.resolver)
 	return tres, nil
 }
 
@@ -256,14 +275,14 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 		if len(resolv) == 1 {
 			prim := MakePrimitive(resolv[0])
 			subs := MakeSubstitutions()
-			subs.Update(t.Variable, prim)
-			subs.Update(o.Variable, prim)
+			subs.Update(t.Variable, prim, ctx.resolver)
+			subs.Update(o.Variable, prim, ctx.resolver)
 			return subs, err
 		}
 		rv := MakeUnionVar(resolv...)
 		subs := MakeSubstitutions()
-		subs.Update(t.Variable, rv)
-		subs.Update(o.Variable, rv)
+		subs.Update(t.Variable, rv, ctx.resolver)
+		subs.Update(o.Variable, rv, ctx.resolver)
 		return subs, err
 	} else if t.IsStructuralVar() && o.IsStructuralVar() {
 		ts := t.Variable.Structural
@@ -276,11 +295,11 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 		subs := MakeSubstitutions()
 		for k, v := range os {
 			if res[k].IsDefined() {
-				s, err := res[k].Unifier(v)
+				s, err := unifier(res[k], v, ctx)
 				if err != nil {
 					return Substitutions{}, err
 				}
-				err = subs.Combine(s)
+				err = subs.Combine(s, ctx.resolver)
 				if err != nil {
 					return Substitutions{}, err
 				}
@@ -288,12 +307,12 @@ func unifyVariables(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 			res[k] = v
 		}
 		rv := MakeStructuralVar(res)
-		subs.Update(t.Variable, rv)
-		subs.Update(o.Variable, rv)
+		subs.Update(t.Variable, rv, ctx.resolver)
+		subs.Update(o.Variable, rv, ctx.resolver)
 		return subs, nil
 	}
 	subs := MakeSubstitutions()
-	subs.Update(o.Variable, t)
+	subs.Update(o.Variable, t, ctx.resolver)
 	return subs, nil
 }
 
@@ -309,7 +328,7 @@ func unifyFunctions(t Type, o Type, ctx *unificationCtx) (Substitutions, error) 
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
-		err = result.Combine(s)
+		err = result.Combine(s, ctx.resolver)
 		if err != nil {
 			return Substitutions{}, err
 		}
@@ -347,7 +366,7 @@ func unifyStructures(t Type, o Type, ctx *unificationCtx) (Substitutions, error)
 		if err != nil {
 			return MakeSubstitutions(), err
 		}
-		err = result.Combine(s)
+		err = result.Combine(s, ctx.resolver)
 		if err != nil {
 			return Substitutions{}, err
 		}

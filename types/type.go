@@ -58,7 +58,6 @@ type TypeClassRef struct {
 	TypeClass     string
 	TypeClassVars []Type
 	Place         int
-	LocalBindings []TCBinding
 }
 
 type TypeConstructor struct {
@@ -404,7 +403,6 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 			nf[i] = b
 		}
 		c := MakeTypeClassRef(t.TCRef.TypeClass, t.TCRef.Place, nf...)
-		c.TCRef.LocalBindings = t.TCRef.LocalBindings
 		return f(c)
 	} else if t.IsHVariable() {
 		fn := make([]Type, len(t.HVariable.Params))
@@ -418,16 +416,6 @@ func (t Type) Rewrite(f func(Type) (Type, error)) (Type, error) {
 		return f(MakeHierarchicalVar(t.HVariable.Root, fn...))
 	}
 	return f(t)
-}
-
-func (t Type) ApplyBindings(bindings []TCBinding) Type {
-	nt, _ := t.Rewrite(func(t Type) (Type, error) {
-		if t.IsTypeClassRef() {
-			t.TCRef.LocalBindings = bindings
-		}
-		return t, nil
-	})
-	return nt
 }
 
 func (s *Structure) GetField(name string) *Type {
@@ -447,20 +435,20 @@ func (s *Structure) FieldTypes() []Type {
 	return res
 }
 
-func (t Type) Instantiate(types []Type) Type {
+func (t Type) Instantiate(types []Type, resolver BindingResolver) Type {
 	if s := t.Structure; s != nil {
-		return Type{Structure: s.Instantiate(types)}
+		return Type{Structure: s.Instantiate(types, resolver)}
 	}
 	if c := t.Constructor; c != nil {
-		return c.Underlying.Instantiate(types)
+		return c.Underlying.Instantiate(types, resolver)
 	}
 	return t
 }
 
-func (s *Structure) Instantiate(types []Type) *Structure {
+func (s *Structure) Instantiate(types []Type, resolver BindingResolver) *Structure {
 	subs := MakeSubstitutions()
 	for i, t := range types {
-		err := subs.Update(s.OrginalVars[i], t)
+		err := subs.Update(s.OrginalVars[i], t, resolver)
 		if err != nil {
 			panic(err)
 		}
@@ -473,7 +461,7 @@ func (s *Structure) Instantiate(types []Type) *Structure {
 
 	fields := make([]SField, len(s.Fields))
 	for i, f := range s.OriginalFields {
-		fields[i] = SField{Name: f.Name, Type: subs.Apply(f.Type)}
+		fields[i] = SField{Name: f.Name, Type: subs.Apply(f.Type, resolver)}
 	}
 
 	return &Structure{
