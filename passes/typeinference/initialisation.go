@@ -116,10 +116,6 @@ func rewriteNamedType(from Type, ctx *ast.VisitContext) (Type, error) {
 	})
 }
 
-func rewriteNamed(exp *ast.Exp) error {
-	return exp.RewriteTypes(rewriter)
-}
-
 func initialiseVariables(exp *ast.Exp) error {
 	err := exp.Visit(func(v *ast.Exp, ctx *ast.VisitContext) error {
 		if v.Def != nil {
@@ -132,144 +128,8 @@ func initialiseVariables(exp *ast.Exp) error {
 					p.Type = MakeVariable()
 				}
 			}
-		} else if v.Block != nil {
-			ctx = ctx.SubBlock(v.Block)
-			err := v.Block.CheckValueCycles()
-			if err != nil {
-				return err
-			}
-			names, err := topologicalSort(v.Block.TypeDefs)
-			if err != nil {
-				return err
-			}
-			for _, name := range names {
-				tdef := v.Block.TypeDefs[name]
-				if err := rewriteNamedTypeDef(name, tdef, ctx); err != nil {
-					return err
-				}
-			}
-			for _, name := range names {
-				value := v.Block.TypeDefs[name]
-				free := map[string]Type{}
-				used := map[string]bool{}
-				index := map[string]int{}
-				freeFields := make([]Type, len(value.FreeVariables))
-				for i, n := range value.FreeVariables {
-					free[n] = MakeVariable()
-					used[n] = false
-					index[n] = i
-					freeFields[i] = free[n]
-					d := ctx.BlockOf(n)
-					if d != nil || v.Block.Assignments[n] != nil || v.Block.TypeDefs[n] != nil {
-						return errors.New("redefinition of " + n)
-					}
-				}
-
-				if value.Struct != nil {
-					for _, f := range value.Struct.Fields {
-						typ := f.Type
-						typ, err = resolveTypeVariables(typ, free, used)
-						if err != nil {
-							return err
-						}
-						f.Type = typ
-					}
-
-					value.Struct.Type.Structure.TypeArguments = make([]Type, len(value.FreeVariables))
-					for i, n := range value.FreeVariables {
-						value.Struct.Type.Structure.TypeArguments[i] = free[n]
-					}
-
-					typ, err := resolveTypeVariables(value.Struct.Type, free, used)
-					if err != nil {
-						return err
-					}
-					value.Struct.Type = types.MakeStructure(name, typ.Structure.Fields...)
-				} else if value.TypeClass != nil {
-					for fname, f := range value.TypeClass.Functions {
-						if ctx.BlockOf(fname) != nil {
-							return errors.New("redefinition of " + fname)
-						}
-
-						nt, err := f.TypeDecl.Rewrite(func(a Type) (Type, error) {
-							if a.IsNamed() && free[a.Named.Name].IsDefined() {
-								used[a.Named.Name] = true
-								idx := index[a.Named.Name]
-
-								it := free[a.Named.Name]
-								if len(a.Named.TypeArguments) > 0 {
-									rws := make([]Type, len(a.Named.TypeArguments))
-									for i, t := range a.Named.TypeArguments {
-										nt, err := resolveTypeVariables(t, free, used)
-										if err != nil {
-											return Type{}, err
-										}
-										rws[i] = nt
-									}
-
-									it = types.MakeHierarchicalVar(it.Variable, rws...)
-								}
-
-								ff := make([]Type, len(freeFields))
-								for i, f := range freeFields {
-									ff[i] = f
-								}
-								ff[idx] = it
-
-								nt := types.MakeTypeClassRef(name, idx, ff...)
-								return nt, nil
-							}
-							return a, nil
-						})
-						if err != nil {
-							return err
-						}
-						f.TypeDecl = nt
-
-						nfree := map[string]Type{}
-						nused := map[string]bool{}
-						for n, t := range free {
-							nfree[n] = t
-							nused[n] = used[n]
-						}
-						for _, n := range f.FreeVariables {
-							if nfree[n].IsDefined() {
-								return errors.New("redefinition of " + n)
-							}
-							nfree[n] = types.MakeVariable()
-						}
-
-						nt, err = resolveTypeVariables(f.TypeDecl, nfree, nused)
-						if err != nil {
-							return err
-						}
-						f.TypeDecl = nt
-
-						for n := range nused {
-							if free[n].IsDefined() {
-								used[n] = used[n] || nused[n]
-							}
-						}
-
-						if v.Block.TCFunctions == nil {
-							v.Block.TCFunctions = map[string]*ast.TypeDefinition{}
-						}
-						v.Block.TCFunctions[fname] = value
-					}
-				} else {
-					typ, err := resolveTypeVariables(value.TypeDecl, free, used)
-					if err != nil {
-						return err
-					}
-					value.TypeDecl = typ
-				}
-				value.VaribleMap = free
-				for n, b := range used {
-					if !b {
-						return errors.New("unused free type " + n)
-					}
-				}
-			}
+		} else if block := v.Block; block != nil {
+			return initialiseBlock(block, ctx)
 		}
 		return nil
 	})
@@ -278,7 +138,148 @@ func initialiseVariables(exp *ast.Exp) error {
 		return err
 	}
 
-	return rewriteNamed(exp)
+	return exp.RewriteTypes(nameRewriter)
+}
+
+func initialiseBlock(block *ast.Block, ctx *ast.VisitContext) error {
+	ctx = ctx.SubBlock(block)
+	err := block.CheckValueCycles()
+	if err != nil {
+		return err
+	}
+	names, err := topologicalSort(block.TypeDefs)
+	if err != nil {
+		return err
+	}
+	for _, name := range names {
+		tdef := block.TypeDefs[name]
+		if err := rewriteNamedTypeDef(name, tdef, ctx); err != nil {
+			return err
+		}
+	}
+	for _, name := range names {
+		value := block.TypeDefs[name]
+		free := map[string]Type{}
+		used := map[string]bool{}
+		index := map[string]int{}
+		freeFields := make([]Type, len(value.FreeVariables))
+		for i, n := range value.FreeVariables {
+			free[n] = MakeVariable()
+			used[n] = false
+			index[n] = i
+			freeFields[i] = free[n]
+			d := ctx.BlockOf(n)
+			if d != nil || block.Assignments[n] != nil || block.TypeDefs[n] != nil {
+				return errors.New("redefinition of " + n)
+			}
+		}
+
+		if value.Struct != nil {
+			for _, f := range value.Struct.Fields {
+				typ := f.Type
+				typ, err = resolveTypeVariables(typ, free, used)
+				if err != nil {
+					return err
+				}
+				f.Type = typ
+			}
+
+			value.Struct.Type.Structure.TypeArguments = make([]Type, len(value.FreeVariables))
+			for i, n := range value.FreeVariables {
+				value.Struct.Type.Structure.TypeArguments[i] = free[n]
+			}
+
+			typ, err := resolveTypeVariables(value.Struct.Type, free, used)
+			if err != nil {
+				return err
+			}
+			value.Struct.Type = types.MakeStructure(name, typ.Structure.Fields...)
+		} else if value.TypeClass != nil {
+			for fname, f := range value.TypeClass.Functions {
+				if ctx.BlockOf(fname) != nil {
+					return errors.New("redefinition of " + fname)
+				}
+
+				nt, err := f.TypeDecl.Rewrite(func(a Type) (Type, error) {
+					if a.IsNamed() && free[a.Named.Name].IsDefined() {
+						used[a.Named.Name] = true
+						idx := index[a.Named.Name]
+
+						it := free[a.Named.Name]
+						if len(a.Named.TypeArguments) > 0 {
+							rws := make([]Type, len(a.Named.TypeArguments))
+							for i, t := range a.Named.TypeArguments {
+								nt, err := resolveTypeVariables(t, free, used)
+								if err != nil {
+									return Type{}, err
+								}
+								rws[i] = nt
+							}
+
+							it = types.MakeHierarchicalVar(it.Variable, rws...)
+						}
+
+						ff := make([]Type, len(freeFields))
+						for i, f := range freeFields {
+							ff[i] = f
+						}
+						ff[idx] = it
+
+						nt := types.MakeTypeClassRef(name, idx, ff...)
+						return nt, nil
+					}
+					return a, nil
+				})
+				if err != nil {
+					return err
+				}
+				f.TypeDecl = nt
+
+				nfree := map[string]Type{}
+				nused := map[string]bool{}
+				for n, t := range free {
+					nfree[n] = t
+					nused[n] = used[n]
+				}
+				for _, n := range f.FreeVariables {
+					if nfree[n].IsDefined() {
+						return errors.New("redefinition of " + n)
+					}
+					nfree[n] = types.MakeVariable()
+				}
+
+				nt, err = resolveTypeVariables(f.TypeDecl, nfree, nused)
+				if err != nil {
+					return err
+				}
+				f.TypeDecl = nt
+
+				for n := range nused {
+					if free[n].IsDefined() {
+						used[n] = used[n] || nused[n]
+					}
+				}
+
+				if block.TCFunctions == nil {
+					block.TCFunctions = map[string]*ast.TypeDefinition{}
+				}
+				block.TCFunctions[fname] = value
+			}
+		} else {
+			typ, err := resolveTypeVariables(value.TypeDecl, free, used)
+			if err != nil {
+				return err
+			}
+			value.TypeDecl = typ
+		}
+		value.VaribleMap = free
+		for n, b := range used {
+			if !b {
+				return errors.New("unused free type " + n)
+			}
+		}
+	}
+	return nil
 }
 
 func resolveTypeVariables(typ types.Type, free map[string]Type, used map[string]bool) (types.Type, error) {
@@ -355,7 +356,7 @@ func resolveNamed(name string, ctx *ast.VisitContext) (*ast.TypeDefinition, erro
 	return tdef, nil
 }
 
-func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
+func nameRewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 	if t.IsNamed() {
 		tdef, err := resolveNamed(t.Named.Name, ctx)
 		if err != nil {
@@ -364,15 +365,10 @@ func rewriter(t Type, ctx *ast.VisitContext) (Type, error) {
 		if len(t.Named.TypeArguments) != 0 && len(tdef.FreeVariables) != len(t.Named.TypeArguments) {
 			return Type{}, errors.New("wrong number of type arguments for " + t.Named.Name)
 		}
-		var resolved types.Type
-		if tdef.Struct != nil {
-			resolved = tdef.Struct.Type
-		} else {
-			resolved = tdef.Type()
-		}
+		resolved := tdef.Type()
 		unifier := MakeSubstitutions()
 		for i, ta := range t.Named.TypeArguments {
-			nt, err := rewriter(ta, ctx)
+			nt, err := nameRewriter(ta, ctx)
 			if err != nil {
 				return Type{}, err
 			}
